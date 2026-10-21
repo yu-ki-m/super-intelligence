@@ -1,0 +1,100 @@
+{
+  "id": "F-003",
+  "req": "REQ-020",
+  "judgment": "設計欠陥",
+  "name": "版を比べてから更新するまでの間に別の更新が確定すると、先の更新が上書きされる",
+  "event": "担当者Aと管理者Bが同じ版からほぼ同時に保存すると、後から実行された更新が、先の更新を上書きする。一括更新の途中で単票の保存が確定した場合も、一括更新がその更新を上書きする。どちらも利用者には知らされない。",
+  "cause": "保存のときに版を比べるが、その後の更新のSQLに版の条件がない。一括更新は版を比べない。設計書には、同時更新の扱いの記載がない。",
+  "cause_at": [
+    {
+      "where": "src/ticket/TicketUpdateService.ts:64",
+      "note": "版の比較"
+    },
+    {
+      "where": "src/ticket/TicketRepository.ts:30-35",
+      "note": "update() のSQL"
+    },
+    {
+      "where": "src/ticket/BulkUpdateJob.ts:29-34",
+      "note": "一括更新の各件の更新"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "更新を確定する時点の版が、編集を始めたとき（一括更新では各件を読んだとき）と同じ場合だけ更新し、違えば競合として返す。",
+    "diffs": [
+      {
+        "where": "src/ticket/TicketRepository.ts:30-35",
+        "note": "update()",
+        "code": "   async update(tx: Tx, t: Ticket): Promise<void> {\n-    await tx.query(\n+    const result = await tx.query(\n       `UPDATE tickets SET title = $2, priority = $3, assignee_id = $4,\n-         version = version + 1 WHERE id = $1`,\n-      [t.id, t.title, t.priority, t.assigneeId]);\n+         version = version + 1 WHERE id = $1 AND version = $5`,\n+      [t.id, t.title, t.priority, t.assigneeId, t.version]);\n+    if (result.rowCount === 0) throw new ConflictError();\n   }"
+      },
+      {
+        "where": "docs/design/ticket-update.md:67",
+        "note": "「4.4 同時に更新された場合」（新設。設計書に書いておくとよい）",
+        "code": "+### 4.4 同時に更新された場合\n+\n+更新は、編集を始めたときの版と同じ場合だけ確定する。\n+版が違えば更新せず、競合として利用者に返す。"
+      }
+    ],
+    "note": "単票の保存と一括更新は、どちらもこの関数で更新するため、1か所の修正で両方に効く。"
+  },
+  "repro": [
+    "版3のチケットを1件用意する。",
+    "同じ版（版3）の保存要求を2つ送り、1つ目を `src/ticket/TicketUpdateService.ts:64` の直後で止める（デバッガか、テスト用の待ちを入れる）。",
+    "止めている間に2つ目を最後まで実行し、その後に1つ目を再開する。",
+    "結果：両方とも成功し、1つ目の内容だけが残る。期待：1つ目は競合で拒否され、2つ目の内容が残る。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「同じ版からの競合更新では、後続の保存を拒否する」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:18"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "同時更新の扱いの記載がない（1〜8章を確かめた）。",
+      "where": [
+        "docs/design/ticket-update.md"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "保存のときに、要求の版と今の版を比べる。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:64"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "その後の更新のSQLに、版の条件がない。",
+      "where": [
+        "src/ticket/TicketRepository.ts:30-35"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "チケットを読むときに、行のロックを取らない。",
+      "where": [
+        "src/ticket/TicketRepository.ts:20-24"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "一括更新は、読んだ版を比べずに更新する。",
+      "where": [
+        "src/ticket/BulkUpdateJob.ts:29-34"
+      ]
+    },
+    {
+      "label": "共通仕様",
+      "text": "「確定の範囲と排他は、各機能の設計で定める」。共通の排他はない。",
+      "where": [
+        "docs/common/api-common.md:60-72"
+      ]
+    },
+    {
+      "label": "前提（未確認）",
+      "text": "データベースの分離レベルは READ COMMITTED（多くのデータベースの既定）とした。設定は読んでいない。直列化（SERIALIZABLE）の設定なら、後の更新は失敗し、上書きは起きない。"
+    }
+  ]
+}

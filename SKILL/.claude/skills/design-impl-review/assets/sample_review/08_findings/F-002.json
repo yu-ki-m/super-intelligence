@@ -1,0 +1,54 @@
+{
+  "id": "F-002",
+  "req": "REQ-019",
+  "judgment": "設計未定義",
+  "name": "管理者による再オープンが、変更禁止の例外かが決まっていない",
+  "event": "管理者が完了済みのチケットを「対応中に戻す」と、対応中に戻る。これが要件に合っているかを判断できない。",
+  "cause": "要件の「変更」に、状態を戻す操作が含まれるかが書かれていない。設計書とコードは、管理者に再オープンを許している。",
+  "cause_at": [
+    {
+      "where": "docs/requirements/ticket-requirements.md:12",
+      "note": "要求一覧"
+    },
+    {
+      "where": "docs/design/ticket-update.md:96",
+      "note": "「8. 状態遷移」"
+    },
+    {
+      "where": "src/ticket/TicketStateService.ts:15-30",
+      "note": "reopen()"
+    }
+  ],
+  "fix": {
+    "label": "確認したいこと",
+    "text": "再オープンを「変更」に含めるか、変更禁止の例外として要件に加えるかを決めてほしい。例外にするなら、再オープンできる役割と、そのときの履歴・通知の扱いも決めてほしい。"
+  },
+  "repro": [
+    "状態が「完了」のチケットを1件用意する。",
+    "管理者として「対応中に戻す」を実行する（`POST /tickets/{id}/reopen`）。",
+    "結果：状態が「対応中」に戻る。期待：要件の判断による。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「完了状態のチケットは更新できない」。状態を戻す操作が含まれるかは書かれていない。",
+      "where": [
+        "docs/requirements/ticket-requirements.md:12"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「管理者は完了から対応中へ戻せる」。",
+      "where": [
+        "docs/design/ticket-update.md:96"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "`reopen()` は管理者に許し、`canUpdate()` を通らない。",
+      "where": [
+        "src/ticket/TicketStateService.ts:15-30"
+      ]
+    }
+  ]
+}

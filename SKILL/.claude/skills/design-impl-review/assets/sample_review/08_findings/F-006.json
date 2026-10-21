@@ -1,0 +1,63 @@
+{
+  "id": "F-006",
+  "req": "REQ-044",
+  "judgment": "判断保留",
+  "name": "閲覧権限のない人に通知が届くかが分からない",
+  "event": "ウォッチャーが異動して閲覧権限を失った後も、宛先として通知サービスに渡される。通知サービスが絞り込まなければ、閲覧権限のない人にチケットの内容が届く（未確認）。",
+  "cause": "設計書が宛先の絞り込みを通知サービスに任せ、コードはウォッチャー全員を渡している。通知サービスの仕様とコードを入手していないため、絞り込むかが分からない。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:85-87",
+      "note": "「6. 通知」"
+    },
+    {
+      "where": "src/ticket/TicketUpdateService.ts:80",
+      "note": "通知を送る箇所"
+    },
+    "通知サービスの仕様とコード（別のリポジトリ。入手していない）"
+  ],
+  "fix": {
+    "label": "確認したいこと",
+    "text": "通知サービスの仕様（版を含む）を提供してほしい。宛先を閲覧権限で絞るか、絞るならどの時点の権限か、通知の本文にどの項目を含めるかを確かめたい。",
+    "diffs": [
+      {
+        "where": "src/ticket/TicketUpdateService.ts:80",
+        "note": "通知を送る箇所",
+        "code": "-    await this.notifyClient.send(ticket, ticket.watchers);\n+    const recipients = await this.acl.filterCanView(ticket.id, ticket.watchers);\n+    await this.notifyClient.send(ticket, recipients);"
+      }
+    ],
+    "diff_label": "通知サービスが絞り込まない場合の修正例："
+  },
+  "repro": [
+    "ウォッチャーにいる利用者Bから、チケットの閲覧権限を外す。",
+    "担当者がそのチケットを更新する。",
+    "通知サービスの送信の記録で、利用者Bに送られたかを確かめる。期待：利用者Bには送られない。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「通知は更新の確定後に、閲覧権限のある宛先にだけ送る」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:20"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「宛先はチケットのウォッチャー。宛先の絞り込みは通知サービスが行う」",
+      "where": [
+        "docs/design/ticket-update.md:85-87"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "ウォッチャー全員を、絞り込まずに通知サービスへ渡す。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:80"
+      ]
+    },
+    {
+      "label": "分からないこと",
+      "text": "通知サービスが絞り込むか。仕様とコードを入手していない。"
+    }
+  ]
+}

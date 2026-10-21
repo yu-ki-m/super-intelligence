@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "role": "investigator",
+  "taskId": "/report/investigate-9ab4e70",
+  "commitHash": "9ab4e70",
+  "sourceKind": "commit",
+  "targetRef": "9ab4e70000000000000000000000000000000000",
+  "comparisonBase": "4e91c2a000000000000000000000000000000000",
+  "status": "completed",
+  "reviewUnitSha256": "afc9533aeb942987e8eba51b7999e677461e439434140c66740dde45f4bc35a6"
+}

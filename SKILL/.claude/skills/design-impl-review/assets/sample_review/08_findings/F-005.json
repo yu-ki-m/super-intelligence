@@ -1,0 +1,81 @@
+{
+  "id": "F-005",
+  "req": "REQ-051",
+  "judgment": "設計欠陥",
+  "name": "履歴の登録だけが失敗しても成功が返り、履歴のない更新が残る",
+  "event": "本体の更新の後に履歴の登録が失敗すると、本体だけが確定し、利用者には成功が返る。失敗は警告のログにしか残らず、監査で変更の経緯を確かめられない。",
+  "cause": "設計書が本体と履歴を別々のトランザクションで保存すると定め、コードもそのとおり履歴をトランザクションの外で登録し、失敗を `catch` で握りつぶしている。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:64-66",
+      "note": "「4.3 本体と履歴の保存」"
+    },
+    {
+      "where": "src/ticket/TicketUpdateService.ts:78-84",
+      "note": "update() の保存"
+    },
+    {
+      "where": "src/ticket/TicketUpdateService.ts:85-88",
+      "note": "update() の catch"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "本体と履歴を同じトランザクションで保存し、どちらかが失敗したら両方とも保存せず、利用者に失敗を返す。",
+    "diffs": [
+      {
+        "where": "docs/design/ticket-update.md:64-66",
+        "note": "「4.3 本体と履歴の保存」",
+        "code": "-本体と履歴は、それぞれのトランザクションで保存する。\n+本体と履歴は、同じトランザクションで保存する。\n+どちらかの保存が失敗したら、両方とも保存せず、利用者に失敗を返す。"
+      },
+      {
+        "where": "src/ticket/TicketUpdateService.ts:78-87",
+        "note": "update()",
+        "code": "     await this.db.transaction(async tx => {\n       await this.repo.update(tx, ticket);\n+      await this.historyRepo.insert(tx, toHistory(user, ticket, body));\n       await this.notifyClient.send(ticket, ticket.watchers);\n     });\n-    try {\n-      await this.historyRepo.insert(toHistory(user, ticket, body));\n-    } catch (e) {\n-      logger.warn(\"history insert failed\", e);\n-    }"
+      }
+    ],
+    "note": "同じ箇所の通知の位置は、[[REQ-043]]の修正で変える。両方を直すときは一度に直す。"
+  },
+  "repro": [
+    "テストで、`historyRepo.insert` が例外を投げるようにする。",
+    "チケットの優先度を変えて保存する。",
+    "結果：成功が返り、本体だけが変わり、履歴は増えない。期待：失敗が返り、本体も変わらない。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「本体と履歴を一体で確定する」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:16"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「本体と履歴は、それぞれのトランザクションで保存する」",
+      "where": [
+        "docs/design/ticket-update.md:64-66"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "本体はトランザクションの中で更新し、履歴はその外で登録する。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:78-84"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "履歴の失敗は `catch` で警告のログにするだけで、成功を返す。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:85-88"
+      ]
+    },
+    {
+      "label": "共通仕様",
+      "text": "「確定の範囲と排他は、各機能の設計で定める」。共通の保証はない。",
+      "where": [
+        "docs/common/api-common.md:60-72"
+      ]
+    }
+  ]
+}

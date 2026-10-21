@@ -1,0 +1,15 @@
+{
+  "name": "capture-screen-mockup",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "single-file-core": "1.6.28",
+    "playwright": "1.58.2",
+    "esbuild": "0.25.12"
+  }
+}

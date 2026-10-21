@@ -1,0 +1,74 @@
+{
+  "id": "F-009",
+  "req": "REQ-037",
+  "judgment": "設計欠陥",
+  "name": "一括更新で、どの件が更新されたかを利用者が確かめられない",
+  "event": "一括更新を始めた後は、件ごとの結果を確かめる方法がない。途中で1件が失敗すると、失敗した件を特定できず、全件をやり直すと成功した件に履歴と通知が二重に作られる。画面を閉じても処理は続くが、結果は分からない。",
+  "cause": "設計書にもコードにも、結果を利用者に見せる仕組みがない。コードは結果をログに出すだけで、結果を返すAPIもない。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:78-80",
+      "note": "「5.2 処理と失敗時」"
+    },
+    {
+      "where": "src/ticket/BulkUpdateJob.ts:42",
+      "note": "結果のログ"
+    },
+    {
+      "where": "src/ticket/TicketController.ts:70-76",
+      "note": "一括更新の受付"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "件ごとの結果をサーバーに保存し、利用者が結果画面で確かめて、失敗と未処理の件だけをやり直せる。",
+    "diffs": [
+      {
+        "where": "docs/design/ticket-update.md:78-80",
+        "note": "「5.2 処理と失敗時」",
+        "code": " 1件ずつ順に更新し、失敗した時点で止める。\n+件ごとの結果（成功・失敗・未処理）を、一括更新の結果として保存する。\n+利用者は、一括更新の結果画面で件ごとの結果を確かめ、失敗と未処理の件だけをやり直せる。"
+      },
+      {
+        "where": "src/ticket/BulkUpdateJob.ts:42",
+        "note": "run()",
+        "code": "-    logger.info(`bulk job ${jobId} done: failed=${failed.length}`);\n+    await this.resultRepo.save(jobId, { succeeded, failed, notProcessed });"
+      }
+    ],
+    "note": "あわせて、結果を返すAPI（例：`GET /bulk-jobs/{jobId}`）と結果画面を作る。"
+  },
+  "repro": [
+    "3件を選んで一括更新する。",
+    "結果を確かめる画面やAPIを探す。",
+    "結果：ない（応答は、受け付けたことだけ）。期待：件ごとの成否を確かめられる。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「一括更新では、件ごとの成否を利用者が確認できる」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:24"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「1件ずつ順に更新し、失敗した時点で止める」。結果を利用者に見せる方法は書かれていない。",
+      "where": [
+        "docs/design/ticket-update.md:78-80"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "結果をログに出すだけで、保存しない。",
+      "where": [
+        "src/ticket/BulkUpdateJob.ts:42"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "一括更新はジョブとして積んだ時点で応答を返し、結果を返すAPIはない。",
+      "where": [
+        "src/ticket/TicketController.ts:70-76"
+      ]
+    }
+  ]
+}

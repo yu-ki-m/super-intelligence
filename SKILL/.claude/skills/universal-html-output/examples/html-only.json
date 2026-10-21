@@ -1,0 +1,9 @@
+{
+  "title": "HTMLのみの出力",
+  "blocks": [
+    {
+      "type": "html",
+      "html": "<article><h2>表を使わないページ</h2><p>任意の <strong>HTML</strong> だけで構成できます。</p></article>"
+    }
+  ]
+}

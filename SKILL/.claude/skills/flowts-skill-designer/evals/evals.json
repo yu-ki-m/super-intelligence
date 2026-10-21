@@ -1,0 +1,38 @@
+{
+  "skill_name": "flowts-skill-designer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "~/.claude/skills/diff-decision-trees のスキルを、FlowTS で表して図にしてほしい。FlowTS の仕様は C:/Users/yu_ki/Desktop/workspace/develop｜work/20.private-wiki/private-wiki/5.シンプルナレッジストック/2026_1017_0011｜自作_AI向けワークフロー言語_FlowTS.md にある。flow.ts を先に作って、そのあと HTML で図にして。手順に抜けや、あいまいな所があれば教えて。",
+      "expected_output": "diff-decision-trees の手順を表した .flow.ts と、それを図にした HTML。抜け・あいまいな所の報告。スキル本体は変えない。",
+      "files": [],
+      "assertions": [
+        "outputs に .flow.ts がある",
+        ".flow.ts が FlowTS の検査でエラー0件",
+        "図の HTML がある",
+        "flow.ts にステップ（ラベル付きブロック）が3つ以上あり、全ステップ名が HTML に出ている",
+        "flow.ts が check_coverage.py の実行と独立検証を表している",
+        "flow.ts で担当を使い分けている（tool と model の実施がある）",
+        "diff-decision-trees のファイルを変更していない",
+        "report.md で抜け・あいまいな所を挙げている"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "GitHub で自分にレビュー依頼が来ている PR を集めて、急ぎの順に並べた一覧（Markdown）を作るスキルを新しく作りたい。gh CLI は使える。PR ごとに、変更行数・依頼されてからの日数・CI の状態・ラベル（urgent など）を見て優先度を決めたい。取れなかった情報は推測で埋めず「取得できず」と書く。FlowTS（仕様: C:/Users/yu_ki/Desktop/workspace/develop｜work/20.private-wiki/private-wiki/5.シンプルナレッジストック/2026_1017_0011｜自作_AI向けワークフロー言語_FlowTS.md）で手順を設計して図で見せてから、SKILL.md に起こして。確認なしで最後まで進めてよい。スキル名は review-queue。",
+      "expected_output": "review-queue の設計 .flow.ts、図の HTML、flow.ts から書き起こした SKILL.md（flow/ に設計図を同梱）。",
+      "files": [],
+      "assertions": [
+        "review-queue/SKILL.md に frontmatter（name: review-queue と description）がある",
+        "review-queue の中に .flow.ts がある",
+        ".flow.ts が FlowTS の検査でエラー0件",
+        "review-queue の中に図の HTML がある",
+        ".flow.ts を SKILL.md より先に作った（作成時刻）",
+        "SKILL.md に gh の具体的なコマンドがある",
+        "SKILL.md に優先度の4要素（変更行数・日数・CI・ラベル）がすべて出てくる",
+        "SKILL.md に「取得できず」の扱いがある",
+        "flow.ts で gh の実行を tool の担当にしている"
+      ]
+    }
+  ]
+}

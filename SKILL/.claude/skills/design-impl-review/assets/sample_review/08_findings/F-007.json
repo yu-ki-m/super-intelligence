@@ -1,0 +1,58 @@
+{
+  "id": "F-007",
+  "req": "REQ-043",
+  "judgment": "実装の誤り",
+  "name": "確定していない更新が通知される",
+  "event": "通常の保存でも、通知がコミットより先に送られる。通知を見てすぐ開いた受信者には、更新前の内容が表示されることがある。通知を送った後にコミットが失敗すると、更新されていないチケットの通知が届く。",
+  "cause": "設計書は正しいが、コードがトランザクションの中で通知を送っている（実装の誤り）。",
+  "cause_at": [
+    {
+      "where": "src/ticket/TicketUpdateService.ts:78-81",
+      "note": "update()"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "通知は、コミットが成功した後に送る。",
+    "diffs": [
+      {
+        "where": "src/ticket/TicketUpdateService.ts:78-81",
+        "note": "update()",
+        "code": "     await this.db.transaction(async tx => {\n       await this.repo.update(tx, ticket);\n-      await this.notifyClient.send(ticket, ticket.watchers);\n     });\n+    await this.notifyClient.send(ticket, ticket.watchers);"
+      }
+    ],
+    "note": "送信だけが失敗した通知を送り直すかは、設計書にもコードにもないため、あわせて決めるとよい。"
+  },
+  "repro": [
+    "テストで、通知を送った後にDBのエラーが起きるようにする。",
+    "チケットを保存する。",
+    "結果：通知が送られ、チケットは変わらない。期待：通知は送られない。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「通知は更新の確定後に、閲覧権限のある宛先にだけ送る」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:20"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「権限を判定し、本体を更新し、履歴を登録し、コミットした後に通知を送る」",
+      "where": [
+        "docs/design/ticket-update.md:52-54"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "トランザクションに渡した関数の中で、通知を送る。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:78-81"
+      ]
+    },
+    {
+      "label": "前提（未確認）",
+      "text": "`db.transaction()` は、渡した関数が終わった後にコミットするとした。DBの共通の部品のコードは読んでいない。"
+    }
+  ]
+}

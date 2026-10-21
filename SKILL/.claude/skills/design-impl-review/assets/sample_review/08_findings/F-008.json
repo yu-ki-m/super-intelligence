@@ -1,0 +1,81 @@
+{
+  "id": "F-008",
+  "req": "REQ-023",
+  "judgment": "実装の誤り",
+  "name": "保存ボタンを2回押すと、2回処理されることがある",
+  "event": "保存ボタンを素早く2回押すと、別々の要求IDで2回送られる。2回とも処理されると、同じ内容の履歴と通知が2件ずつ作られる。2回目が拒否されると、1回目は成功したのにエラーが表示される。",
+  "cause": "設計書は保存中にボタンを無効にすると定めているが、コードは完了状態のときしか無効にせず、押すたびに新しい要求IDを作っている（実装の誤り）。",
+  "cause_at": [
+    {
+      "where": "web/src/pages/TicketEditPage.tsx:142",
+      "note": "保存ボタン"
+    },
+    {
+      "where": "web/src/pages/TicketEditPage.tsx:118",
+      "note": "onSave() の要求ID"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "保存中は保存ボタンを押せないようにし、1回の操作から送る要求を1回にする。",
+    "diffs": [
+      {
+        "where": "web/src/pages/TicketEditPage.tsx:112-124",
+        "note": "onSave()",
+        "code": "+  const [saving, setSaving] = useState(false);\n   const onSave = async () => {\n+    if (saving) return;\n+    setSaving(true);\n     const requestId = crypto.randomUUID();\n     …\n+    setSaving(false);\n   };"
+      },
+      {
+        "where": "web/src/pages/TicketEditPage.tsx:142",
+        "note": "保存ボタン",
+        "code": "-  <Button disabled={ticket.status === \"done\"} onClick={onSave}>保存</Button>\n+  <Button disabled={saving || ticket.status === \"done\"} onClick={onSave}>保存</Button>"
+      }
+    ],
+    "note": "失敗したときにも `saving` を戻すよう、`try` と `finally` で囲む。"
+  },
+  "repro": [
+    "編集画面で優先度を変える。",
+    "保存ボタンを素早く2回押す（ブラウザの開発者ツールで通信を遅くすると再現しやすい）。",
+    "結果：要求が2回送られる（開発者ツールの通信の記録で確かめる）。期待：1回だけ送られる。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「同じ保存操作による要求を、重複して処理しない（二重送信・再送を含む）」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:14"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「保存中は保存ボタンを無効にし、二重に送信しない」。",
+      "where": [
+        "docs/design/ticket-update.md:19"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "保存ボタンを無効にするのは、完了状態のときだけ。",
+      "where": [
+        "web/src/pages/TicketEditPage.tsx:142"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "押すたびに新しい要求IDを作る。",
+      "where": [
+        "web/src/pages/TicketEditPage.tsx:118"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "共通の重複防止は、要求IDが同じ要求だけをまとめる。",
+      "where": [
+        "src/common/IdempotencyMiddleware.ts:20-58"
+      ]
+    },
+    {
+      "label": "起きる条件",
+      "text": "2回とも処理されるのは、2回目の要求が、1回目の更新が確定する前に版の比較（`src/ticket/TicketUpdateService.ts:64`）を通ったとき。1回目の確定の後なら、2回目は版の違いで拒否される。"
+    }
+  ]
+}

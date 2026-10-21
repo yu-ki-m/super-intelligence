@@ -1,0 +1,37 @@
+{
+  "title": "サンプル：汎用的な情報整理",
+  "banner": "サンプルデータ：通常テキストとHTML装飾を併用",
+  "meta": [{"label": "対象", "value": "サンプル"}, {"label": "形式", "value": "階層テーブル"}],
+  "legend": {"html": "<strong>強調</strong>や<span class='rich-red'>赤字</span>を利用でき、各セルは改行可能です。"},
+  "columns": [
+    {"key": "name", "label": "項目"},
+    {"key": "content1", "label": "内容1"},
+    {"key": "content2", "label": "内容2"},
+    {"key": "label", "label": "ラベル", "kind": "badge"},
+    {"key": "refs", "label": "参照", "kind": "chips"}
+  ],
+  "rows": [
+    {"name": "分類A", "children": [
+      {"name": "中分類A", "children": [
+        {"name": "項目A\n（2行目）", "cells": {
+          "content1": "通常の文章\n次の文章",
+          "content2": {"html": "<strong>太字</strong>と<span class='rich-red'>赤字</span>、<br><em>斜体</em>を組み合わせます。"},
+          "label": {"text": "例", "style": "st-wip"},
+          "refs": [{"text": "参考資料", "title": "架空の資料名を示すサンプル", "style": "j-ok"}]
+        }}
+      ]}
+    ]},
+    {"name": "分類B", "children": [
+      {"name": "分類Bの小分類", "children": [
+        {"name": "さらに深い分類", "children": [
+          {"name": "項目B", "cells": {
+            "content1": {"html": "<p>段落1</p><p>段落2</p>"},
+            "content2": {"html": "<ul><li>要素1</li><li>要素2</li></ul>"},
+            "label": "サンプル",
+            "refs": []
+          }}
+        ]}
+      ]}
+    ]}
+  ]
+}

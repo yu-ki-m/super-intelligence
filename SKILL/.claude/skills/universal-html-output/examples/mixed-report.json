@@ -1,0 +1,157 @@
+{
+  "title": "レイアウト構成サンプル",
+  "banner": "サンプル：自由HTMLと階層テーブルを自由な順序で配置",
+  "meta": [
+    {
+      "label": "形式",
+      "value": "HTML（単一ファイル）"
+    },
+    {
+      "label": "構成",
+      "value": "自由HTML → テーブル → 自由HTML → テーブル"
+    }
+  ],
+  "legend": "表は列幅をドラッグで調整できます。複数表は独立して操作できます。",
+  "head_html": "<style>\n  .demo-lead { margin: 0 0 16px; font-size: 14px; line-height: 1.75; }\n  .demo-panels { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; margin:10px 0 24px; }\n  .demo-panels article { background:var(--surface); border:1px solid var(--border); padding:15px 17px; border-radius:8px; }\n  .demo-panels h3 { margin:0 0 6px; font-size:12px; color:var(--muted); }\n  .demo-panels strong { font-size:23px; line-height:1.3; }\n  .demo-feature { padding:16px 20px; border:1px solid var(--border); border-radius:8px; background:var(--surface); margin: 2px 0 22px; }\n  .demo-feature h2 { font-size:15px; margin:0 0 10px; }\n  .demo-feature svg { width:100%; max-width:640px; height:auto; }\n  .demo-feature button { font:inherit; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); padding:7px 12px; border-radius:6px; cursor:pointer; }\n  .demo-feature output { margin-left:10px; font-weight:700; }\n  .demo-last { margin:12px 0 0; padding:12px 16px; border-left:4px solid var(--accent); background:var(--accent-bg); }\n</style>",
+  "blocks": [
+    {
+      "type": "html",
+      "html": "<section aria-label=\"概要\">\n<p class=\"demo-lead\">これは <strong>単一の表に限定しない</strong> レポートの例です。<span style=\"color:var(--red)\">色付きテキスト</span>、複数行の文章、カード、SVG、操作ボタンなどを、テーブルの前後に自由に配置できます。</p>\n<div class=\"demo-panels\">\n<article><h3>区画の構成</h3><strong>自由HTML</strong><p>文・カード・図・任意要素</p></article>\n<article><h3>構造化データ</h3><strong>複数テーブル</strong><p>別々の列数と階層</p></article>\n<article><h3>操作</h3><strong>JavaScript</strong><p>HTML表現を自由に拡張</p></article>\n</div>\n</section>"
+    },
+    {
+      "type": "table",
+      "id": "tasks",
+      "title": "1. 項目の整理（4列）",
+      "intro": "通常テキストとサニタイズ済みのリッチHTMLを混在させた例。",
+      "columns": [
+        {
+          "key": "name",
+          "label": "項目"
+        },
+        {
+          "key": "summary",
+          "label": "概要"
+        },
+        {
+          "key": "detail",
+          "label": "詳細"
+        },
+        {
+          "key": "tag",
+          "label": "ラベル",
+          "kind": "badge"
+        }
+      ],
+      "rows": [
+        {
+          "name": "分類の例",
+          "children": [
+            {
+              "name": "小分類の例",
+              "children": [
+                {
+                  "name": "確認事項\n2行目も表示できます",
+                  "cells": {
+                    "summary": {
+                      "html": "<strong>強調</strong>と<span class=\"rich-red\">赤字</span>"
+                    },
+                    "detail": "通常の文字列\n追加の説明",
+                    "tag": {
+                      "text": "進行中",
+                      "style": "st-wip"
+                    }
+                  }
+                },
+                {
+                  "name": "別の確認事項",
+                  "cells": {
+                    "summary": "説明を記入",
+                    "detail": {
+                      "html": "<a href=\"https://example.com\">出典へのリンク</a>"
+                    },
+                    "tag": {
+                      "text": "確認済",
+                      "style": "st-done"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "cells": {
+            "summary": "グループ共通の説明\n複数行に対応",
+            "detail": {
+              "html": "<strong>グループ行</strong>にも値を表示"
+            },
+            "tag": {
+              "text": "分類",
+              "style": "d-light"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "html": "<section class=\"demo-feature\" aria-label=\"自由HTMLの図と操作\">\n<h2>図・インタラクションの自由な表現</h2>\n<svg viewBox=\"0 0 630 90\" role=\"img\" aria-label=\"3つの段階を矢印でつなぐ図\">\n<rect x=\"3\" y=\"15\" width=\"175\" height=\"55\" rx=\"8\" fill=\"#e8eefc\" stroke=\"#7190dc\"/><text x=\"90\" y=\"48\" text-anchor=\"middle\" font-size=\"17\" fill=\"#264697\">入力</text>\n<path d=\"M180 42H222m-12 -9 12 9-12 9\" fill=\"none\" stroke=\"#7890b9\" stroke-width=\"3\"/>\n<rect x=\"225\" y=\"15\" width=\"175\" height=\"55\" rx=\"8\" fill=\"#e5f4eb\" stroke=\"#83b99b\"/><text x=\"312\" y=\"48\" text-anchor=\"middle\" font-size=\"17\" fill=\"#186343\">処理</text>\n<path d=\"M402 42H444m-12 -9 12 9-12 9\" fill=\"none\" stroke=\"#7890b9\" stroke-width=\"3\"/>\n<rect x=\"447\" y=\"15\" width=\"175\" height=\"55\" rx=\"8\" fill=\"#fff0de\" stroke=\"#d9ad76\"/><text x=\"534\" y=\"48\" text-anchor=\"middle\" font-size=\"17\" fill=\"#8f550a\">出力</text>\n</svg>\n<p>この領域にはフォーム、動画、図、別の非階層テーブルなども配置できます。</p>\n<button id=\"demo-click\" type=\"button\">クリックして動作を確認</button><output id=\"demo-count\">0回</output>\n<details style=\"margin-top:12px\"><summary>HTMLの詳細表示も可能</summary><p>このブロックは表のセルではなく通常のHTMLです。</p></details>\n</section>"
+    },
+    {
+      "type": "table",
+      "id": "references",
+      "title": "2. 別の一覧（3列）",
+      "columns": [
+        {
+          "key": "name",
+          "label": "分類 / 項目"
+        },
+        {
+          "key": "notes",
+          "label": "説明"
+        },
+        {
+          "key": "sources",
+          "label": "参照",
+          "kind": "chips"
+        }
+      ],
+      "rows": [
+        {
+          "name": "独立した表",
+          "children": [
+            {
+              "name": "入力ファイルの確認",
+              "cells": {
+                "notes": "内容に応じて列数を変えられます",
+                "sources": [
+                  {
+                    "text": "参照A",
+                    "style": "j-ok"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "HTMLを出力",
+              "cells": {
+                "notes": {
+                  "html": "<mark>別のテーブルとして配置</mark>"
+                },
+                "sources": [
+                  {
+                    "text": "参照B",
+                    "style": "j-pending"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "html",
+      "html": "<aside class=\"demo-last\"><strong>補足</strong>：最後も通常のHTMLで締めくくれます。自由HTMLはテーブルを使わないページにも利用できます。</aside>"
+    }
+  ],
+  "tail_html": "<script>\n(() => {\n  const btn = document.getElementById('demo-click');\n  const out = document.getElementById('demo-count');\n  if (!btn || !out) return;\n  let clicks = 0;\n  btn.addEventListener('click', () => { clicks++; out.textContent = `${clicks}回`; });\n})();\n</script>"
+}

@@ -1,0 +1,9 @@
+{
+  "title": "HTML断片ファイルの取り込み",
+  "blocks": [
+    {
+      "type": "html",
+      "html_file": "html-fragment.html"
+    }
+  ]
+}

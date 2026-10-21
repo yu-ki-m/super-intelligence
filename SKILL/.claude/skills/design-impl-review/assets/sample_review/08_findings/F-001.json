@@ -1,0 +1,83 @@
+{
+  "id": "F-001",
+  "req": "REQ-019",
+  "judgment": "設計欠陥",
+  "name": "サーバー側に、完了状態の更新禁止の判定がない",
+  "event": "完了済みのチケットに、更新API・管理者の操作・一括更新から変更を送ると、更新が確定する。画面では変えられないチケットが、連携システムから変わる。",
+  "cause": "設計書の更新できる条件に完了状態がなく、コードもそのとおり、サーバー側の更新の可否の判定で状態を見ていない。完了状態の制御は、画面の保存ボタンの非活性だけになっている。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:58-61",
+      "note": "「4.2 更新できる条件」"
+    },
+    {
+      "where": "src/ticket/TicketUpdateService.ts:41-43",
+      "note": "canUpdate()"
+    },
+    {
+      "where": "docs/design/ticket-update.md:18",
+      "note": "「2.1 編集画面」"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "完了済みのチケットの更新を、どの入口からでもサーバー側で拒否する。",
+    "diffs": [
+      {
+        "where": "docs/design/ticket-update.md:58-61",
+        "note": "「4.2 更新できる条件」",
+        "code": " 担当者は自分が担当するチケット、管理者はすべてのチケットを更新できる。\n+完了済みのチケットは、役割にかかわらず更新できない（画面・更新API・一括更新のすべてに適用する）。\n+判定はサーバー側で行い、画面の保存ボタンの非活性は操作の案内として扱う。"
+      },
+      {
+        "where": "src/ticket/TicketUpdateService.ts:41-43",
+        "note": "canUpdate()",
+        "code": "   canUpdate(user: User, ticket: Ticket): boolean {\n+    if (ticket.status === \"done\") return false;\n     return user.role === \"admin\" || ticket.assigneeId === user.id;\n   }"
+      }
+    ],
+    "note": "一括更新が読んでから更新するまでの間に完了になった件は、この修正だけでは防げない。[[REQ-020]]の修正で拒否される（完了にする処理が版を進めるため）。"
+  },
+  "repro": [
+    "状態が「完了」のチケットを1件用意する（担当者は利用者A）。",
+    "利用者Aとして、`PATCH /tickets/{id}` で優先度を変える要求を送る。",
+    "結果：成功が返り、優先度が変わる。期待：拒否され、本体・履歴・通知が変わらない。",
+    "管理者として同じ要求を送っても、同じ結果になる。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「完了状態のチケットは更新できない」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:12"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「担当者は自分が担当するチケット、管理者はすべてのチケットを更新できる」。完了状態の条件がない。",
+      "where": [
+        "docs/design/ticket-update.md:58-61"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「完了済みのチケットでは、保存ボタンを非活性にする」。完了状態の制御は、画面のこの1か所だけ。",
+      "where": [
+        "docs/design/ticket-update.md:18"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "`canUpdate()` は役割と担当だけを判定し、状態を見ない。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:41-43"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "単票の保存と一括更新の両方が、この関数で判定する。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:62",
+        "src/ticket/BulkUpdateJob.ts:30"
+      ]
+    }
+  ]
+}

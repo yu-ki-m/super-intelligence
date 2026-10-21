@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汎用・階層テーブル HTMLテンプレート</title>
+<style>
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f2f5; --border: #dfe3e8; --border-strong: #c6ccd5;
+  --text: #1b2230; --muted: #5d6676; --faint: #8a92a0;
+  --accent: #2b56c9; --accent-bg: #e8eefc;
+  --red: #b4233c; --red-bg: #fcebee;
+  --orange: #a85200; --orange-bg: #fff0de;
+  --violet: #6233b8; --violet-bg: #f0eafc;
+  --green: #16704a; --green-bg: #e4f4eb;
+  --gray: #5f6775; --gray-bg: #eceef2;
+  --amber: #8a5d00; --amber-bg: #fff4d1;
+  --on-strong: #ffffff;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #171b23; --surface-2: #1e232d; --border: #2a303c; --border-strong: #3a4252;
+    --text: #e6e9ef; --muted: #a3abb9; --faint: #7d8696;
+    --accent: #8aa9ff; --accent-bg: #1d2a4a;
+    --red: #ff8a9b; --red-bg: #3a1a22;
+    --orange: #ffb36b; --orange-bg: #3a2612;
+    --violet: #c3a6ff; --violet-bg: #2a1f45;
+    --green: #6fd3a0; --green-bg: #14301f;
+    --gray: #aab2c0; --gray-bg: #262c37;
+    --amber: #f2c35b; --amber-bg: #352a10;
+    --on-strong: #0f1218;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #171b23; --surface-2: #1e232d; --border: #2a303c; --border-strong: #3a4252;
+  --text: #e6e9ef; --muted: #a3abb9; --faint: #7d8696;
+  --accent: #8aa9ff; --accent-bg: #1d2a4a;
+  --red: #ff8a9b; --red-bg: #3a1a22;
+  --orange: #ffb36b; --orange-bg: #3a2612;
+  --violet: #c3a6ff; --violet-bg: #2a1f45;
+  --green: #6fd3a0; --green-bg: #14301f;
+  --gray: #aab2c0; --gray-bg: #262c37;
+  --amber: #f2c35b; --amber-bg: #352a10;
+  --on-strong: #0f1218;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  font-size: 13.5px; line-height: 1.6; -webkit-text-size-adjust: 100%;
+}
+.sample-banner { background: var(--amber-bg); color: var(--amber); padding: 4px 24px; font-size: 12.5px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px; padding: 14px 24px 10px; }
+.head h1 { margin: 0; font-size: 19px; line-height: 1.4; }
+.head-meta { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 12.5px; color: var(--muted); }
+.head-meta b { color: var(--text); font-weight: 600; margin-right: 6px; }
+.legend { padding: 0 24px 10px; font-size: 12.5px; color: var(--muted); }
+main { padding: 0 24px 32px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+table { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+th { background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.nowrap { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+abbr { text-decoration: underline dotted var(--faint); cursor: help; }
+.ref { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: .92em; white-space: nowrap; }
+.b { display: inline-flex; align-items: center; padding: 0 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; line-height: 1.7; border: 1px solid transparent; }
+.j-defect { color: var(--red); background: var(--red-bg); }
+.j-undef { color: var(--orange); background: var(--orange-bg); }
+.j-pending { color: var(--violet); background: var(--violet-bg); }
+.j-ok { color: var(--green); background: var(--green-bg); }
+.j-na { color: var(--gray); background: var(--gray-bg); }
+.d-focus { background: var(--text); color: var(--on-strong); }
+.d-light { border-color: var(--border-strong); color: var(--muted); }
+.d-undecided { border: 1px dashed var(--amber); color: var(--amber); }
+.st-done { color: var(--green); background: var(--green-bg); }
+.st-wip { color: var(--amber); background: var(--amber-bg); }
+.st-todo { color: var(--gray); border-color: var(--border-strong); }
+.chip { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 11.5px; padding: 0 6px; border-radius: 5px; white-space: nowrap; cursor: help; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px 6px; }
+@media (max-width: 1000px) {
+  .sample-banner, .head, .legend { padding-left: 16px; padding-right: 16px; }
+  main { padding: 0 16px 24px; }
+}
+
+/* 入れ子の表。左の縦線と背景の濃さで階層を示す */
+.tree {
+  --i1: 20px; --i2: 40px; --ln: var(--border);
+  --lv0: var(--surface);
+  --lv1: color-mix(in srgb, var(--text) 3%, var(--surface));
+  --lv2: color-mix(in srgb, var(--text) 6%, var(--surface));
+}
+.tree td { border-bottom: 0; }
+.tree th:first-child { padding-left: calc(var(--i2) + 10px); }
+.tree tr.t-group td {
+  padding: 8px 12px; font-weight: 700; font-size: 13.5px;
+  background: linear-gradient(var(--ln), var(--ln)) 0 0 / 100% 1px no-repeat, var(--lv0);
+}
+.tree tbody tr:first-child.t-group td { background: var(--lv0); }
+.tree tr.t-sub td {
+  padding: 6px 12px 6px calc(var(--i1) + 10px);
+  background:
+    linear-gradient(var(--ln), var(--ln)) var(--i1) 0 / calc(100% - var(--i1)) 1px no-repeat,
+    linear-gradient(to right, var(--lv0) 0 var(--i1), var(--ln) var(--i1) calc(var(--i1) + 1px), var(--lv1) calc(var(--i1) + 1px));
+}
+.t-sub-name { color: var(--muted); font-size: 12.5px; margin-left: 10px; }
+.tree tr.t-vp td { background: linear-gradient(var(--ln), var(--ln)) 0 0 / 100% 1px no-repeat, var(--lv2); }
+.tree tr.t-vp td:first-child {
+  padding-left: calc(var(--i2) + 10px);
+  background:
+    linear-gradient(var(--ln), var(--ln)) var(--i2) 0 / calc(100% - var(--i2)) 1px no-repeat,
+    linear-gradient(to right,
+      var(--lv0) 0 var(--i1), var(--ln) var(--i1) calc(var(--i1) + 1px),
+      var(--lv1) calc(var(--i1) + 1px) var(--i2), var(--ln) var(--i2) calc(var(--i2) + 1px),
+      var(--lv2) calc(var(--i2) + 1px));
+}
+.tree tr.flash { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* 初期表示は画面に収まる自動レイアウト。列幅の固定値は設定しない。 */
+.tree { width: 100%; min-width: 0; table-layout: auto; }
+/* JSの文字列に \n を含めると、項目名・分類名・セルの説明文を複数行で表示できる。 */
+.tree td, .tree .t-sub-name, .tree .b, .tree .chip {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* 長い項目名を折り返す。以前の nowrap 指定は使わない。 */
+.tree tr.t-vp td:first-child, .tree tr.t-deep-leaf td:first-child { white-space: pre-line; }
+/* 列幅をドラッグして変える機能は維持。 */
+.tree thead th { position: relative; }
+.tree thead .resize-handle {
+  position: absolute; inset: 0 -5px 0 auto; width: 10px;
+  cursor: col-resize; touch-action: none; user-select: none; z-index: 3;
+}
+.tree thead .resize-handle::after {
+  content: ""; position: absolute; top: 18%; bottom: 18%; right: 4px;
+  width: 2px; background: var(--accent); opacity: 0;
+}
+.tree thead th:hover .resize-handle::after,
+.tree thead .resize-handle:focus-visible::after,
+.tree thead .resize-handle.is-dragging::after { opacity: 1; }
+body.is-resizing-columns { cursor: col-resize; user-select: none; }
+
+/* HTML指定時の装飾。プレーンテキスト指定時は従来の表示を維持します。 */
+.rich-content { white-space: pre-line; overflow-wrap: anywhere; }
+.rich-content .rich-red { color: var(--red); }
+.rich-content .rich-highlight,
+.rich-content mark { color: var(--amber); background: var(--amber-bg); padding: 0 2px; border-radius: 2px; }
+.rich-content a { color: var(--accent); text-decoration: underline; }
+.rich-content code {
+  padding: 1px 4px; border: 1px solid var(--border);
+  background: var(--surface-2); border-radius: 3px;
+  font-family: ui-monospace, Consolas, monospace; font-size: .94em;
+}
+.rich-content :is(ul, ol) { margin: 3px 0 4px; padding-left: 1.6em; }
+.rich-content li { margin: 1px 0; }
+.rich-content p { margin: 3px 0; }
+.rich-content blockquote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--border-strong); color: var(--muted); }
+
+/* ---------------------------------------------------------------
+ * 以下は3階層を超える場合「だけ」に適用する追加スタイル。
+ * 元の .t-group / .t-sub / .t-vp と既存レイアウトは一切変更しない。
+ * 階層のインデントは元の1階層あたり20pxに揃える。
+ * --------------------------------------------------------------- */
+.tree tr.t-deep-group td {
+  padding: 6px 12px 6px calc(var(--depth-indent) + 10px);
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--depth-background);
+}
+.tree tr.t-deep-leaf td {
+  background: linear-gradient(var(--ln), var(--ln)) 0 0 / 100% 1px no-repeat, var(--depth-fill);
+}
+.tree tr.t-deep-leaf td:first-child {
+  padding-left: calc(var(--depth-indent) + 10px);
+  background: var(--depth-background);
+}
+</style>
+</head>
+<body>
+<div class="sample-banner"></div>
+<header class="head">
+  <h1></h1>
+  <div class="head-meta"></div>
+</header>
+<div class="legend"></div>
+<main>
+  <div class="panel">
+    <table class="tree">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</main>
+<script>
+"use strict";
+/* ======================================================================
+ * 汎用HTMLテンプレート。変更する箇所は TEMPLATE の定義だけです。
+ *
+ * columns: 列の名前・列数・表示形式を定義（初期幅の固定値なし）。
+ *     表示時はテーブル幅を表示領域に合わせて自動調整します。
+ *     各列の右端をドラッグすると幅を変更できます。
+ *     列の右端をダブルクリックすると、全列が自動幅に戻ります。
+ *     name は階層付きの項目名を表示する列として利用します。
+ *     残りの列は用途に応じて自由に変更できます。
+ * rows: children で任意の深さの階層を定義。
+ *     children がある行は分類見出し、ない行はデータ行です。
+ *     行番号は同じ階層の中で自動的に 1., 2., ... と採番します。
+ * cells: columns の key と一致する名前で内容を指定します。
+ *     タイトル / バナー / 上部情報 / 注記 / 列名 / 分類名 / 項目名 /
+ *     セル / ラベル / 参照タグの表示テキストは次の2形式に対応します。
+ *
+ *     1. 通常のテキスト: "文章\n次の行" または { text: "文章" }
+ *        HTMLタグに見える文字もそのまま文字列として表示します。
+ *     2. リッチHTML: { html: "<strong>太字</strong> ..." }
+ *        HTMLで太字・色・リンク・リスト・コード・改行などを記述できます。
+ *        赤字は <span class='rich-red'>赤字</span> も利用できます。
+ *        HTML内の改行は <br>、段落は <p> を使用します。
+ *     両方とも長文はセル幅に応じて自動折り返しされます。
+ *
+ *     ⚠ { html: ... } は信頼できるHTMLだけに使用してください。
+ *       外部から取得した文字列には通常のテキスト形式を用い、
+ *       不特定ユーザーのHTMLを利用する際はサニタイズが必要です。
+ *
+ * kind（任意）: badge（ラベル）、chips（複数の参照タグ）。
+ * スタイルは表示上の選択肢であり、特定業務への意味づけはありません。
+ * ====================================================================== */
+const TEMPLATE = {
+  title: "【タイトル】", // title: { html: "<strong>タイトル</strong>" } も可能
+  banner: { html: "HTMLテンプレート：<strong>太字</strong>・<span class='rich-red'>赤字</span>などの装飾と、通常の文字列を併用できます。" },
+  meta: [
+    { label: "情報①", value: "【通常のテキスト】" },
+    { label: "情報②", value: { html: "【<strong>太字</strong>の値】" } },
+    { label: { html: "<em>情報③</em>" }, value: "【任意の情報】" }
+  ],
+  legend: { html: "入力例：通常の文字列／<strong>太字</strong>／<span class='rich-red'>赤字</span>／<em>斜体</em>／<mark>強調</mark>／<code>コード</code>。リッチ表現は { html: '...' }、通常文は文字列で指定します。" },
+  // すべて汎用の列名。列幅は自動計算し、利用者が後から変更できます。
+  // 列名と列数は自由に変更可能。ラベルと参照は右端に配置しています。
+  columns: [
+    { key: "name", label: "項目" },
+    { key: "content1", label: "内容1" },
+    { key: "content2", label: { html: "内容<strong>2</strong>" } },
+    { key: "label", label: "ラベル", kind: "badge" },
+    { key: "refs", label: "参照", kind: "chips" }
+  ],
+  // name に番号を含める必要はありません。各階層で 1., 2., ... を自動で付けます。
+  rows: [
+    {
+      name: { html: "【<strong>分類名</strong>】 <span class='rich-red'>【補足】</span>" },
+      children: [
+        {
+          name: "【小分類名・1行目】\n【小分類名・2行目】",
+          children: [
+            {
+              name: "【項目名（1行目）】\n【項目名（2行目）】",
+              cells: {
+                content1: { html: "通常の文章と<strong>太字</strong>、<span class='rich-red'>赤字</span>、<em>斜体</em>、<mark>ハイライト</mark>を混在できます。<br>ここで明示的に改行します。" },
+                content2: { html: "<p>段落・リストも利用可能です。</p><ul><li>項目A</li><li><strong>項目B</strong></li></ul><p>インラインコード：<code>sample()</code></p>" },
+                label: { text: { html: "<strong>ラベルA</strong>\n補足" }, style: "st-done" },
+                refs: [{ text: { html: "<strong>REF-001</strong>\n補足" }, style: "j-ok", title: "【参照情報】" }]
+              }
+            },
+            {
+              name: { html: "【<strong>別の項目名</strong>】<br><span class='rich-red'>【赤い説明】</span>" },
+              cells: {
+                content1: "【通常のテキスト】\n【改行もそのまま反映されます】",
+                content2: { html: "<a href='https://developer.mozilla.org/ja/docs/Web/HTML' target='_blank' rel='noopener noreferrer'>リンク</a>／<u>下線</u>／<del>取り消し線</del>" },
+                label: { text: "ラベルB", style: "st-wip" },
+                refs: [
+                  { text: "REF-002", style: "j-defect", title: "【参照情報】" },
+                  { text: "REF-003", style: "j-undef", title: "【参照情報】" }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          name: "【別の小分類名】",
+          children: [
+            {
+              name: "【第3階層の分類名】",
+              children: [
+                {
+                  name: "【第4階層の分類名】",
+                  children: [
+                    {
+                      name: "【深い階層の項目名】",
+                      cells: {
+                        content1: "【内容1を入力】",
+                        content2: { html: "【階層数に上限はありません】<br><blockquote>引用文も記述できます。</blockquote>" },
+                        label: { text: "ラベルC", style: "st-todo" },
+                        refs: [{ text: "REF-004", style: "j-pending", title: "【参照情報】" }]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      name: "【別の分類名】",
+      children: [
+        {
+          name: "【小分類名】",
+          children: [
+            {
+              name: "【項目名】",
+              cells: {
+                content1: "【内容1を入力】",
+                content2: "【内容2を入力】",
+                label: { text: "ラベルD", style: "d-light" },
+                refs: [{ text: "REF-005", style: "j-na", title: "【参照情報】" }]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+/* ここから下は表示処理。通常は変更不要です。 */
+const el = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+};
+const valueText = value => (value === null || value === undefined || value === "") ? "—" : String(value);
+const ALLOWED = new Set([
+  "d-light", "d-focus", "d-undecided",
+  "st-done", "st-wip", "st-todo",
+  "j-ok", "j-defect", "j-undef", "j-pending", "j-na"
+]);
+const safeStyle = value => ALLOWED.has(value) ? value : "";
+
+/* テキストは必ず textContent として表示します。
+   HTMLを適用するのは明示的に { html: "..." } と指定した場合だけです。 */
+function renderRich(target, value, fallback = "") {
+  target.classList.add("rich-content");
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    if (Object.prototype.hasOwnProperty.call(value, "html")) {
+      target.innerHTML = String(value.html ?? "");
+      return target;
+    }
+    if (Object.prototype.hasOwnProperty.call(value, "text")) {
+      target.textContent = String(value.text ?? "");
+      return target;
+    }
+  }
+  target.textContent = (value === null || value === undefined || value === "") ? fallback : String(value);
+  return target;
+}
+function plainRichText(value) {
+  return renderRich(el("span"), value).textContent || "";
+}
+function renderCell(td, column, value) {
+  if (column.kind === "badge") {
+    const item = value && typeof value === "object" ? value : { text: valueText(value), style: "d-light" };
+    td.append(renderRich(el("span", `b ${safeStyle(item.style)}`), item.text, "—"));
+  } else if (column.kind === "chips") {
+    const wrap = el("div", "chips");
+    if (Array.isArray(value) && value.length) {
+      for (const raw of value) {
+        const item = raw && typeof raw === "object" ? raw : { text: raw };
+        const chip = renderRich(el("span", `chip ${safeStyle(item.style)}`), item.text, "—");
+        if (item.title) chip.title = plainRichText(item.title);
+        wrap.append(chip);
+      }
+    } else {
+      wrap.append(el("span", "faint", "—"));
+    }
+    td.append(wrap);
+  } else {
+    renderRich(td, value, "—");
+  }
+}
+
+/* 任意の深さ用。20pxごとに元の縦線・階層背景が連続する。
+   0～2階層では元のCSSをそのまま使用するため、見た目は完全に同じ。 */
+function depthBackground(depth) {
+  const step = 20;
+  const shades = i => i === 0 ? "var(--lv0)" : i === 1 ? "var(--lv1)" : i === 2 ? "var(--lv2)" :
+    `color-mix(in srgb, var(--text) ${Math.min(i * 3, 45)}%, var(--surface))`;
+  const stops = [];
+  for (let i = 0; i < depth; i++) {
+    const a = i * step, b = (i + 1) * step;
+    stops.push(`${shades(i)} ${a}px ${b}px`);
+    stops.push(`var(--ln) ${b}px ${b + 1}px`);
+  }
+  stops.push(`${shades(depth)} ${depth * step + (depth ? 1 : 0)}px`);
+  const lineAt = depth * step;
+  return {
+    fill: shades(depth),
+    background: depth === 0 ? "var(--lv0)" :
+      `linear-gradient(var(--ln),var(--ln)) ${lineAt}px 0 / calc(100% - ${lineAt}px) 1px no-repeat, linear-gradient(to right, ${stops.join(", ")})`
+  };
+}
+
+function renderRows(nodes, depth, body, columns) {
+  nodes.forEach((node, index) => {
+    // どの階層も兄弟行ごとに 1., 2., ... と採番する。
+    // children を再帰処理するため、子の番号は常に 1. から始まる。
+    const number = `${index + 1}.`;
+    const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+    let tr;
+    if (hasChildren) {
+      const className = depth === 0 ? "t-group" : depth === 1 ? "t-sub" : "t-deep-group";
+      tr = el("tr", className);
+      const td = el("td");
+      td.colSpan = columns.length;
+      if (depth === 0) {
+        td.append(el("span", "", `${number} `));
+        td.append(renderRich(el("span"), node.name || "【分類名】"));
+      } else {
+        td.append(el("b", "", number));
+        td.append(renderRich(el("span", "t-sub-name"), node.name || "【分類名】"));
+      }
+      tr.append(td);
+    } else {
+      tr = el("tr", depth === 2 ? "t-vp" : "t-deep-leaf");
+      for (const col of columns) {
+        const td = el("td");
+        if (col.key === "name") {
+          td.append(el("b", "", `${number} `));
+          const name = renderRich(el("span"), node.name || "【項目名】");
+          name.style.fontWeight = "700";
+          td.append(name);
+        } else {
+          renderCell(td, col, (node.cells || {})[col.key]);
+        }
+        tr.append(td);
+      }
+    }
+    if (depth >= 3 || (depth !== 2 && !hasChildren) || (depth === 2 && hasChildren)) {
+      const bg = depthBackground(depth);
+      tr.style.setProperty("--depth-indent", `${depth * 20}px`);
+      tr.style.setProperty("--depth-fill", bg.fill);
+      tr.style.setProperty("--depth-background", bg.background);
+    }
+    body.append(tr);
+    if (hasChildren) renderRows(node.children, depth + 1, body, columns);
+  });
+}
+
+/*
+ * 通常はブラウザの自動レイアウトで表を幅いっぱいに配置します。
+ * 閲覧者がドラッグした後だけピクセル幅へ切り替えます。
+ * 列幅の合計が表示領域より狭いときは、余剰分を右端列にだけ配分します。
+ * これにより左側の列の開始位置を動かさず、右側にも空白を残しません。
+ */
+const COLUMN_MIN_WIDTH = 70;
+const WIDTH_STORE_KEY = `hierarchy-table-widths-auto-v2:${location.pathname}:${document.title}`;
+function readWidths() {
+  try {
+    const json = localStorage.getItem(WIDTH_STORE_KEY);
+    const obj = json ? JSON.parse(json) : {};
+    return obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+  } catch (_) { return {}; }
+}
+function writeWidths(obj) {
+  try { localStorage.setItem(WIDTH_STORE_KEY, JSON.stringify(obj)); }
+  catch (_) { /* ローカルHTMLなどでは保持できない場合がある */ }
+}
+function clearWidths() {
+  try { localStorage.removeItem(WIDTH_STORE_KEY); }
+  catch (_) { /* 閲覧中の変更は可能 */ }
+}
+function installColumnResizers(table, columns, head) {
+  const oldGroup = table.querySelector("colgroup");
+  if (oldGroup) oldGroup.remove();
+  const group = el("colgroup");
+  table.insertBefore(group, table.tHead);
+  const cols = columns.map(() => {
+    const col = el("col");
+    group.append(col);
+    return col;
+  });
+  const saved = readWidths();
+  let widths = columns.map(col => Number(saved[col.key]));
+  const savedAll = widths.every(w => Number.isFinite(w) && w >= COLUMN_MIN_WIDTH);
+
+  function autoLayout() {
+    widths = null;
+    cols.forEach(col => col.style.removeProperty("width"));
+    table.style.removeProperty("width");
+    table.style.tableLayout = "auto";
+    clearWidths();
+  }
+  function measure() {
+    return Array.from(head.children, th => Math.round(th.getBoundingClientRect().width));
+  }
+  function syncWidths() {
+    if (!widths) return;
+    // 指定幅の合計が親要素より狭い場合、余剰を右端列にだけ配分する。
+    // table-layout: fixed で全列を厳密に固定し、内容2を縮めても内容1など
+    // 操作対象より左側の境界が動かないようにする。
+    const available = table.parentElement.clientWidth;
+    const applied = widths.slice();
+    const total = applied.reduce((sum, value) => sum + value, 0);
+    applied[applied.length - 1] += Math.max(0, available - total);
+    const finalWidth = applied.reduce((sum, value) => sum + value, 0);
+    // 最初にテーブル本体の幅を設定してから各 <col> にピクセル幅を割り当てる。
+    // 自動レイアウトによるブラウザ側の再配分を発生させない。
+    table.style.tableLayout = "fixed";
+    table.style.width = `${finalWidth}px`;
+    cols.forEach((col, i) => { col.style.width = `${applied[i]}px`; });
+  }
+  function persist() {
+    if (!widths) return;
+    writeWidths(Object.fromEntries(columns.map((col, index) => [col.key, widths[index]])));
+  }
+  if (savedAll) syncWidths();
+  else autoLayout();
+
+  columns.forEach((column, index) => {
+    const th = head.children[index];
+    const grip = el("span", "resize-handle");
+    grip.setAttribute("role", "separator");
+    grip.setAttribute("aria-orientation", "vertical");
+    grip.setAttribute("aria-label", `${plainRichText(column.label || column.key)} 列の幅を変更`);
+    grip.setAttribute("tabindex", "0");
+    grip.title = "ドラッグで列幅を変更／ダブルクリックで全列を自動幅に戻す";
+    th.append(grip);
+    grip.addEventListener("pointerdown", event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      // CSS自動幅では、操作を始める直前の列幅を取得してから固定幅にする。
+      widths = measure();  // 画面サイズ変更後も操作時点の実幅を使用
+      syncWidths();
+      const startX = event.clientX;
+      const startWidth = widths[index];
+      grip.setPointerCapture(event.pointerId);
+      grip.classList.add("is-dragging");
+      document.body.classList.add("is-resizing-columns");
+      const pointerMove = e => {
+        if (e.pointerId !== event.pointerId) return;
+        widths[index] = Math.max(COLUMN_MIN_WIDTH, Math.round(startWidth + e.clientX - startX));
+        syncWidths();
+      };
+      const finish = e => {
+        if (e.pointerId !== event.pointerId) return;
+        grip.removeEventListener("pointermove", pointerMove);
+        grip.removeEventListener("pointerup", finish);
+        grip.removeEventListener("pointercancel", finish);
+        grip.classList.remove("is-dragging");
+        document.body.classList.remove("is-resizing-columns");
+        if (grip.hasPointerCapture(event.pointerId)) grip.releasePointerCapture(event.pointerId);
+        persist();
+      };
+      grip.addEventListener("pointermove", pointerMove);
+      grip.addEventListener("pointerup", finish);
+      grip.addEventListener("pointercancel", finish);
+    });
+    grip.addEventListener("dblclick", event => {
+      event.preventDefault();
+      autoLayout();
+    });
+    grip.addEventListener("keydown", event => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      widths = measure();
+      const step = event.shiftKey ? 40 : 10;
+      widths[index] = Math.max(COLUMN_MIN_WIDTH,
+        widths[index] + (event.key === "ArrowRight" ? step : -step));
+      syncWidths();
+      persist();
+    });
+  });
+  // ブラウザのリサイズに伴い、調整済みテーブルだけ表示領域以上の幅を確保。
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => {
+      if (widths) syncWidths();
+    });
+    observer.observe(table.parentElement);
+  }
+}
+
+function renderTemplate(data) {
+  document.title = plainRichText(data.title || "HTMLテンプレート");
+  renderRich(document.querySelector(".sample-banner"), data.banner || "");
+  renderRich(document.querySelector(".head h1"), data.title || "");
+  const meta = document.querySelector(".head-meta");
+  meta.replaceChildren();
+  for (const item of data.meta || []) {
+    const span = el("span");
+    span.append(renderRich(el("b"), item.label || ""));
+    span.append(renderRich(el("span"), item.value || ""));
+    meta.append(span);
+  }
+  renderRich(document.querySelector(".legend"), data.legend || "");
+  const columns = Array.isArray(data.columns) && data.columns.length ? data.columns : [{key:"name",label:"項目"}];
+  const head = document.querySelector(".tree thead tr");
+  head.replaceChildren();
+  for (const col of columns) head.append(renderRich(el("th"), col.label || col.key));
+  installColumnResizers(document.querySelector(".tree"), columns, head);
+  const body = document.querySelector(".tree tbody");
+  body.replaceChildren();
+  renderRows(data.rows || [], 0, body, columns);
+}
+
+renderTemplate(TEMPLATE);
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "code-review-report-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-report.mjs review-data.example.json review-report.html",
+    "check": "node --check generate-report.mjs",
+    "test:depth": "node generate-report.mjs --self-test-depth 10000",
+    "test:connections": "node generate-report.mjs --self-test-connections",
+    "test:collapse": "node generate-report.mjs --self-test-collapse"
+  },
+  "devDependencies": {
+    "shiki": "4.4.3"
+  },
+  "dependencies": {
+    "diff": "9.0.0"
+  }
+}

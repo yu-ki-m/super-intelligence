@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "units": [
+    { "commit": "4e91c2a", "stepId": "c1-controller-create-call", "score": 0, "category": "文脈(変更なし)", "reason": "注文登録APIの入口で、変更はない。流れを理解するために載っているだけで、見落としても直接の不具合にはならない。", "checkPoints": [] },
+    { "commit": "4e91c2a", "stepId": "c1-service-save-call", "score": 1, "category": "文脈(変更なし)", "reason": "初期状態を設定した注文を保存処理へ渡すだけの未変更コード。保存される値は次の変更箇所で決まる。", "checkPoints": [] },
+    { "commit": "4e91c2a", "stepId": "c1-repository-save-change", "score": 8, "category": "データ保存・更新", "reason": "INSERT文に渡す値が増える。SQLの列やプレースホルダーと引数が合わないと登録が例外で失敗し、状態が誤って保存されても画面では気付きにくい。", "checkPoints": ["INSERT_SQLがstatus列とプレースホルダーを持つか", "order.getStatus()がnullの注文を保存できるか"] },
+    { "commit": "4e91c2a", "stepId": "c1-service-return", "score": 1, "category": "文脈(変更なし)", "reason": "保存結果を応答へ変換して返すだけの未変更コード。保存後の状態がここで読み直されるかを確認する時に見る。", "checkPoints": [] },
+    { "commit": "4e91c2a", "stepId": "c1-controller-return", "score": 0, "category": "文脈(変更なし)", "reason": "HTTP応答を返す終点で、変更はない。流れの戻り値を確認するために載っている。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-controller-create-call", "score": 0, "category": "文脈(変更なし)", "reason": "注文登録から監査ログへ至る入口で、変更はない。流れを理解するために載っているだけである。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-service-audit-call", "score": 1, "category": "文脈(変更なし)", "reason": "保存済み注文を監査ログの処理へ渡すだけの未変更コード。ログの内容は次の変更箇所で決まる。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-audit-log-change", "score": 2, "category": "表示・整形", "reason": "ログの文言に注文IDが加わるだけで、業務の結果には影響しない。個人情報が混ざらないかだけ見れば足りる。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-service-return", "score": 1, "category": "文脈(変更なし)", "reason": "ログ出力の後に結果を返すだけの未変更コード。ログ出力が応答に影響しないことを確認する時に見る。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-controller-return", "score": 0, "category": "文脈(変更なし)", "reason": "HTTP応答を返す終点で、変更はない。流れの戻り値を確認するために載っている。", "checkPoints": [] },
+    { "commit": "9ab4e70", "stepId": "c2-logback-level-change", "score": 3, "category": "設定・運用", "reason": "出力レベルがWARNからINFOに変わり、実行環境へ出るログの量が増える。影響は運用に限られるが、ログ基盤の容量や費用に気付かず効くことがある。", "checkPoints": ["本番でINFOを出力した時のログ量がログ基盤の許容内か"] }
+  ]
+}

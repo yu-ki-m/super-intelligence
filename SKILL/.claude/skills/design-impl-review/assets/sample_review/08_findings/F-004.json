@@ -1,0 +1,78 @@
+{
+  "id": "F-004",
+  "req": "REQ-036",
+  "judgment": "設計欠陥",
+  "name": "「全件選択」で、表示していないページの件まで更新される",
+  "event": "検索結果が120件（1ページ50件）のとき、1ページ目で「全件選択」して一括更新すると、2・3ページ目の70件も更新される。利用者は50件だけ更新したつもりで、残りの70件と、その履歴・通知に気付かない。",
+  "cause": "設計書が「全件選択」を検索条件に一致する全件と定め、画面は検索条件を送り、サーバーは検索条件による指定を受け付けている。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:31-33",
+      "note": "「2.2 一覧画面と一括更新」"
+    },
+    {
+      "where": "web/src/pages/TicketListPage.tsx:78",
+      "note": "onSelectAll"
+    },
+    {
+      "where": "src/ticket/BulkUpdateJob.ts:22-24",
+      "note": "run() の対象の解決"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "「全件選択」の対象を、表示しているページのチケットだけにする。サーバーも、チケットの一覧による指定だけを受け付ける。",
+    "diffs": [
+      {
+        "where": "docs/design/ticket-update.md:31-33",
+        "note": "「2.2 一覧画面と一括更新」",
+        "code": "-「全件選択」は、検索条件に一致する全件を選ぶ（上限500件）。\n+「全件選択」は、表示しているページのチケットだけを選ぶ。"
+      },
+      {
+        "where": "web/src/pages/TicketListPage.tsx:77-79",
+        "note": "onSelectAll",
+        "code": "   const onSelectAll = () => {\n-    setSelection({ mode: \"query\", query: searchQuery });\n+    setSelection({ mode: \"ids\", ids: currentPage.items.map(t => t.id) });\n   };"
+      },
+      {
+        "where": "src/ticket/BulkUpdateJob.ts:22-24",
+        "note": "run()",
+        "code": "-    const ids = sel.mode === \"query\"\n-      ? await this.repo.searchIds(sel.query, { limit: BULK_LIMIT })\n-      : sel.ids.slice(0, BULK_LIMIT);\n+    if (sel.mode !== \"ids\") throw new BadRequestError(\"対象はチケットの一覧で指定する\");\n+    const ids = sel.ids.slice(0, BULK_LIMIT);"
+      }
+    ]
+  },
+  "repro": [
+    "検索結果が51件以上になる条件で、一覧を開く（1ページ50件）。",
+    "1ページ目で「全件選択」を押し、優先度を変えて一括更新する。",
+    "結果：2ページ目以降の件も更新される。期待：1ページ目の50件だけが更新される。"
+  ],
+  "basis": [
+    {
+      "label": "要求",
+      "text": "「一括選択の範囲は現在ページとする」",
+      "where": [
+        "docs/requirements/ticket-requirements.md:22"
+      ]
+    },
+    {
+      "label": "設計書",
+      "text": "「「全件選択」は、検索条件に一致する全件を選ぶ（上限500件）」",
+      "where": [
+        "docs/design/ticket-update.md:31-33"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "「全件選択」で、検索条件を送る。",
+      "where": [
+        "web/src/pages/TicketListPage.tsx:78"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "検索条件による指定を受け付け、一致する全件を最大500件まで対象にする。",
+      "where": [
+        "src/ticket/BulkUpdateJob.ts:22-24"
+      ]
+    }
+  ]
+}

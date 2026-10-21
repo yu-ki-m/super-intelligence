@@ -1,0 +1,60 @@
+{
+  "id": "F-012",
+  "req": "REQ-022",
+  "judgment": "実装の誤り",
+  "name": "絵文字を含む件名を、画面からだけ保存できない",
+  "event": "絵文字を含む100文字の件名は、更新APIでは受理されるが、画面では101文字と数えられて拒否される。",
+  "cause": "画面が JavaScript の `length`（UTF-16の単位）で数えている。サーバーはコードポイントで数えている（実装の誤り）。",
+  "cause_at": [
+    {
+      "where": "web/src/validation/ticketSchema.ts:12",
+      "note": "title の検証"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "画面でも、文字数をコードポイントで数える。",
+    "diffs": [
+      {
+        "where": "web/src/validation/ticketSchema.ts:12",
+        "note": "title",
+        "code": "-  title: z.string().min(1).refine(v => v.length <= 100, \"100文字以内\"),\n+  title: z.string().min(1).refine(v => [...v].length <= 100, \"100文字以内\"),"
+      }
+    ]
+  },
+  "repro": [
+    "編集画面で、絵文字1文字と半角の「a」99文字からなる件名（100文字）を入力する。",
+    "保存する。",
+    "結果：「100文字以内」のエラーになる。期待：保存できる。"
+  ],
+  "basis": [
+    {
+      "label": "設計書",
+      "text": "「件名は必須・100文字以内（文字数は共通仕様の数え方による）」",
+      "where": [
+        "docs/design/ticket-update.md:89-90"
+      ]
+    },
+    {
+      "label": "共通仕様",
+      "text": "「文字数はコードポイントで数える」。",
+      "where": [
+        "docs/common/api-common.md:43"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "画面は `length`（UTF-16の単位）で数える。",
+      "where": [
+        "web/src/validation/ticketSchema.ts:12"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "サーバーはコードポイントで数える。",
+      "where": [
+        "src/ticket/TicketValidator.ts:18"
+      ]
+    }
+  ]
+}

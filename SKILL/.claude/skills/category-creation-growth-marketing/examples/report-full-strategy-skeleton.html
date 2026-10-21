@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>製品X 市場参入戦略</title>
+<style>
+/* ===== 色とフォント（ライト / ダーク） ===== */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8; --arrow:#7a8394;
+  --accent:#1f5f8b; --accent-soft:#e3eef6;
+  --fact:#2f6f9f; --fact-soft:#e3eef6;
+  --est:#3d7f6a;  --est-soft:#e2f1ec;
+  --hyp:#8a6a1f;  --hyp-soft:#f7f0de;
+  --abs:#5a5a9a;  --abs-soft:#ececf7;
+  --crit:#a0472f; --crit-soft:#f8e7e2;
+  --display:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;
+  --body:"Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Menlo",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12151c; --surface:#1a1f29; --ink:#e6e9ef; --muted:#9aa3b3; --line:#2c3340; --arrow:#8792a6;
+    --accent:#7fb4dc; --accent-soft:#1d2d3b;
+    --fact:#7fb4dc; --fact-soft:#1d2d3b;
+    --est:#6fb79e;  --est-soft:#1a2e28;
+    --hyp:#cfa851;  --hyp-soft:#2e2818;
+    --abs:#9d9de0;  --abs-soft:#25253a;
+    --crit:#e08b70; --crit-soft:#35221c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12151c; --surface:#1a1f29; --ink:#e6e9ef; --muted:#9aa3b3; --line:#2c3340; --arrow:#8792a6;
+  --accent:#7fb4dc; --accent-soft:#1d2d3b;
+  --fact:#7fb4dc; --fact-soft:#1d2d3b;
+  --est:#6fb79e;  --est-soft:#1a2e28;
+  --hyp:#cfa851;  --hyp-soft:#2e2818;
+  --abs:#9d9de0;  --abs-soft:#25253a;
+  --crit:#e08b70; --crit-soft:#35221c;
+}
+
+/* ===== 基本 ===== */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.85;padding:0 16px 72px}
+.wrap{max-width:920px;margin:0 auto}
+p{margin:.5em 0;max-width:68ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.88em}
+ul.sentences{padding-left:1.2em;max-width:68ch}
+ul.sentences li{margin:4px 0}
+.small{font-size:13px;color:var(--muted)}
+
+/* ===== 表紙・目次 ===== */
+.cover{padding:48px 0 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(24px,4.2vw,36px);line-height:1.4;margin:8px 0 18px;text-wrap:balance}
+.meta{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 18px;margin:0;font-size:14px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0}
+@media (max-width:560px){.meta{grid-template-columns:1fr;gap:0}.meta dd{margin-bottom:8px}}
+.toc{padding:14px 0;border-bottom:1px solid var(--line);font-size:13px}
+.toc ol{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0;padding:0;list-style:none}
+.toc a{text-decoration:none}
+.toc a:hover,.toc a:focus-visible{text-decoration:underline}
+
+/* ===== 章 ===== */
+section{padding:44px 0 8px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:4px}
+.sec-no{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+h2{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.45;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.5;margin:30px 0 8px}
+h4{font-family:var(--display);font-weight:700;font-size:15px;line-height:1.5;margin:0 0 4px}
+.phase-tag{font-size:12px;color:var(--muted);margin:0 0 14px}
+.grain{font-size:12px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 10px;white-space:nowrap;line-height:1.8}
+
+/* ===== 結論 ===== */
+.gist{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0 22px}
+.gist>.k{display:block;font-family:var(--display);font-weight:900;font-size:13px;color:var(--accent);letter-spacing:.06em}
+.gist p{margin:2px 0 0;font-size:16px;font-weight:500;max-width:none}
+.gist.lead p{font-size:18px;line-height:1.8}
+
+/* ===== 枠（前提・用語・具体例・反証） ===== */
+.box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:16px 0}
+.box>.k{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;padding:0 10px;border-radius:999px;margin-bottom:4px;line-height:1.9}
+.box p{max-width:none}
+.box p:last-child{margin-bottom:0}
+.premise{border-style:dashed;border-color:var(--arrow)}
+.premise>.k{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.term{border-left:4px solid var(--abs)}
+.term>.k{background:var(--abs-soft);color:var(--abs)}
+.term .name{font-weight:700;margin:2px 0 6px}
+.term dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0}
+.term dt{font-size:13px;color:var(--muted);padding-top:2px}
+.term dd{margin:0}
+@media (max-width:560px){.term dl{grid-template-columns:1fr;gap:0}.term dd{margin-bottom:6px}}
+.example{border-left:4px solid var(--est)}
+.example>.k{background:var(--est-soft);color:var(--est)}
+.falsify{border-left:4px solid var(--hyp)}
+.falsify>.k{background:var(--hyp-soft);color:var(--hyp)}
+.next{font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;margin-top:26px;max-width:none}
+.next b{color:var(--accent)}
+
+/* ===== 証拠ラベル・状態 ===== */
+.badge{display:inline-block;max-width:100%;font-size:12px;line-height:1.6;padding:1px 7px;border-radius:4px;border:1px solid currentColor;margin:0 2px;font-weight:500;vertical-align:1px}
+.badge.fact{color:var(--fact);background:var(--fact-soft)}
+.badge.est{color:var(--est);background:var(--est-soft)}
+.badge.hyp{color:var(--hyp);background:var(--hyp-soft)}
+.badge.abs{color:var(--abs);background:var(--abs-soft)}
+.st{display:inline-block;font-size:12px;font-weight:700;padding:0 10px;border-radius:999px;white-space:nowrap;line-height:1.9}
+.st.ok{background:var(--est-soft);color:var(--est)}
+.st.todo{background:var(--hyp-soft);color:var(--hyp)}
+.st.na{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+
+/* ===== 因果の図（縦。矢印にラベル） ===== */
+.chain{list-style:none;margin:18px 0;padding:0;max-width:700px}
+.chain .node{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
+.chain .node .nk{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.chain .node p{margin:2px 0 0;max-width:none}
+.chain .node.goal{border:2px solid var(--accent);background:var(--accent-soft)}
+.chain .node.goal .nk{color:var(--accent)}
+.chain .link{position:relative;margin-left:22px;padding:8px 0 16px 28px;font-size:13px;font-weight:700;color:var(--muted)}
+.chain .link::before{content:"";position:absolute;left:9px;top:0;bottom:6px;width:2px;background:var(--arrow)}
+.chain .link::after{content:"";position:absolute;left:4px;bottom:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+
+/* ===== 流れ図（横。狭い画面では縦） ===== */
+.flow{list-style:none;margin:18px 0;padding:0;display:flex;align-items:stretch;gap:32px}
+.flow>li{position:relative;flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.flow>li .sk{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.flow>li h4{margin:2px 0}
+.flow>li p{font-size:14px;margin:4px 0 0;max-width:none}
+.flow>li.pick{border:2px solid var(--accent)}
+.flow>li:not(:last-child)::after{content:"";position:absolute;top:50%;right:-26px;width:18px;height:2px;background:var(--arrow)}
+.flow>li:not(:last-child)::before{content:"";position:absolute;top:calc(50% - 5px);right:-29px;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid var(--arrow)}
+.flow.v{flex-direction:column;gap:30px}
+.flow.v>li{flex:none}
+.flow.v>li:not(:last-child)::after{top:auto;right:auto;left:22px;bottom:-24px;width:2px;height:16px}
+.flow.v>li:not(:last-child)::before{top:auto;right:auto;left:17px;bottom:-29px;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+/* 「かつ」でつなぐ */
+.flow.and>li:not(:last-child)::before{display:none}
+.flow.and>li:not(:last-child)::after{content:"かつ";background:none;width:32px;height:auto;right:-32px;top:50%;transform:translateY(-50%);text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+.flow.v.and>li:not(:last-child)::after{left:14px;right:auto;bottom:-27px;top:auto;transform:none;width:auto;text-align:left}
+.result{background:var(--accent-soft);border:2px solid var(--accent);border-radius:8px;padding:12px 16px;margin:-4px 0 18px}
+.result p{margin:0;max-width:none}
+@media (max-width:720px){
+  .flow{flex-direction:column;gap:30px}
+  .flow>li{flex:none}
+  .flow>li:not(:last-child)::after{top:auto;right:auto;left:22px;bottom:-24px;width:2px;height:16px}
+  .flow>li:not(:last-child)::before{top:auto;right:auto;left:17px;bottom:-29px;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+  .flow.and>li:not(:last-child)::after{left:14px;right:auto;bottom:-27px;top:auto;transform:none;width:auto;text-align:left;height:auto;background:none}
+}
+
+/* ===== 対比（○○ではなく△△ / Before → After） ===== */
+.contrast{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);align-items:stretch;margin:18px 0}
+.contrast .side{border-radius:8px;padding:12px 16px}
+.contrast .side p{margin:2px 0 0;max-width:none}
+.contrast .old{background:var(--bg);border:1px dashed var(--arrow)}
+.contrast .new{background:var(--surface);border:2px solid var(--accent)}
+.contrast .ck{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.contrast .new .ck{color:var(--accent)}
+.contrast .turn{position:relative}
+.contrast .turn::before{content:"";position:absolute;top:50%;left:8px;right:14px;height:2px;background:var(--arrow)}
+.contrast .turn::after{content:"";position:absolute;top:calc(50% - 5px);right:6px;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid var(--arrow)}
+@media (max-width:620px){
+  .contrast{grid-template-columns:1fr}
+  .contrast .turn{height:32px}
+  .contrast .turn::before{top:4px;bottom:12px;left:22px;right:auto;width:2px;height:auto}
+  .contrast .turn::after{top:auto;bottom:4px;left:17px;right:auto;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+}
+
+/* ===== カード ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c,var(--accent));border-radius:8px;padding:12px 16px}
+.card .ck{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.card p{font-size:14px;max-width:none}
+.card dl{margin:4px 0 0;font-size:14px}
+.card dt{font-size:12px;font-weight:700;color:var(--muted);margin-top:8px}
+.card dd{margin:0}
+
+/* ===== 表 ===== */
+.scroll{overflow-x:auto;margin:18px 0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.04em;color:var(--muted);font-weight:700;background:var(--bg)}
+tr.pick td{background:var(--accent-soft)}
+tr.pick td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--muted);padding:0 0 6px}
+
+/* ===== 階層図 ===== */
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree{margin:18px 0}
+.tree li{position:relative;margin:10px 0}
+.tree ul{margin-left:18px}
+.tree ul>li{padding-left:26px}
+.tree ul>li::before{content:"";position:absolute;left:0;top:21px;width:20px;border-top:2px solid var(--arrow)}
+.tree ul>li::after{content:"";position:absolute;left:0;top:-10px;bottom:-10px;border-left:2px solid var(--arrow)}
+.tree ul>li:last-child::after{bottom:auto;height:33px}
+.tree .tn{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;max-width:100%}
+.tree>li>.tn{border:2px solid var(--accent);font-weight:700}
+.tree .tk{display:block;font-size:11px;color:var(--muted);font-weight:700}
+
+/* ===== Message House ===== */
+.house{max-width:720px;margin:18px auto}
+.house .roof{background:var(--accent-soft);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);padding:14px 14%;text-align:center}
+.house .pillars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 4%}
+.house .pillar{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--accent);padding:10px 12px;font-size:14px}
+.house .base{background:var(--surface);border:1px solid var(--line);border-top:3px double var(--arrow);padding:10px 16px;text-align:center;font-size:14px}
+.house .hk{display:block;font-size:11px;font-weight:700;color:var(--muted)}
+.house p{margin:2px 0 0;max-width:none}
+@media (max-width:560px){.house .pillars{grid-template-columns:1fr}}
+
+/* ===== 循環 ===== */
+.loop .flow{margin-bottom:8px}
+.loop-back{position:relative;margin:0 10% 18px;padding-top:26px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);max-width:none}
+.loop-back::before{content:"";position:absolute;top:0;left:0;right:0;height:16px;border:2px solid var(--arrow);border-top:0;border-radius:0 0 10px 10px}
+.loop-back::after{content:"";position:absolute;top:-8px;left:-5px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:8px solid var(--arrow)}
+@media (max-width:720px){.loop-back{margin:0 0 18px;padding-top:0;text-align:left}.loop-back::before,.loop-back::after{display:none}}
+
+/* ===== 時系列 ===== */
+.timeline{list-style:none;margin:18px 0;padding:0 0 0 22px;border-left:2px solid var(--line)}
+.timeline li{position:relative;margin:0 0 16px;padding-left:12px}
+.timeline li::before{content:"";position:absolute;left:-27px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.timeline .when{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent)}
+.timeline p{margin:0}
+
+/* ===== 漏斗 ===== */
+.funnel{list-style:none;margin:18px 0;padding:0}
+.funnel li{width:var(--w,100%);min-width:min(100%,240px);margin:0 auto 6px;background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;padding:8px 14px;text-align:center}
+.funnel li b{display:block}
+.funnel li span{font-size:13px;color:var(--muted)}
+
+/* ===== 分岐（判断ルール） ===== */
+.branch{margin:18px 0}
+.branch .cond{background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:12px 16px;max-width:620px;margin:0 auto}
+.branch .cond p{max-width:none}
+.branch .outs{display:grid;gap:12px;position:relative;padding-top:34px}
+.branch .outs.n2{grid-template-columns:repeat(2,minmax(0,1fr));--bl:calc(25% - 5px)}
+.branch .outs.n3{grid-template-columns:repeat(3,minmax(0,1fr));--bl:calc(16.667% - 6px)}
+.branch .outs::before{content:"";position:absolute;top:0;left:calc(50% - 1px);height:14px;width:2px;background:var(--arrow)}
+.branch .outs::after{content:"";position:absolute;top:14px;left:var(--bl);right:var(--bl);height:2px;background:var(--arrow)}
+.branch .out{position:relative;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c,var(--arrow));border-radius:8px;padding:10px 14px}
+.branch .out p{margin:2px 0 0;max-width:none}
+.branch .out::before{content:"";position:absolute;top:-20px;left:calc(50% - 1px);height:12px;width:2px;background:var(--arrow)}
+.branch .out::after{content:"";position:absolute;top:-12px;left:calc(50% - 6px);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+.branch .out.ok{--c:var(--est)}
+.branch .out.ng{--c:var(--crit)}
+.branch .out.mid{--c:var(--hyp)}
+.branch .bk{display:block;font-size:12px;font-weight:700;color:var(--c,var(--muted))}
+@media (max-width:620px){
+  .branch .outs.n2,.branch .outs.n3{grid-template-columns:1fr}
+  .branch .outs{padding-top:12px}
+  .branch .outs::before,.branch .outs::after,.branch .out::before,.branch .out::after{display:none}
+  .branch .out{border-top-width:1px;border-left:6px solid var(--c,var(--arrow))}
+}
+
+/* ===== 深刻度の段 ===== */
+.levels{display:grid;gap:10px;margin:18px 0}
+.lv{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:0 8px 8px 0;padding:10px 16px}
+.lv .lk{display:block;font-size:12px;font-weight:700;color:var(--c)}
+.lv p{max-width:none}
+.lv ol,.lv ul{margin:4px 0 0;padding-left:1.3em}
+.lv li{margin:6px 0}
+.lv.crit{--c:var(--crit)}
+.lv.major{--c:var(--hyp)}
+.lv.watch{--c:var(--arrow)}
+
+/* ===== 2階層の目次（Full Strategy） ===== */
+.toc.deep>ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 22px}
+.toc.deep>ol>li>a{font-weight:700}
+.toc.deep ol ol{display:block;margin:2px 0 0;padding:0 0 0 12px;border-left:2px solid var(--line);list-style:none}
+.toc.deep ol ol li{margin:1px 0}
+
+/* ===== Phase の節（Full Strategy） ===== */
+section.phase{padding:30px 0 4px;margin-top:22px;border-top:1px solid var(--line)}
+.sec-head h3{margin:0;font-size:19px}
+
+/* ===== 範囲の帯（価格の下限・案・上限など） ===== */
+.range{margin:18px 0}
+.range .track{position:relative;height:56px;margin:0 28px}
+.range .track::before{content:"";position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line);border-radius:2px}
+.range .band{position:absolute;top:34px;height:12px;left:var(--from);width:calc(var(--to) - var(--from));background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px}
+.range .mark{position:absolute;left:var(--x);top:0;transform:translateX(-50%);font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;text-align:center;line-height:1.6}
+.range .mark::after{content:"";display:block;width:2px;height:28px;margin:2px auto 0;background:var(--arrow)}
+.range .mark.pick{color:var(--accent)}
+.range .mark.pick::after{background:var(--accent);width:3px}
+.range-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0 0}
+.range-legend>div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
+.range-legend dt{font-weight:700}
+.range-legend dd{margin:2px 0 0}
+
+/* ===== 計算の分解（LTV、現状の総コストなど） ===== */
+.calc{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:18px 0}
+.calc .v{flex:1 1 130px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.calc .v .ck{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.calc .v b{display:block;font-family:var(--mono);font-size:20px;line-height:1.4}
+.calc .v p{font-size:13px;margin:2px 0 0;max-width:none}
+.calc .v.ans{border:2px solid var(--accent);background:var(--accent-soft)}
+.calc .op{align-self:center;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--muted);padding:0 2px}
+@media (max-width:560px){.calc{flex-direction:column;gap:4px}.calc .v{flex:none}.calc .op{align-self:flex-start;padding:0 0 0 14px;line-height:1.2}}
+
+/* ===== 数値のカード・状態の追加 ===== */
+.card .big{display:block;font-family:var(--mono);font-size:28px;font-weight:700;line-height:1.3;color:var(--accent);margin:4px 0}
+.st.ng{background:var(--surface);color:var(--crit);border:1px solid var(--crit)}
+tr.alert td{background:var(--crit-soft)}
+
+/* ===== 骨組みの例でだけ使う ===== */
+.box.skeleton{border-style:dashed;border-color:var(--abs)}
+.box.skeleton>.k{background:var(--abs-soft);color:var(--abs)}
+
+/* ===== 更新履歴・フッター ===== */
+.changelog{font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin-top:18px}
+.changelog ul{margin:4px 0 0;padding-left:1.2em}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+
+/* ===== 印刷 ===== */
+@media print{
+  body{background:#fff;padding:0}
+  .toc{display:none}
+  .box,.card,.chain .node,.flow>li,.lv,.branch .out,.contrast,.calc,.range,tr{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">REPORT · 戦略の一式（Full Strategy）· 骨組みの例</div>
+  <h1>製品X は、経費精算の新しい市場を作れるのか ── 市場参入戦略</h1>
+  <dl class="meta">
+    <dt>分析の対象</dt><dd>製品X（架空）。法人カードで支払った瞬間に、支払いの記録と領収書の画像を1つの記録として保存する、経費精算のサービスである。</dd>
+    <dt>分析の種類</dt><dd>戦略の一式（Full Strategy）</dd>
+    <dt>使った情報</dt><dd>架空の設定だけを使った。この文書は、レポートの構成と部品の使い方を示す例である。</dd>
+    <dt>分析の状態</dt><dd><b>分析完了ではない。</b>例として、多くの節を骨組みのまま残している。</dd>
+    <dt>説明の粒度</dt><dd>全章・全節 1（標準）</dd>
+    <dt>作成日</dt><dd>2026年9月26日</dd>
+  </dl>
+  <div class="box skeleton"><span class="k">この例について</span>
+    <p>この文書は、Full Strategy のレポートの骨組みの例である。製品X・顧客・数値は、すべて架空であり、数値は「例（仮置き）」である。</p>
+    <p>Stage ごとに1〜2節と、第7章・第10章・付録を最後まで書いた。残りの節は、「この節に書くこと」を示す枠にしてある。実際のレポートでは、この枠を残さず、34の節のすべてを、最後まで書いた節と同じ型で書く。</p>
+  </div>
+</header>
+
+<nav class="toc deep" aria-label="目次">
+  <ol>
+    <li><a href="#gist">結論</a></li>
+    <li><a href="#premise">0. 前提</a></li>
+    <li><a href="#overview">全体像</a></li>
+    <li><a href="#stage-a">1. 解くべき問題は何か</a>
+      <ol><li><a href="#p0-5">1.1 すでに解かれている部分</a></li><li><a href="#p1">1.2 今のやり方</a></li><li><a href="#p2">1.3 本当の問題</a></li><li><a href="#p3">1.4 反対の仮説</a></li><li><a href="#p4">1.5 置き換えるもの</a></li></ol></li>
+    <li><a href="#stage-b">2. 誰に、どの市場として売るか</a>
+      <ol><li><a href="#p5">2.1 最初の顧客</a></li><li><a href="#p6">2.2 市場の名前</a></li><li><a href="#p7">2.3 比べる基準</a></li><li><a href="#p8">2.4 役割分担</a></li><li><a href="#p9">2.5 基本の動作</a></li></ol></li>
+    <li><a href="#stage-c">3. どう伝え、どう証明するか</a>
+      <ol><li><a href="#p10">3.1 メッセージ</a></li><li><a href="#p11">3.2 主役の数値</a></li><li><a href="#p12">3.3 証拠</a></li><li><a href="#p13">3.4 デモ</a></li><li><a href="#p14">3.5 創業者の物語</a></li><li><a href="#p15">3.6 なぜ今か</a></li><li><a href="#p16">3.7 議論を呼ぶ主張</a></li><li><a href="#p17">3.8 予想される批判</a></li></ol></li>
+    <li><a href="#stage-d">4. どう届け、どう広げるか</a>
+      <ol><li><a href="#p18">4.1 売り方</a></li><li><a href="#p19">4.2 価格</a></li><li><a href="#p20">4.3 ローンチ</a></li><li><a href="#p21">4.4 チャネル</a></li><li><a href="#p22">4.5 最初の価値までの時間</a></li><li><a href="#p23">4.6 用途の発明</a></li><li><a href="#p24">4.7 成長の循環</a></li><li><a href="#p25">4.8 第三者の発信</a></li></ol></li>
+    <li><a href="#stage-e">5. 事業として成り立つか</a>
+      <ol><li><a href="#p26">5.1 指標</a></li><li><a href="#p27">5.2 事業性</a></li></ol></li>
+    <li><a href="#stage-f">6. 真似されても勝ち続けられるか</a>
+      <ol><li><a href="#p28">6.1 競合・大手の反応</a></li><li><a href="#p29">6.2 真似されにくい強み</a></li><li><a href="#p30">6.3 市場の所有</a></li></ol></li>
+    <li><a href="#consist">7. 結論どうしの食い違い</a></li>
+    <li><a href="#risk">8. 弱いところ</a></li>
+    <li><a href="#next">9. 次に確かめること</a></li>
+    <li><a href="#unknown">10. まだ分かっていないこと</a></li>
+    <li><a href="#appendix">付録</a></li>
+  </ol>
+</nav>
+
+<!-- ===== 結論 ===== -->
+<section id="gist">
+  <div class="gist lead"><span class="k">結論</span>
+    <p>製品X は、経費精算の問題を「経理担当の作業が遅いこと」ではなく、「支払いの記録と領収書が別々に生まれ、後から人が突き合わせる仕組み」にあると捉え直し、支払いと同時に証拠を残す新しい市場（支払い時記録）として売り出す。この戦略が成り立つかは、経理担当の突き合わせの時間が実際に減るかと、解約率を月2%前後に保てるかにかかっており、どちらもまだ確かめていない（数値は仮置き）。</p>
+  </div>
+</section>
+
+<!-- ===== 第0章 前提 ===== -->
+<section id="premise">
+  <div class="sec-head"><span class="sec-no">第0章</span><h2>このレポートを読むための前提</h2><span class="grain">粒度 1（標準）</span></div>
+  <div class="gist"><span class="k">結論</span><p>このレポートを読むには、「突合」という経理の作業と、根拠の強さを示すラベルの読み方を知っておく必要がある。また、この文書は骨組みの例であり、製品X・顧客・数値はすべて架空である。</p></div>
+
+  <h3>前提1: 経費精算では、経理担当が、支払いの記録と領収書を突き合わせる</h3>
+  <p>社員が法人カード（会社が社員に配るクレジットカード）で支払うと、カード会社の明細に、支払いの記録が残る。社員は別に、支払いの証拠として、店から受け取った領収書を会社に出す。経理担当は、明細の記録と領収書が同じ支払いを指しているかを、1件ずつ確かめる。この作業を、このレポートでは「突合（とつごう）」と呼ぶ。</p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>明細に「9月3日 ○○レストラン 12,000円」という記録がある。経理担当は、社員が出した領収書の画像を開き、日付・店名・金額が明細と一致しているかを、目で見て確かめる。</p></div>
+
+  <h3>根拠の強さを示すラベル</h3>
+  <p>この分析では、主な主張に、根拠の強さを示すラベルを付けている。ラベルは次の4種類である。</p>
+  <div class="cards legend">
+    <div class="card" style="--c:var(--fact)"><h4><span class="badge fact">[事実: 出典]</span></h4><p>出典を示せることを表す。公開情報や実測にもとづく。</p></div>
+    <div class="card" style="--c:var(--est)"><h4><span class="badge est">[推定]</span></h4><p>事実から、筋道を立てて導いたことを表す。筋道が間違っていれば、結論も変わる。</p></div>
+    <div class="card" style="--c:var(--hyp)"><h4><span class="badge hyp">[仮説]</span></h4><p>まだ確かめていないことを表す。第9章で、確かめ方を示す。</p></div>
+    <div class="card" style="--c:var(--abs)"><h4><span class="badge abs">[不在確認: 調査範囲]</span></h4><p>「存在しない」と言うために、決められた基準で調べた結果を表す。この例では使っていない。</p></div>
+  </div>
+
+  <h3>この文書の限界</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>限界</th><th>その結果、この文書で言えないこと</th></tr></thead>
+    <tbody>
+      <tr><td>この文書の製品X・顧客・数値は、すべて架空である。</td><td>この文書の結論は、実在する製品や市場には当てはまらない。</td></tr>
+      <tr><td>Stage ごとに1〜2節だけを最後まで書き、残りの節は骨組みにした。</td><td>骨組みの節の結論は、Stage の流れ図に1文で示しただけであり、根拠を書いていない。</td></tr>
+    </tbody>
+  </table></div>
+  <p>実際の Full Strategy のレポートでは、骨組みの節を残さない。34の節のすべてを、最後まで書いた節（1.2節、1.3節、2.1節、3.2節、3.3節、4.2節、5.2節）と同じ型で書く。</p>
+</section>
+
+<!-- ===== 全体像 ===== -->
+<section id="overview">
+  <div class="sec-head"><span class="sec-no">OVERVIEW</span><h2>全体像: 6つの Stage は、どうつながって結論に至ったか</h2><span class="grain">粒度 1（標準）</span></div>
+  <div class="gist"><span class="k">結論</span><p>分析は、6つの Stage を順に進み、各 Stage の結論が、次の Stage の前提になっている。最後に、Stage をまたいで結論どうしを比べ、2つの食い違いを見つけて直した。</p></div>
+  <ol class="flow v">
+    <li class="pick"><span class="sk">第1章 · Stage A 問題発見</span><h4>解くべき問題は何か</h4><p>本当の問題は、支払いの記録と証拠が別々に生まれ、後から人が突き合わせる仕組みにある（仮説）。</p></li>
+    <li><span class="sk">第2章 · Stage B 市場定義</span><h4>誰に、どの市場として売るか</h4><p>最初の顧客を従業員100〜300人の企業の経理チームに絞り、「支払い時記録」という新しい市場の名前で売る。</p></li>
+    <li><span class="sk">第3章 · Stage C 伝達と証明</span><h4>どう伝え、どう証明するか</h4><p>製品X は「払った瞬間に、証拠も残る」と伝え、主役の数値の証拠は試験導入で作る。</p></li>
+    <li><span class="sk">第4章 · Stage D GTMと成長</span><h4>どう届け、どう広げるか</h4><p>製品X は、支払い1件50円で課金し、会計ソフトの連携アプリの一覧と会計事務所から顧客に届く。</p></li>
+    <li class="pick"><span class="sk">第5章 · Stage E 計測と事業性</span><h4>事業として成り立つか</h4><p>仮置きの数値では LTV/CAC が4.0で成り立つが、結論は解約率に強く左右される。</p></li>
+    <li><span class="sk">第6章 · Stage F 防御と所有</span><h4>真似されても勝ち続けられるか</h4><p>製品X は、カード会社の参入に備えて、会計ソフトとの連携の深さを、真似されにくい強みとして育てる。</p></li>
+    <li><span class="sk">第7章 · 整合性チェック</span><h4>結論どうしが食い違っていないか</h4><p>分析は、9つの組み合わせのうち2つで食い違いを見つけ、メッセージと指標の定義を直した。</p></li>
+  </ol>
+  <p>図の中で枠が太い第1章と第5章が、戦略全体を左右する結論である。第1章の問題の見方が正しくなければ、第2章以降の市場の名前も価格も、根拠を失う。第5章の解約率の前提が崩れると、ほかの結論が正しくても、事業として成り立たない。</p>
+
+  <h3>この分析の4つの結論</h3>
+  <p>4つの結論は、上の図の各章から取り出したものである。3つ目と4つ目は、どちらも第9章で最初に確かめる前提を含んでいる。各カードの下に、詳しく説明している節を示す。</p>
+  <div class="cards">
+    <div class="card"><span class="ck">市場定義の判定</span><p>製品X は、既存の「経費精算ソフト」の一種として売らず、「支払い時記録」という新しい市場の名前を作る（新カテゴリー）。</p><p class="small">→ 2.2節</p></div>
+    <div class="card" style="--c:var(--est)"><span class="ck">最大の勝ち筋</span><p>製品X は、カード会社と会計ソフトの間に入るので、カードの利用が増えるほど、製品X が記録する支払いも増える。</p><p class="small">→ 2.4節</p></div>
+    <div class="card" style="--c:var(--crit)"><span class="ck">最大のリスク</span><p>カード会社が、明細と領収書を1つにする機能を自社で出すと、製品X の違いが小さくなる。</p><p class="small">→ 6.1節</p></div>
+    <div class="card" style="--c:var(--hyp)"><span class="ck">事業性の判定</span><p>仮置きの数値では成り立つが、解約率が月10%まで上がると成り立たない（条件付きで成立）。</p><p class="small">→ 5.2節</p></div>
+  </div>
+</section>
+
+<!-- ===== 第1章 Stage A ===== -->
+<section id="stage-a">
+  <div class="sec-head"><span class="sec-no">第1章</span><h2>解くべき問題は何か</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage A 問題発見（P0.5〜P4）</p>
+  <div class="gist"><span class="k">結論</span><p>本当の問題は、経理担当の作業の遅さではなく、支払いの記録と証拠が別々に生まれ、後から人が突き合わせる仕組みにある（仮説）。そのため、製品X が置き換えるのは「月末にまとめて人が突き合わせる運用」であり、会計ソフトは連携先にする。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">1.1 · P0.5</span><h4>すでに解かれている部分はどこか</h4><p>既存の経費精算ソフトは領収書の読み取りを、カード会社は明細の連携を解いているが、支払いの瞬間に両方を1つの記録にすることは解いていない（部分的に解決済み）。</p></li>
+    <li><span class="sk">1.2 · P1</span><h4>顧客は今、どのように経費精算をしているか</h4><p>経理担当2名が、月末に月20時間をかけて、明細と領収書を目で突き合わせている。</p></li>
+    <li class="pick"><span class="sk">1.3 · P2</span><h4>本当の問題は何か</h4><p>本当の問題は作業の遅さではなく、支払いの記録と証拠が別々に生まれ、後から人が突き合わせる仕組みにある（仮説）。</p></li>
+    <li><span class="sk">1.4 · P3</span><h4>市場の常識と反対の仮説は何か</h4><p>支払いと証拠の記録は、後から突き合わせるのではなく、支払いと同時に1つにすべきである。</p></li>
+    <li><span class="sk">1.5 · P4</span><h4>何を置き換え、何を置き換えないのか</h4><p>置き換えるのは「月末にまとめて人が突き合わせる運用」であり、会計ソフトは連携先にする。</p></li>
+  </ol>
+  <p>図の5つの節は、上から順に、前の節の結論を次の節の前提にしている。1.1節で「支払いの瞬間に記録と証拠を1つにすること」が未解決だとわかったので、1.2節と1.3節はその部分だけを対象にした。1.3節の問題の見方が、1.4節の反対の仮説と、1.5節の置き換えるものを決めた。</p>
+
+  <section class="phase" id="p0-5">
+    <div class="sec-head"><span class="sec-no">1.1</span><h3>すでに解かれている部分はどこか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P0.5 先行事例の確認（Prior Art Sweep）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 既存の経費精算ソフトとカード会社の明細の連携が、それぞれ何を解いていて、支払いの瞬間に記録と証拠を1つにすることは解いていないことを書く。</li>
+        <li>図: カード（先行事例ごとに、できること・できないこと・確認した一次資料）と、「かつ」の流れ図（残る隙間の条件）を置く。</li>
+        <li>図の説明の文章: 先行事例のどれも解いていない部分と、それがなぜ今まで残っているのかを書く。調査の記録（調べた日・期間・検索語）も書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="phase" id="p1">
+    <div class="sec-head"><span class="sec-no">1.2</span><h3>顧客は今、どのように経費精算をしているか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P1 今のやり方（Existing World）</p>
+    <div class="gist"><span class="k">結論</span><p>経理担当2名が、月末に月20時間をかけて、カードの明細と領収書を目で突き合わせている。この突合だけで、企業は人件費として月6万円を払っている（数値は仮置き）。</p></div>
+    <p>分析は、経費精算の仕事を、社員がカードで支払ってから、経理担当が記録を確定するまでの5つの工程に分けた。下の図の工程の見出しにある「待ち」「変換」「確認」「引き継ぎ」は、無駄がたまりやすい工程の種類を示す。以下の数値は、顧客への聞き取りの前に置いた仮置きの値である。<span class="badge hyp">[仮説]</span></p>
+    <ol class="flow v">
+      <li><span class="sk">工程1</span><h4>支払い</h4><p>社員が、取引先との会食などの支払いに、法人カードを使う。</p></li>
+      <li><span class="sk">工程2 · 待ち</span><h4>領収書の提出</h4><p>社員は領収書を手元にためておき、月末にまとめて撮影して提出する。支払いから提出まで、平均2週間かかる。</p></li>
+      <li><span class="sk">工程3 · 変換</span><h4>内容の入力</h4><p>社員が、領収書の日付・金額・支払先を、経費精算の画面に手で入力し直す。</p></li>
+      <li class="pick"><span class="sk">工程4 · 確認</span><h4>突合</h4><p>経理担当が、カード会社の明細と領収書の画像を、1件ずつ目で見て突き合わせる。1件に約2分かかる。</p></li>
+      <li><span class="sk">工程5 · 引き継ぎ</span><h4>差し戻し</h4><p>金額などが合わない件（月30件ほど）を、経理担当が申請者に差し戻す。申請者が直すまで、平均2日かかる。</p></li>
+    </ol>
+    <p>5つの工程のうち、時間が最もかかっているのは、枠が太い工程4（突合）である。工程2で領収書の提出が2週間遅れ、工程3で人が入力し直すので、工程4の経理担当は、記録と証拠が合っているかを、最後にまとめて目で確かめるしかない。工程4で見つかった不一致が、工程5の差し戻しを生んでいる。</p>
+
+    <h4>突合にかかっている今の費用</h4>
+    <p>分析は、突合にかかっている費用を、1件あたりの時間、月の件数、経理担当の1分あたりの人件費の3つを掛け合わせて出した。</p>
+    <div class="calc">
+      <div class="v"><span class="ck">1件あたりの突合の時間</span><b>2分</b><p>経理担当が、明細と領収書を1件突き合わせるのにかかる時間である。</p></div>
+      <span class="op">×</span>
+      <div class="v"><span class="ck">月の件数</span><b>600件</b><p>社員50人が、1か月に法人カードで支払う件数である。</p></div>
+      <span class="op">×</span>
+      <div class="v"><span class="ck">1分あたりの人件費</span><b>50円</b><p>経理担当の時給3,000円を、1分あたりに直した値である。</p></div>
+      <span class="op">=</span>
+      <div class="v ans"><span class="ck">月の突合の費用</span><b>6万円</b><p>経理担当が、月に20時間を突合に使っている費用である。</p></div>
+    </div>
+    <p>この月6万円には、工程5の差し戻しで申請者が使う時間と、支払いが確定するまでの2日の遅れが入っていない。そのため、月6万円は、顧客が今払っている費用の下限である。この値は、4.2節で価格の上限を決めるときに使う。<span class="badge est">[推定]</span></p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>経理担当のAさんは、毎月最後の3日間、1日の大半を突合に使う。Aさんは、明細の「○○レストラン 12,000円」の行を見つけるたびに、社員が出した領収書の画像を開き、日付と金額が合っているかを確かめる。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>経理担当5人に、最後の月末の作業を順番に聞き、突合にかかる時間が月5時間より短い企業が多ければ、この費用の見積もりは大きすぎる。その場合、4.2節の価格の上限も下がる。</p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、なぜ経理担当が最後にまとめて突き合わせるしかないのかを、原因へと1段ずつたどる。</p>
+  </section>
+
+  <section class="phase" id="p2">
+    <div class="sec-head"><span class="sec-no">1.3</span><h3>本当の問題は何か</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P2 問題の再定義（Problem Discovery）</p>
+    <div class="gist"><span class="k">結論</span><p>問題は、経理担当の作業が遅いことではない。支払いの記録（明細）と、支払いの証拠（領収書）が、別々のときに別々の場所で生まれ、後から人が突き合わせる仕組みが問題である（仮説）。</p></div>
+    <div class="contrast">
+      <div class="side old"><span class="ck">よく言われる説明</span><p>経理担当の作業が遅い。経費精算ソフトが使いにくい。</p></div>
+      <div class="turn" aria-hidden="true"></div>
+      <div class="side new"><span class="ck">この分析の見方</span><p>支払いの記録と証拠が別々に生まれ、後から人が突き合わせる仕組みが、突合の作業そのものを生んでいる。<span class="badge hyp">[仮説]</span></p></div>
+    </div>
+    <p>左側の説明のもとでは、解決策は「作業を速くする道具」になる。右側の見方のもとでは、解決策は「突き合わせる作業そのものをなくす仕組み」になる。製品X が比べられる相手も、経費精算ソフトから、支払いと証拠を同時に記録する仕組みに変わる。</p>
+    <ol class="chain">
+      <li class="node"><span class="nk">症状</span><p>経理担当が、月末に月20時間を突合に使っている。</p></li>
+      <li class="link">なぜ、それほど時間がかかるのか？</li>
+      <li class="node"><span class="nk">第1原因</span><p>経理担当が、明細と領収書を、1件ずつ目で見て突き合わせている。</p></li>
+      <li class="link">なぜ、人が突き合わせる必要があるのか？</li>
+      <li class="node"><span class="nk">第2原因</span><p>明細はカード会社で支払いの瞬間に生まれ、領収書は社員の手元で生まれて、2週間後に提出される。2つの記録は、別々のときに別々の場所で生まれる。</p></li>
+      <li class="link">なぜ、2つの記録が別々に生まれるのか？</li>
+      <li class="node"><span class="nk">構造原因</span><p>支払いの仕組み（カード）と、証拠を残す仕組み（紙の領収書）が別々に作られ、2つをつなぐ役割が、人の手作業に残っている。<span class="badge est">[推定]</span></p></li>
+      <li class="link">その結果、本当に解くべき問題は</li>
+      <li class="node goal"><span class="nk">本当の問題</span><p>支払いと証拠を、支払いの瞬間に1つの記録にする手段がない。<span class="badge hyp">[仮説]</span></p></li>
+    </ol>
+    <p>この図のうち、構造原因の段は推定である。この段が正しければ、突合を速くする道具をどれだけ改良しても、突き合わせる作業そのものは残る。反対に、社員が支払いの直後に領収書を出す運用がすでに広がっていれば、2つの記録のずれは小さく、この問題の見方は弱くなる。</p>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">構造原因</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>1回の失敗ではなく、製品の作られ方や仕事の仕組みから、同じ無駄が繰り返し生まれる原因。</dd>
+        <dt>例</dt><dd>「支払いの仕組みと証拠を残す仕組みが別々に作られている」ことが、どの企業でも、毎月の突合を生んでいる。</dd>
+      </dl>
+    </div>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>社員が9月3日に会食代をカードで払う。カード会社の明細には9月3日に記録が残るが、領収書は社員の財布に入ったまま、9月末に提出される。経理担当は10月の初めに、4週間前の支払いの領収書を探して突き合わせる。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>経理担当への聞き取りで、差し戻しや突合の遅れの原因が、「領収書の提出の遅れ」ではなく「会計ソフトへの入力の誤り」だとわかった場合、この問題の定義は見直しになる。</p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、この問題の見方から立てた、市場の常識と反対の仮説を示す。</p>
+  </section>
+
+  <section class="phase" id="p3">
+    <div class="sec-head"><span class="sec-no">1.4</span><h3>市場の常識と反対の仮説は何か</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P3 反対仮説（Contrarian Thesis）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 「経費は後からまとめて精算するもの」という常識に対して、「支払いと証拠の記録は、支払いと同時に1つにすべきである」という仮説を書く。</li>
+        <li>図: 対比（常識 → 反対の仮説）と、証拠とその強さの表を置く。</li>
+        <li>図の説明の文章: 仮説を支える証拠のうち、どれが事実で、どれがまだ意見の段階かを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p4">
+    <div class="sec-head"><span class="sec-no">1.5</span><h3>何を置き換え、何を置き換えないのか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P4 敵の定義（Enemy）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 置き換えるのは「月末にまとめて人が突き合わせる運用」であり、会計ソフトは連携先にすることを書く。</li>
+        <li>図: 対比（Before → After）と、カード（置き換えるもの / 置き換えないもの）を置く。</li>
+        <li>図の説明の文章: 会計ソフトを置き換える対象にしない理由を、2.4節の役割分担とつなげて書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+</section>
+
+<!-- ===== 第2章 Stage B ===== -->
+<section id="stage-b">
+  <div class="sec-head"><span class="sec-no">第2章</span><h2>誰に、どの市場として売るか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage B 市場定義（P5〜P9）</p>
+  <div class="gist"><span class="k">結論</span><p>最初の顧客を、従業員100〜300人の企業の経理チームに絞り、「支払い時記録」という新しい市場の名前で売ることに決めた。比べる基準は、機能の数ではなく、支払い1件あたりの処理時間にする。</p></div>
+  <ol class="flow v">
+    <li class="pick"><span class="sk">2.1 · P5</span><h4>最初に誰に売るか</h4><p>最初の顧客は、法人カードを社員50人以上に配っている、従業員100〜300人の企業の経理チームである。</p></li>
+    <li><span class="sk">2.2 · P6</span><h4>どの市場として戦うか</h4><p>既存の「経費精算ソフト」の中で位置を変えるのではなく、「支払い時記録」という新しい市場の名前を作る（新カテゴリー）。</p></li>
+    <li><span class="sk">2.3 · P7</span><h4>何を基準に比べてもらうか</h4><p>比べる基準を、「機能の数」から「支払い1件あたりの処理時間」に変える。</p></li>
+    <li><span class="sk">2.4 · P8</span><h4>既存の製品とどう役割を分けるか</h4><p>製品X は、カード会社と会計ソフトの間に入り、両方をつなぐ役割を取る。</p></li>
+    <li><span class="sk">2.5 · P9</span><h4>製品X の基本の動作は何か</h4><p>製品X の基本の動作は「支払い → 証拠つきの記録」である。</p></li>
+  </ol>
+  <p>2.1節で決めた顧客（経理チーム）が、2.2節の市場の名前と、2.3節の比べる基準の前提になっている。経理担当は毎月の突合の時間で製品を比べるので、比べる基準を「支払い1件あたりの処理時間」にした。2.4節と2.5節は、その基準で勝てる製品の位置と動作を決めた。</p>
+
+  <section class="phase" id="p5">
+    <div class="sec-head"><span class="sec-no">2.1</span><h3>最初に誰に売るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P5 最初の顧客（ICP & Beachhead）</p>
+    <div class="gist"><span class="k">結論</span><p>最初に売り込む顧客は、法人カードを社員50人以上に配っている、従業員100〜300人の企業の経理チームである。この顧客で使われた実績を、同じ会計ソフトを使う大きな企業と、会計事務所へ広げる。</p></div>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">ICP（Ideal Customer Profile）</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>最初に売り込む相手として選んだ顧客の条件。</dd>
+        <dt>例</dt><dd>「法人カードを社員50人以上に配っている、従業員100〜300人の企業の経理チーム」という条件（例）。</dd>
+      </dl>
+    </div>
+    <p>分析は、ICP の企業の中で製品X に関わる人を、3つの役割に分けた。3つの役割は別々の人なので、毎日使う人が製品X を気に入るだけでは、導入は決まらない。<span class="badge est">[推定]</span></p>
+    <div class="cards">
+      <div class="card"><span class="ck">利用者（毎日使う人）</span><p>カードを使う社員と、突合をする経理担当である。社員は領収書を出す手間が減り、経理担当は突合の時間が減る。</p></div>
+      <div class="card"><span class="ck">意思決定者（導入を決める人）</span><p>経理部長である。経理部長は、監査で領収書の不備を指摘されないことと、月末の作業が終わる日を重視する。</p></div>
+      <div class="card"><span class="ck">予算保有者（お金を払う人）</span><p>管理部門の責任者（CFO）である。CFO は、月6万円の突合の費用と、製品X の料金を比べて判断する。</p></div>
+    </div>
+    <p>3つの役割のうち、製品X の料金を払うのは CFO であり、毎日使うのは社員と経理担当である。そのため、4.1節の売り方では、経理担当が自分で試せる無料枠と、CFO に費用の比較を示す営業を組み合わせる。</p>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">Beachhead（最初に確実に勝つ顧客の集まり）</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>最初に確実に勝つと決めた、小さな顧客の集まり。ここで実績を作ってから、隣の顧客の集まりへ広げる。</dd>
+        <dt>例</dt><dd>下の図の左端の「従業員100〜300人の企業の経理チーム」。</dd>
+      </dl>
+    </div>
+    <ol class="flow">
+      <li class="pick"><span class="sk">Beachhead</span><p>従業員100〜300人の企業の経理チームで、最初の実績を作る。</p></li>
+      <li><span class="sk">隣接 1</span><p>同じ会計ソフトを使う、従業員300〜1,000人の企業に広げる。</p></li>
+      <li><span class="sk">隣接 2</span><p>会計事務所が、顧問先の中小企業にまとめて紹介する。</p></li>
+    </ol>
+    <p>Beachhead から隣接1へ広がるのは、隣接1の企業が同じ会計ソフトを使っていて、製品X をそのまま使えるからである。隣接1から隣接2へ広がるのは、会計事務所が、Beachhead と隣接1の事例を、顧問先に紹介する根拠として使えるからである。<span class="badge est">[推定]</span></p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>従業員200人の企業で、経理部長が、監査で領収書の不備を3件指摘された月に、製品X の無料枠を試し始める。この「監査での指摘」が、導入を検討し始めるきっかけの例である。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>経理担当8人に聞き取りをして、突合の時間を問題だと感じている人が半分より少なければ、この ICP は見直しになる。<span class="badge hyp">[仮説]</span></p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、この顧客に対して、どの市場の名前で製品X を売るかを決める。</p>
+  </section>
+
+  <section class="phase" id="p6">
+    <div class="sec-head"><span class="sec-no">2.2</span><h3>どの市場として戦うか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P6 市場定義の判定（Category Decision）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 新カテゴリー「支払い時記録」を選んだ判定と、サブカテゴリーと再ポジショニングを選ばなかった理由を書く。</li>
+        <li>図: 比較表（A/B/C。選んだ行は tr.pick）と、選んだ理由の因果の図を置く。</li>
+        <li>図の説明の文章: 既存の「経費精算ソフト」の枠で比べられると何が見えなくなるのかと、予算の出どころ（突合の人件費の置き換え）を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p7">
+    <div class="sec-head"><span class="sec-no">2.3</span><h3>何を基準に比べてもらうか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P7 比較軸（Competitive Axis）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 比べる基準を「機能の数」から「支払い1件あたりの処理時間」に変えることと、その測り方を書く。</li>
+        <li>図: 比較表（既存の比較軸と新しい比較軸。重み、製品X の位置、競合の位置）を置く。</li>
+        <li>図の説明の文章: 新しい基準で、既存の経費精算ソフトが追いつきにくい理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p8">
+    <div class="sec-head"><span class="sec-no">2.4</span><h3>既存の製品とどう役割を分けるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P8 役割分担（Complementary Positioning）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 製品X が、カード会社と会計ソフトの間に入り、両方をつなぐ役割を取ることを書く。</li>
+        <li>図: 流れ図（支払い → 記録 → 仕訳 → 決算。製品X の位置を太い枠）と、成長の連動の因果の図を置く。</li>
+        <li>図の説明の文章: カードの利用が増えるほど、製品X の利用も増える理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p9">
+    <div class="sec-head"><span class="sec-no">2.5</span><h3>製品X の基本の動作は何か</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P9 基本の動作（Product Primitive）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 製品X の基本の動作が「支払い → 証拠つきの記録」であることを書く。</li>
+        <li>図: 流れ図（入力 → 出力）を置く。</li>
+        <li>図の説明の文章: この動作を組み合わせると何ができるかを、3つ以上書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+</section>
+
+<!-- ===== 第3章 Stage C ===== -->
+<section id="stage-c">
+  <div class="sec-head"><span class="sec-no">第3章</span><h2>どう伝え、どう証明するか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage C 伝達と証明（P10〜P17）</p>
+  <div class="gist"><span class="k">結論</span><p>製品X は「払った瞬間に、証拠も残る」と伝える。主役の数値（突合の時間 月20時間 → 月2時間）にはまだ証拠がないので、試験導入で証拠を作るまでは、デモで示せる主張を中心にする。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">3.1 · P10</span><h4>何と伝えるか</h4><p>5秒で伝える文は「払った瞬間に、証拠も残る」である。</p></li>
+    <li class="pick"><span class="sk">3.2 · P11</span><h4>どの数値で示すか</h4><p>主役の数値は「突合の時間 月20時間 → 月2時間」である（仮説）。</p></li>
+    <li class="pick"><span class="sk">3.3 · P12</span><h4>主張を何で証明するか</h4><p>主役の数値を支える証拠はまだなく、デザインパートナー3社の試験導入で作る。</p></li>
+    <li><span class="sk">3.4 · P13</span><h4>何を見せるか</h4><p>購入を決めてもらうデモでは、月末の突合の画面を、導入の前と後で並べて見せる。</p></li>
+    <li><span class="sk">3.5 · P14</span><h4>なぜこのチームが解けるのか</h4><p>創業者の経歴と問題の関連が弱いので、この節は対象外とし、チームの実績で信頼を補う。</p></li>
+    <li><span class="sk">3.6 · P15</span><h4>なぜ今なのか</h4><p>法人カードでの支払いの増加と、領収書を電子で保存する運用の広がりで、紙の領収書を前提にした仕組みが崩れつつある。</p></li>
+    <li><span class="sk">3.7 · P16</span><h4>どんな主張で議論を起こすか</h4><p>議論を呼ぶ主張は「月末の突合は、支払いの仕組みが作った無駄である」である。</p></li>
+    <li><span class="sk">3.8 · P17</span><h4>どんな批判が来るか</h4><p>最も強い批判は「既存の経費精算ソフトでも領収書を撮影できる」であり、撮影の後の突合が残る点で答える。</p></li>
+  </ol>
+  <p>3.1節のメッセージは、3.2節の数値と3.3節の証拠に支えられている必要がある。3.3節で、主役の数値に証拠がないとわかったので、第7章の整合性チェックで、メッセージの中心を直すことにした。3.4節から3.8節は、デモ・物語・タイミング・議論・批判への備えを決めた。</p>
+
+  <section class="phase" id="p10">
+    <div class="sec-head"><span class="sec-no">3.1</span><h3>何と伝えるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P10 メッセージ（Messaging）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 5秒で伝える文「払った瞬間に、証拠も残る」と、3つの価値の柱を書く。</li>
+        <li>図: Message House（屋根・3本の柱・土台）と、Level 1〜5 の表を置く。</li>
+        <li>図の説明の文章: 各柱を、どの証拠（3.3節）が支えているかを書く。第7章の解消方針に従い、証拠のない数値を中心に置かない。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="phase" id="p11">
+    <div class="sec-head"><span class="sec-no">3.2</span><h3>どの数値で示すか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P11 主役の数値（Quantitative Hook &amp; Number Framing）</p>
+    <div class="gist"><span class="k">結論</span><p>主役の数値は「経理担当の突合の時間 月20時間 → 月2時間」である。この数値はまだ測っていない仮置きの値であり、3.3節の試験導入で確かめる。</p></div>
+    <p>分析は、2.3節で決めた比べる基準（支払い1件あたりの処理時間）を、顧客が一目で分かる数値に直した。1件あたりの時間を、月の合計の時間に直したものが、下の1枚目のカードの数値である。</p>
+    <div class="cards">
+      <div class="card"><span class="ck">主役の数値</span><span class="big">20時間 → 2時間</span><p>経理担当2名の企業で、月600件の突合にかかる時間を、今の目視の突合と比べた値である。<span class="badge hyp">[仮説]</span></p></div>
+      <div class="card" style="--c:var(--est)"><span class="ck">同じ数値の別の見せ方</span><span class="big">約2.25日分</span><p>減る18時間を、経理担当の1日8時間の仕事に直した値である。</p></div>
+      <div class="card" style="--c:var(--arrow)"><span class="ck">数値の条件</span>
+        <dl>
+          <dt>比較の相手</dt><dd>今の目視の突合</dd>
+          <dt>測定の条件</dt><dd>月600件、経理担当2名。デザインパートナー3社で8週間測る予定である。</dd>
+          <dt>代表値か最大値か</dt><dd>3社の中央値で示す予定である。</dd>
+        </dl>
+      </div>
+    </div>
+    <p>2枚目のカードは、1枚目と同じ数値の別の見せ方である。「月18時間」より「約2.25日分」のほうが、経理部長が月末の作業の日数と比べやすい。どちらの見せ方でも、3枚目のカードにある比較の相手と条件を、必ず添える。</p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>経理部長が、稟議（導入の承認を社内で取る手続き）で「月末の締めが約2日早まる」と説明できれば、この数値が、そのまま導入の理由になる。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>試験導入で、3社の中央値が月10時間以上の突合を残した場合、主役の数値を「月20時間 → 月10時間」に下げるか、主役を別の数値に変える。</p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、この数値を含む主な主張のそれぞれに、どんな証拠があるかを確かめる。</p>
+  </section>
+
+  <section class="phase" id="p12">
+    <div class="sec-head"><span class="sec-no">3.3</span><h3>主張を何で証明するか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P12 証拠（Proof）</p>
+    <div class="gist"><span class="k">結論</span><p>3つの主な主張のうち、証拠があるのは「支払いと同時に、領収書が記録される」だけである。主役の数値（突合の時間）の証拠はまだなく、デザインパートナー3社の試験導入で作る。</p></div>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">証拠の信頼度</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>証拠を、誰がどのように確かめたかで5段階に分けたもの。第三者による検証が最も高く、自社が手法を公開せずに測った結果が最も低い。</dd>
+        <dt>例</dt><dd>自社が作ったデモは、最も低い段に当たる。</dd>
+      </dl>
+    </div>
+    <p>分析は、3.1節と3.2節で使う主な主張を3つ選び、それぞれに証拠があるか、あればどの信頼度かを、1行ずつ確かめた。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>主張</th><th>必要な証拠</th><th>今の状況</th><th>信頼度</th><th>扱い</th></tr></thead>
+      <tbody>
+        <tr><td>突合の時間が、月20時間から月2時間になる。</td><td>試験導入での実測が必要である。</td><td>証拠はまだない。<span class="badge hyp">[仮説]</span></td><td>まだない。</td><td>デザインパートナー3社で8週間測る（第9章）。</td></tr>
+        <tr><td>支払いと同時に、領収書が記録される。</td><td>製品のデモが必要である。</td><td>自社のデモがある。<span class="badge fact">[事実: 自社のデモ（例）]</span></td><td>最も低い段（自社が測り、手法は公開していない）である。</td><td>デモの手順を公開し、信頼度を1段上げる。</td></tr>
+        <tr><td>差し戻しの件数が減る。</td><td>試験導入での実測が必要である。</td><td>証拠はまだない。<span class="badge hyp">[仮説]</span></td><td>まだない。</td><td>突合の時間と同時に測る。</td></tr>
+      </tbody>
+    </table></div>
+    <p>証拠のない2つの主張は、どちらも試験導入の結果を待っている。そのため、試験導入の結果が出るまでは、主役の数値をメッセージの中心に置かない。この扱いは、第7章の整合性チェックで見つかった食い違いの解消方針と同じである。</p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>試験導入の前の営業資料では、「突合が月2時間になる」とは書かずに、「払った瞬間に、領収書が記録される様子」をデモで見せる。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>試験導入で、デモと同じように領収書が記録されない支払い（例: 領収書が出ない支払い）が多いとわかった場合、2つ目の主張も範囲を狭める。</p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、この主張をどのデモで見せるかを決める。</p>
+  </section>
+
+  <section class="phase" id="p13">
+    <div class="sec-head"><span class="sec-no">3.4</span><h3>何を見せるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P13 デモ（Demo）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 購入を決めてもらうデモと、広めるためのデモを分けて書く。</li>
+        <li>図: カード（Business Demo / Viral Demo）を置く。</li>
+        <li>図の説明の文章: デモを見た人が、すぐに試せる入り口（4.5節）へのつながりを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p14">
+    <div class="sec-head"><span class="sec-no">3.5</span><h3>なぜこのチームが解けるのか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P14 創業者の物語（Founder Story。この例では対象外）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: この節を対象外とする理由（創業者の経歴と問題の関連が弱いこと）を書く。</li>
+        <li>図: 因果の図（代わりの信頼の源: チームの実績 → デザインパートナーとの共同開発 → 試験導入の実測）を置く。</li>
+        <li>図の説明の文章: 経歴を誇張せずに、何で信頼を補うかを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p15">
+    <div class="sec-head"><span class="sec-no">3.6</span><h3>なぜ今なのか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P15 タイミング（Timing）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 法人カードでの支払いの増加と、領収書を電子で保存する運用の広がりで、何が成り立つようになったかを書く。</li>
+        <li>図: 因果の図（変化 → 可能になったこと → 既存の提供者がまだ動かない理由）を置く。</li>
+        <li>図の説明の文章: 市場の準備ができているか（「早すぎる」おそれがないか）を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p16">
+    <div class="sec-head"><span class="sec-no">3.7</span><h3>どんな主張で議論を起こすか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P16 議論を呼ぶ主張（Controversy）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 範囲を限定した主張「月末の突合は、支払いの仕組みが作った無駄である」を書く。</li>
+        <li>図: 表（主張・予想される反論・反論のうち正しい部分・回答）を置く。</li>
+        <li>図の説明の文章: 会計ソフトや経理担当を攻撃する主張になっていないかを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p17">
+    <div class="sec-head"><span class="sec-no">3.8</span><h3>どんな批判が来るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P17 予想される批判（Criticism Pre-Mortem）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 最も強い批判「既存の経費精算ソフトでも領収書を撮影できる」と、それへの回答を書く。</li>
+        <li>図: 表（批判の最も強い形・事実確認・正しい部分・回答・必要な証拠）を置く。</li>
+        <li>図の説明の文章: 批判のうち正しい部分を認め、撮影の後の突合が残る点で答えることを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+</section>
+
+<!-- ===== 第4章 Stage D ===== -->
+<section id="stage-d">
+  <div class="sec-head"><span class="sec-no">第4章</span><h2>どう届け、どう広げるか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage D GTMと成長（P18〜P25）</p>
+  <div class="gist"><span class="k">結論</span><p>製品X は、経理担当が自分で試せる無料枠と、経理部長への営業を組み合わせ、支払い1件50円で課金する。顧客には、会計ソフトの連携アプリの一覧と、会計事務所から届ける。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">4.1 · P18</span><h4>どう売るか</h4><p>経理担当が自分で試せる無料枠（PLG）と、経理部長への営業（Sales-Led）を組み合わせる。</p></li>
+    <li class="pick"><span class="sk">4.2 · P19</span><h4>いくらで売るか</h4><p>課金の単位は支払いの件数で、1件50円（月600件で月3万円）とする。</p></li>
+    <li><span class="sk">4.3 · P20</span><h4>どうローンチするか</h4><p>会計ソフトとの連携の発表と、デザインパートナーの事例を、同じ日に発表する。</p></li>
+    <li><span class="sk">4.4 · P21</span><h4>どこで顧客に出会うか</h4><p>最初のチャネルは、会計ソフトの連携アプリの一覧と、会計事務所である。</p></li>
+    <li><span class="sk">4.5 · P22</span><h4>最初の価値まで、どれくらいかかるか</h4><p>最初の価値は「最初の支払いで、領収書が自動で記録された瞬間」であり、登録から1日以内を目指す。</p></li>
+    <li><span class="sk">4.6 · P23</span><h4>利用者は用途を発明できるか</h4><p>利用者が用途を発明する余地は小さいので、この製品では優先度を下げる。</p></li>
+    <li><span class="sk">4.7 · P24</span><h4>利用が次の利用を生むか</h4><p>主な循環は「導入 → 事例 → 同業の関心 → 導入」の事例型である。</p></li>
+    <li><span class="sk">4.8 · P25</span><h4>第三者がどう説明し始めるか</h4><p>会計事務所が、顧問先に製品X を紹介する状態を目指す。</p></li>
+  </ol>
+  <p>4.1節の売り方が、4.2節の価格と4.4節のチャネルの前提になっている。経理担当が自分で試せるようにするため、4.5節では、最初の価値に届くまでの時間を1日以内にすることを目標にした。4.6節から4.8節は、顧客が次の顧客を連れてくる仕組みを決めた。</p>
+
+  <section class="phase" id="p18">
+    <div class="sec-head"><span class="sec-no">4.1</span><h3>どう売るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P18 売り方（GTM Motion）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 経理担当が自分で試せる無料枠（PLG）と、経理部長への営業（Sales-Led）の組み合わせを書く。</li>
+        <li>図: 分岐図（無料枠の利用が、どの条件を超えたら営業が接触するか）を置く。</li>
+        <li>図の説明の文章: 1社あたりの年間の契約額から、営業の費用を回収できる理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="phase" id="p19">
+    <div class="sec-head"><span class="sec-no">4.2</span><h3>いくらで売るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P19 価格（Pricing &amp; Monetization）</p>
+    <div class="gist"><span class="k">結論</span><p>製品X は、記録した支払い1件ごとに50円を課金する。ICP の企業（月600件）では月3万円になり、顧客が今払っている突合の費用（月6万円）の半分である（数値は仮置き）。</p></div>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">課金の単位</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>料金を数える単位。製品X では、製品X が記録した支払いの件数を数える。</dd>
+        <dt>例</dt><dd>月に600件の支払いを記録すれば、600件分の料金になる。</dd>
+      </dl>
+    </div>
+    <p>分析は、価格を、下限・上限・案の3つの値で決めた。下の図は、ICP の企業が払う月の料金で、3つの値の位置を示す（帯の左端を0円、右端を月7万円とした）。<span class="badge hyp">[仮説]</span></p>
+    <div class="range">
+      <div class="track">
+        <div class="band" style="--from:21%;--to:86%"></div>
+        <span class="mark" style="--x:21%">下限</span>
+        <span class="mark pick" style="--x:43%">案</span>
+        <span class="mark" style="--x:86%">上限</span>
+      </div>
+      <dl class="range-legend">
+        <div><dt>下限: 月1.5万円（1件25円）</dt><dd>製品X を提供する費用（月0.3万円）をまかない、売上の80%を粗利として残せる、最も低い価格である。</dd></div>
+        <div><dt>案: 月3万円（1件50円）</dt><dd>上限の半分である。顧客は、今の突合の費用との差額（月3万円分）を得る。</dd></div>
+        <div><dt>上限: 月6万円（1件100円）</dt><dd>顧客が今、突合に払っている費用（1.2節）である。これより高いと、顧客が乗り換える理由がない。</dd></div>
+      </dl>
+    </div>
+    <p>案の月3万円は、上限の月6万円より低いので、顧客は乗り換えると月3万円分を得る。案は下限の月1.5万円より高いので、製品X は粗利を残せる。上限の1件100円は、1.2節の「1件の突合に2分、1分あたり50円」から出した値であり、課金の単位（支払い1件）と、2.3節の比べる基準（支払い1件あたりの処理時間）が同じ単位になっている。</p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>月に900件の支払いがある企業は、製品X に月4.5万円を払う。この企業の今の突合の費用は、同じ計算で月9万円である。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>顧客に見積もりを出して、CFO が月3万円を「高い」と判断した企業が多い場合、案の価格を下げるか、1.2節の費用の見積もり（上限）を見直す。</p></div>
+    <p class="next"><b>次の節へ →</b> 次の節では、この価格で、どのようにローンチするかを決める。</p>
+  </section>
+
+  <section class="phase" id="p20">
+    <div class="sec-head"><span class="sec-no">4.3</span><h3>どうローンチするか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P20 ローンチ（Launch）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 会計ソフトとの連携の発表と、デザインパートナーの事例を、同じ日に発表する計画を書く。</li>
+        <li>図: 時系列（T-8週からT+4週まで）を置く。</li>
+        <li>図の説明の文章: ローンチの成功を、何の数値で判断するか（5.1節）を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p21">
+    <div class="sec-head"><span class="sec-no">4.4</span><h3>どこで顧客に出会うか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P21 チャネル（Distribution）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 最初のチャネルが、会計ソフトの連携アプリの一覧と、会計事務所であることを書く。</li>
+        <li>図: 表（チャネルごとの、ICP に届く数・導入の手間・チャネル側の動機）を置く。</li>
+        <li>図の説明の文章: 1つのチャネルに頼りすぎた場合のリスクと、代わりのチャネルを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p22">
+    <div class="sec-head"><span class="sec-no">4.5</span><h3>最初の価値まで、どれくらいかかるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P22 最初の価値までの時間（Time-to-First-Value）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 最初の価値を「最初の支払いで、領収書が自動で記録された瞬間」と定義し、登録から1日以内を目指すことを書く。</li>
+        <li>図: 流れ図（登録 → カードの連携 → 最初の支払い → 自動の記録。段階ごとの時間）を置く。</li>
+        <li>図の説明の文章: 最も時間がかかる段階と、その短縮策を書く。この定義を、5.1節の Activation と同じにする。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p23">
+    <div class="sec-head"><span class="sec-no">4.6</span><h3>利用者は用途を発明できるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P23 用途の発明（UGC）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: この製品では、利用者が用途を発明する余地が小さいので、優先度を下げる理由を書く。</li>
+        <li>図: 表（入力の自由度・組み合わせやすさ・共有のしやすさの評価）を置く。</li>
+        <li>図の説明の文章: 優先度を下げても、4.7節の成長の循環が成り立つ理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p24">
+    <div class="sec-head"><span class="sec-no">4.7</span><h3>利用が次の利用を生むか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P24 成長の循環（Growth Loop）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 主な循環が「導入 → 事例 → 同業の関心 → 導入」の事例型であることを書く。</li>
+        <li>図: 循環の図（各矢印に、次の行動を起こさせるもの）を置く。</li>
+        <li>図の説明の文章: 最も弱い矢印と、その対策を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p25">
+    <div class="sec-head"><span class="sec-no">4.8</span><h3>第三者がどう説明し始めるか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P25 第三者の発信（Third-Party Amplification）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 会計事務所が、顧問先に製品X を紹介する状態を目指すことを書く。</li>
+        <li>図: 流れ図（会計事務所が試す → 顧問先に紹介する → 会計ソフトが連携を紹介する → 業界の記事が市場として扱う）を置く。</li>
+        <li>図の説明の文章: 会計事務所にとってのメリットを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+</section>
+
+<!-- ===== 第5章 Stage E ===== -->
+<section id="stage-e">
+  <div class="sec-head"><span class="sec-no">第5章</span><h2>事業として成り立つか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage E 計測と事業性（P26〜P27）</p>
+  <div class="gist"><span class="k">結論</span><p>仮置きの数値では、LTV/CAC は4.0で、事業は成り立つ。ただし、解約率が月10%まで上がると0.8まで下がるので、解約率が最も重要な前提である。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">5.1 · P26</span><h4>何を測るか</h4><p>最も大事な指標は「月に、証拠つきで記録された支払いの件数」である。</p></li>
+    <li class="pick"><span class="sk">5.2 · P27</span><h4>事業として成り立つか</h4><p>LTV/CAC は4.0（仮置き）だが、解約率が月10%になると0.8まで下がり、事業として成り立たない。</p></li>
+  </ol>
+  <p>5.1節で決めた指標の数値が、5.2節の事業性の計算の入力になる。5.2節で、解約率が事業性を最も左右するとわかったので、第9章の最初の検証は、解約率を確かめるものにする。</p>
+
+  <section class="phase" id="p26">
+    <div class="sec-head"><span class="sec-no">5.1</span><h3>何を測るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P26 指標（Adoption Funnel &amp; Metrics）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 最も大事な指標が「月に、証拠つきで記録された支払いの件数」であることを書く。</li>
+        <li>図: 漏斗（認知 → 試用 → Activation → 継続 → 有料 → 拡大）と、段階ごとの指標の表を置く。</li>
+        <li>図の説明の文章: Activation の定義を4.5節と同じにしたこと（第7章の食い違いの解消）を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="phase" id="p27">
+    <div class="sec-head"><span class="sec-no">5.2</span><h3>事業として成り立つか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P27 事業性（Business Viability）</p>
+    <div class="gist"><span class="k">結論</span><p>仮置きの数値では、顧客1社から得る粗利の合計（LTV）は、1社を獲得する費用（CAC）の4.0倍になり、事業は成り立つ。ただし、解約率が月10%まで上がると0.8倍まで下がるので、解約率が最も重要な前提である。</p></div>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">LTV（Life Time Value。顧客生涯価値）</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>1社の顧客が、使い始めてから解約するまでに、製品X にもたらす粗利の合計。</dd>
+        <dt>例</dt><dd>下の計算の120万円。</dd>
+      </dl>
+    </div>
+    <p>LTV は、1社から毎月得る粗利を、月の解約率で割って出す。解約率で割るのは、月の解約率が2%なら、顧客は平均して50か月（1 ÷ 0.02）使い続けると見なせるからである。以下の数値は、すべて仮置きである。<span class="badge hyp">[仮説]</span></p>
+    <div class="calc">
+      <div class="v"><span class="ck">ARPA（1社の月の売上）</span><b>3万円</b><p>顧客1社から毎月得る売上である。4.2節の案の価格である。</p></div>
+      <span class="op">×</span>
+      <div class="v"><span class="ck">粗利率</span><b>80%</b><p>売上のうち、提供の費用を引いて残る割合である。</p></div>
+      <span class="op">÷</span>
+      <div class="v"><span class="ck">解約率</span><b>月2%</b><p>1か月のうちに解約する顧客の割合である。</p></div>
+      <span class="op">=</span>
+      <div class="v ans"><span class="ck">LTV</span><b>120万円</b><p>1社の顧客がもたらす粗利の合計である。</p></div>
+    </div>
+    <p>LTV の120万円を、CAC の30万円（仮置き）で割ると、LTV/CAC は4.0になり、一般的な目安（3以上）を上回る。CAC を毎月の粗利（3万円 × 80% = 2.4万円）で割ると、CAC の回収期間は12.5か月になる。ARPA と解約率は、どちらも月の値で揃えている。</p>
+    <div class="box term"><span class="k">用語</span>
+      <p class="name">CAC（Customer Acquisition Cost。顧客獲得コスト）</p>
+      <dl>
+        <dt>この文脈での意味</dt><dd>1社の顧客を獲得するのにかかる費用。広告と営業の費用を、獲得した社数で割って出す。</dd>
+        <dt>例</dt><dd>広告と営業に月300万円を使い、10社を獲得したら、CAC は30万円である（例）。</dd>
+      </dl>
+    </div>
+    <h4>前提が崩れたら、どうなるか（感度分析）</h4>
+    <p>分析は、4つの前提を1つずつ悲観的な値に変えて、LTV/CAC がどこまで下がるかを確かめた。LTV/CAC が1を下回ると、顧客を獲得するほど赤字が増える。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>前提</th><th>今の仮置き</th><th>悲観的な値</th><th>悲観的な値での LTV/CAC</th></tr></thead>
+      <tbody>
+        <tr class="alert"><td>解約率</td><td>月2%</td><td>月10%</td><td>0.8（LTV は24万円になる）</td></tr>
+        <tr><td>CAC</td><td>30万円</td><td>60万円</td><td>2.0</td></tr>
+        <tr><td>ARPA</td><td>月3万円</td><td>月2万円</td><td>2.7（LTV は80万円になる）</td></tr>
+        <tr><td>粗利率</td><td>80%</td><td>60%</td><td>3.0（LTV は90万円になる）</td></tr>
+      </tbody>
+    </table></div>
+    <p>4つの前提のうち、LTV/CAC が1を下回るのは、色が付いた解約率の行だけである。そのため、解約率が最も重要な前提であり、第9章で最初に確かめる。解約率を下げるには、製品X が、経理担当の月末の作業に組み込まれている必要がある（6.2節）。<span class="badge est">[推定]</span></p>
+    <div class="box example"><span class="k">例（仮の場面）</span><p>100社の顧客のうち10社が、ある月に解約すると、その月の解約率は10%になる。この状態が続くと、顧客は平均して10か月で解約するので、LTV は24万円まで下がる。</p></div>
+    <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>最初の3か月の顧客のまとまり（コホート）で、月の解約率が5%を超えた場合、LTV/CAC は1.6まで下がる。その場合は、2.1節の ICP か、4.5節の最初の価値の定義を見直す。</p></div>
+    <p class="next"><b>次の章へ →</b> 次の章では、事業が成り立った後に、競合や大手に真似されても勝ち続けられるかを確かめる。</p>
+  </section>
+</section>
+
+<!-- ===== 第6章 Stage F ===== -->
+<section id="stage-f">
+  <div class="sec-head"><span class="sec-no">第6章</span><h2>真似されても勝ち続けられるか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Stage F 防御と所有（P28〜P30）</p>
+  <div class="gist"><span class="k">結論</span><p>最も可能性の高い競合は、同じ機能を出すカード会社である。製品X は、会計ソフトとの連携の深さと、月末の作業への組み込みを、真似されにくい強み（Moat）として育てる。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">6.1 · P28</span><h4>競合と大手はどう反応するか</h4><p>カード会社が同じ機能を出す可能性が最も高いが、会計ソフトとの連携の数で追いつくには時間がかかる（仮説）。</p></li>
+    <li><span class="sk">6.2 · P29</span><h4>真似されても残るものは何か</h4><p>最も重要な Moat は、会計ソフトとの連携の深さと、経理担当の作業への組み込みである。</p></li>
+    <li><span class="sk">6.3 · P30</span><h4>「この市場なら製品X」と思われる状態をどう作るか</h4><p>「支払い時記録」と聞いて製品X を思い出す状態を、年1回の経理の実態調査の公開で作る。</p></li>
+  </ol>
+  <p>6.1節で、最も可能性の高い競合をカード会社とし、6.2節で、カード会社が真似しにくい強みを選んだ。6.3節は、その強みを「この市場なら製品X」という想起につなげる方法を決めた。</p>
+
+  <section class="phase" id="p28">
+    <div class="sec-head"><span class="sec-no">6.1</span><h3>競合と大手はどう反応するか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P28 競合・大手の反応（Competitive Response &amp; Big-Tech Replication）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: カード会社が同じ機能を出す可能性が最も高いが、会計ソフトとの連携の数で追いつくには時間がかかることを書く。</li>
+        <li>図: 表（競合ごとの動機・能力・時間）と、シナリオごとの対応の分岐図を置く。</li>
+        <li>図の説明の文章: 「大手が同じ機能を6か月後に無料で出したら、製品X は存続できるか」への答えを書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p29">
+    <div class="sec-head"><span class="sec-no">6.2</span><h3>真似されても残るものは何か</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P29 真似されにくい強み（Defensibility &amp; Standardization）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 最も重要な Moat が、会計ソフトとの連携の深さと、経理担当の月末の作業への組み込みであることを書く。</li>
+        <li>図: 表（Moat の候補ごとの、今の強さ・12か月後の目標・利用とともに強くなるか）を置く。</li>
+        <li>図の説明の文章: 見せかけの Moat（「先に始めた」など）を除いた理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+  <section class="phase" id="p30">
+    <div class="sec-head"><span class="sec-no">6.3</span><h3>「この市場なら製品X」と思われる状態をどう作るか</h3><span class="grain">粒度 1（標準）</span></div>
+    <p class="phase-tag">分析の該当箇所: P30 市場の所有（Category Ownership）</p>
+    <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+      <ul class="sentences">
+        <li>結論: 「支払い時記録」と聞いて製品X を思い出す状態を、年1回の経理の実態調査の公開で作ることを書く。</li>
+        <li>図: 流れ図（問題を認識する → 市場の名前を思い出す → 製品X を思い出す）を置く。</li>
+        <li>図の説明の文章: 他社がこの市場に参加することを歓迎する理由を書く。</li>
+        <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+      </ul>
+    </div>
+  </section>
+</section>
+
+<!-- ===== 第7章 整合性チェック ===== -->
+<section id="consist">
+  <div class="sec-head"><span class="sec-no">第7章</span><h2>結論どうしが食い違っていないか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Phase 間の整合性チェック（Consistency Check）</p>
+  <div class="gist"><span class="k">結論</span><p>Stage をまたいで結論を比べた結果、9つの組み合わせのうち2つが食い違い、2つがまだ確かめられていない。食い違いの2つは、戦略の結論を変えずに、メッセージの中心と指標の定義を直すことで解消した。</p></div>
+  <p>分析は、別々の Stage で決めた結論どうしが食い違っていないかを、9つの組み合わせで確かめた。例えば、比べる基準と、主役の数値と、課金の単位が、同じ「支払い1件」を単位にしているかを確かめる。以下の内容は、すべて例である。</p>
+  <div class="scroll"><table>
+    <thead><tr><th>組み合わせ</th><th>確かめたこと</th><th>結果</th><th>理由と解消方針</th></tr></thead>
+    <tbody>
+      <tr><td>1.3節 本当の問題 ↔ 3.1節 5秒で伝える文</td><td>5秒で伝える文が、再定義した問題をそのまま表しているかを確かめた。</td><td><span class="st ok">一致</span></td><td>「払った瞬間に、証拠も残る」は、「記録と証拠が別々に生まれる」という問題をそのまま裏返している。</td></tr>
+      <tr><td>1.5節 置き換えるもの ↔ 2.4節 役割分担 ↔ 3.7節 議論を呼ぶ主張</td><td>組みたい相手を、置き換える対象や議論の相手にしていないかを確かめた。</td><td><span class="st ok">一致</span></td><td>置き換えるのは月末の突合の運用であり、会計ソフトは連携先にしている。議論を呼ぶ主張も、会計ソフトを攻撃していない。</td></tr>
+      <tr><td>2.1節 最初の顧客 ↔ 4.1節 売り方 ↔ 4.4節 チャネル</td><td>顧客の買い方と、売り方・チャネルが合っているかを確かめた。</td><td><span class="st todo">未確認</span></td><td>経理部長が導入を決める企業に、経理担当が自分で試す無料枠が合うかを、まだ確かめていない。</td></tr>
+      <tr><td>2.3節 比べる基準 ↔ 3.2節 主役の数値 ↔ 4.2節 課金の単位</td><td>価値を語る単位、測る単位、課金する単位が同じかを確かめた。</td><td><span class="st ok">一致</span></td><td>3つとも「支払い1件」を単位にしている。</td></tr>
+      <tr class="alert"><td>3.3節 証拠 ↔ 3.1節・3.2節 メッセージと数値</td><td>証拠のない主張を、メッセージの中心に置いていないかを確かめた。</td><td><span class="st ng">矛盾</span></td><td>主役の数値（月20時間 → 月2時間）に証拠がないのに、メッセージの中心に置いていた。試験導入の結果が出るまで、メッセージの中心を、デモで示せる「払った瞬間に、領収書が記録される」に移す。</td></tr>
+      <tr class="alert"><td>4.5節 最初の価値 ↔ 5.1節 Activation の定義</td><td>「最初の価値」の定義が、2つの節で同じかを確かめた。</td><td><span class="st ng">矛盾</span></td><td>4.5節は「最初の支払いで領収書が自動で記録された瞬間」、5.1節は「カードを連携した」と定義していた。5.1節の定義を、4.5節の定義に合わせた。</td></tr>
+      <tr><td>5.2節 事業性 ↔ 4.2節 価格 ↔ 4.1節 売り方</td><td>営業の費用を、価格で回収できるかを確かめた。</td><td><span class="st ok">一致</span></td><td>月3万円の価格で、営業の費用を含む CAC 30万円を、12.5か月で回収できる（仮置き）。</td></tr>
+      <tr><td>6.1節 大手の反応 ↔ 6.2節 Moat ↔ 6.3節 市場の所有</td><td>大手が真似したときに効く強みが、3つの節で一致しているかを確かめた。</td><td><span class="st todo">未確認</span></td><td>カード会社が同じ機能を出したときに効く強み（会計ソフトとの連携の深さ）を、6.2節でまだ評価していない。</td></tr>
+      <tr><td>1.1節 先行事例 ↔ 1.3節 本当の問題 ↔ 2.2節 市場の名前 ↔ 3.8節 予想される批判</td><td>先行事例がすでに解いている部分を、製品X の新しさとして主張していないかを確かめた。</td><td><span class="st ok">一致</span></td><td>既存の経費精算ソフトが解いている「領収書の撮影と読み取り」を、製品X の新しさとして主張していない。</td></tr>
+    </tbody>
+  </table></div>
+  <p>食い違いの1つ目は、証拠のない数値を、メッセージの中心に置いていたことである。2つ目は、「最初の価値」の定義が、4.5節と5.1節で違っていたことである。どちらも放置すると、営業の説明と、成功を測る数値がずれていく。</p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>Activation（利用者が最初に価値を感じた状態に達したこと）を「カードを連携した」と定義すると、まだ1件も領収書が自動で記録されていない顧客まで、成功として数えてしまう。4.5節の定義に合わせると、実際に突合の手間が減り始めた顧客だけを数えられる。</p></div>
+  <div class="box falsify"><span class="k">まだ確かめていないこと</span><p>未確認の2つ（売り方とチャネル、大手の反応と Moat）は、4.1節と6.2節の内容を書いた後に確かめる。</p></div>
+  <p class="next"><b>次の章へ →</b> 次の章では、戦略全体を否定する事実を探し、弱いところを示す。</p>
+</section>
+
+<!-- ===== 第8章 ===== -->
+<section id="risk">
+  <div class="sec-head"><span class="sec-no">第8章</span><h2>弱いところはどこか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P31 反証とリスクの確認（Reality Check）</p>
+  <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+    <ul class="sentences">
+      <li>結論: 反証パスの結果と、最も深刻なリスク（解約率）を書く。</li>
+      <li>図: 表（反証パス）と、深刻度の段（致命的・重大・注意）を置く。</li>
+      <li>図の説明の文章: 各リスクに、どの章・節の対策が効くかを書く。</li>
+      <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+    </ul>
+  </div>
+</section>
+<!-- ===== 第9章 ===== -->
+<section id="next">
+  <div class="sec-head"><span class="sec-no">第9章</span><h2>次に何を確かめるか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P32 次の検証（Next Experiments）</p>
+  <div class="box skeleton"><span class="k">骨組み: この節に書くこと</span>
+    <ul class="sentences">
+      <li>結論: 最初に確かめることが、解約率（5.2節）と突合の時間（3.2節）であることを書く。</li>
+      <li>図: 実験ごとの分岐図（成功なら / 失敗なら）を置く。</li>
+      <li>図の説明の文章: 実験の順番を、外れたときに崩れる範囲の大きさで決めた理由を書く。</li>
+      <li>そのほか: 説明の文章・具体例・この結論が間違いだとわかる条件・次へのつながりを、説明の型の順に書く。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 第10章 ===== -->
+<section id="unknown">
+  <div class="sec-head"><span class="sec-no">第10章</span><h2>まだ分かっていないこと</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Missing Evidence、Coverage Matrix</p>
+  <div class="gist"><span class="k">結論</span><p>34の Phase のうち、確認済みは1つ、対象外は1つで、残りの32は未検証である。この例は骨組みで、ほとんどの節の内容を書いていないためであり、実際のレポートでは、未検証の理由と確かめ方を Phase ごとに書く。</p></div>
+  <p>下の表は、分析が実行した34の Phase のそれぞれについて、結論を確かめられたかどうかと、その理由を示す。最後まで書いた節（1.2、1.3、2.1、3.2、3.3、4.2、5.2節）も、数値が仮置きなので、未検証にしている。</p>
+  <div class="scroll"><table>
+    <thead><tr><th>分析の段階</th><th>状態</th><th>理由と確かめ方</th></tr></thead>
+    <tbody>
+      <tr><td>情報の確認（P0 Intake）</td><td><span class="st ok">確認済み</span></td><td>分析は、架空の設定であることと、置いた仮定を、第0章に明記した。</td></tr>
+      <tr><td>先行事例（P0.5）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>今のやり方（P1）</td><td><span class="st todo">未検証</span></td><td>工程と費用の数値は仮置きである。経理担当への聞き取りで確かめる。</td></tr>
+      <tr><td>本当の問題（P2）</td><td><span class="st todo">未検証</span></td><td>問題の見方は仮説である。経理担当への聞き取りと試験導入で確かめる。</td></tr>
+      <tr><td>反対の仮説（P3）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>置き換えるもの（P4）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>最初の顧客（P5）</td><td><span class="st todo">未検証</span></td><td>ICP は仮置きである。経理担当8人への聞き取りで確かめる。</td></tr>
+      <tr><td>市場の名前（P6）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>比べる基準（P7）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>役割分担（P8）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>基本の動作（P9）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>メッセージ（P10）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>主役の数値（P11）</td><td><span class="st todo">未検証</span></td><td>主役の数値は、まだ測っていない。デザインパートナー3社の試験導入で測る。</td></tr>
+      <tr><td>証拠（P12）</td><td><span class="st todo">未検証</span></td><td>主役の数値の証拠がない。試験導入で作る。</td></tr>
+      <tr><td>デモ（P13）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>創業者の物語（P14）</td><td><span class="st na">対象外</span></td><td>創業者の経歴と問題の関連が弱いので、対象外とした（この例での設定）。代わりに、チームの実績で信頼を補う。</td></tr>
+      <tr><td>なぜ今か（P15）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>議論を呼ぶ主張（P16）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>予想される批判（P17）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>売り方（P18）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>価格（P19）</td><td><span class="st todo">未検証</span></td><td>価格は仮置きである。顧客への見積もりへの反応で確かめる。</td></tr>
+      <tr><td>ローンチ（P20）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>チャネル（P21）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>最初の価値までの時間（P22）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>用途の発明（P23）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>成長の循環（P24）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>第三者の発信（P25）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>指標（P26）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>事業性（P27）</td><td><span class="st todo">未検証</span></td><td>LTV/CAC は仮置きの数値による。最初の3か月のコホートで、解約率を確かめる。</td></tr>
+      <tr><td>競合・大手の反応（P28）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>真似されにくい強み（P29）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>市場の所有（P30）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>弱いところ（P31）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+      <tr><td>次の検証（P32）</td><td><span class="st todo">未検証</span></td><td>骨組みの例のため、この節の内容を書いていない。</td></tr>
+    </tbody>
+  </table></div>
+  <p>最後まで書いた7つの節の未検証は、3つの確かめ方にまとまる。経理担当への聞き取り（1.2、1.3、2.1節）、デザインパートナー3社の試験導入（3.2、3.3節）、見積もりへの反応と最初の3か月のコホート（4.2、5.2節）である。</p>
+</section>
+
+<!-- ===== 付録 ===== -->
+<section id="appendix">
+  <div class="sec-head"><span class="sec-no">APPENDIX</span><h2>付録: 分析の出力の38セクションと、このレポートの対応</h2></div>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>分析の出力のセクション</th><th>このレポートの置き場所</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Executive Summary</td><td>結論、全体像の結論のカード</td></tr>
+      <tr><td>2</td><td>Intake &amp; Assumptions</td><td>第0章</td></tr>
+      <tr><td>3</td><td>Prior Art</td><td>1.1節</td></tr>
+      <tr><td>4</td><td>Existing World</td><td>1.2節</td></tr>
+      <tr><td>5</td><td>Hidden Problem &amp; Root Cause</td><td>1.3節</td></tr>
+      <tr><td>6</td><td>Contrarian Thesis</td><td>1.4節</td></tr>
+      <tr><td>7</td><td>Enemy</td><td>1.5節</td></tr>
+      <tr><td>8</td><td>ICP &amp; Beachhead</td><td>2.1節</td></tr>
+      <tr><td>9</td><td>Category Decision</td><td>2.2節</td></tr>
+      <tr><td>10</td><td>Competitive Axis</td><td>2.3節</td></tr>
+      <tr><td>11</td><td>Positioning</td><td>2.4節</td></tr>
+      <tr><td>12</td><td>Product Primitive</td><td>2.5節</td></tr>
+      <tr><td>13</td><td>Messaging</td><td>3.1節</td></tr>
+      <tr><td>14</td><td>Quantitative Hooks &amp; Number Framing</td><td>3.2節</td></tr>
+      <tr><td>15</td><td>Proof</td><td>3.3節</td></tr>
+      <tr><td>16</td><td>Demo Strategy</td><td>3.4節</td></tr>
+      <tr><td>17</td><td>Founder Story</td><td>3.5節</td></tr>
+      <tr><td>18</td><td>Timing</td><td>3.6節</td></tr>
+      <tr><td>19</td><td>Controversy</td><td>3.7節</td></tr>
+      <tr><td>20</td><td>Criticism &amp; Counterarguments</td><td>3.8節</td></tr>
+      <tr><td>21</td><td>GTM Motion</td><td>4.1節</td></tr>
+      <tr><td>22</td><td>Pricing</td><td>4.2節</td></tr>
+      <tr><td>23</td><td>Launch Strategy</td><td>4.3節</td></tr>
+      <tr><td>24</td><td>Distribution Strategy</td><td>4.4節</td></tr>
+      <tr><td>25</td><td>Time-to-First-Value</td><td>4.5節</td></tr>
+      <tr><td>26</td><td>UGC Strategy</td><td>4.6節</td></tr>
+      <tr><td>27</td><td>Growth Loop</td><td>4.7節</td></tr>
+      <tr><td>28</td><td>Third-Party Amplification</td><td>4.8節</td></tr>
+      <tr><td>29</td><td>Adoption Metrics</td><td>5.1節</td></tr>
+      <tr><td>30</td><td>Business Viability</td><td>5.2節</td></tr>
+      <tr><td>31</td><td>Competitive Response</td><td>6.1節</td></tr>
+      <tr><td>32</td><td>Defensibility &amp; Standardization</td><td>6.2節</td></tr>
+      <tr><td>33</td><td>Category Ownership</td><td>6.3節</td></tr>
+      <tr><td>34</td><td>Reality Check</td><td>第8章</td></tr>
+      <tr><td>35</td><td>Consistency Check</td><td>第7章</td></tr>
+      <tr><td>36</td><td>Missing Evidence</td><td>第10章</td></tr>
+      <tr><td>37</td><td>Next Experiments</td><td>第9章</td></tr>
+      <tr><td>38</td><td>Coverage Matrix</td><td>第10章</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>このレポートは、category-creation-growth-marketing スキル（v4）のレポート生成の、Full Strategy の骨組みの例である。製品X・顧客・数値は、すべて架空である。</footer>
+</div>
+</body>
+</html>

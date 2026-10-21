@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "operations": [
+    {"type":"text", "selector":"h1", "value":"チケット一覧 — 改善案"},
+    {"type":"insert", "selector":"#toolbar", "position":"beforeend", "value":"<button class=secondary>CSV出力</button>"},
+    {"type":"insert", "selector":"#toolbar", "position":"afterend", "value":"<p class=notice>クローズ済みチケットは更新できません。</p>"},
+    {"type":"style", "selector":"#status", "value":{"border-color":"#0f766e", "background":"#f0fdfa"}}
+  ],
+  "css":".secondary{background:#fff;color:#0f766e;border:1px solid #0f766e;padding:10px 16px;border-radius:6px;margin-left:12px}.notice{background:#fff7ed;border-left:4px solid #d97706;padding:14px}",
+  "annotations":[
+    {"selector":".secondary", "text":"検索結果のCSV出力ボタンを追加。画面案のため処理は未接続。"},
+    {"selector":".notice", "text":"更新不可となる条件を一覧画面で明示。"}
+  ]
+}

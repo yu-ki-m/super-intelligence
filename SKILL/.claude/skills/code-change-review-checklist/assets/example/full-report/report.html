@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="code-change-flow-template-version" content="2026.09.13.3">
+  <title>コード変更比較表</title>
+  <style>
+    :root{color-scheme:light;--canvas:#f3f5f8;--paper:#fff;--paper-soft:#f8fafc;--code-surface:#fbfcfe;--header-bg:#eef2f6;--line:#c8d0da;--line-strong:#96a1af;--ink:#1d2735;--muted:#5f6b7a;--accent:#2563eb;--accent-soft:#edf4ff;--diff-remove:#ffebe9;--diff-add:#dafbe1;--shadow:0 2px 5px rgba(15,23,42,.12),0 12px 28px rgba(15,23,42,.09)}
+    *{box-sizing:border-box}
+    html{background:var(--canvas)}
+    body{margin:0;color:var(--ink);background:var(--canvas);font-family:"Yu Gothic","YuGothic","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;font-size:14px;line-height:1.55}
+    main{--call-indent:64px;--track-inset:32px;--source-height:24px;--flow-overhang:128px;--table-width:2460px;width:calc(var(--table-width) + var(--flow-overhang));margin:24px auto 48px}
+    .commit-tabs{position:sticky;z-index:20;top:8px;left:10px;width:min(var(--table-width),calc(100vw - 20px));margin:0 0 14px;padding:3px;overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--paper);box-shadow:0 2px 10px rgba(15,23,42,.08);scrollbar-color:#aeb8c5 transparent;scrollbar-width:thin}
+    .commit-tab-list{display:flex;gap:2px;width:max-content;min-width:100%}
+    .commit-tab{display:flex;flex:0 0 auto;align-items:center;gap:8px;max-width:360px;height:36px;padding:0 13px;border:0;border-radius:5px;background:transparent;color:var(--muted);font:inherit;white-space:nowrap;cursor:pointer}
+    .commit-tab:hover{background:var(--paper-soft);color:var(--ink)}
+    .commit-tab[aria-selected="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px var(--accent);color:#174ea6;font-weight:600}
+    .commit-tab:focus-visible{position:relative;z-index:1;outline:2px solid var(--accent);outline-offset:-2px}
+    .commit-tab-hash,.commit-summary code{font-family:Consolas,"BIZ UDゴシック","MS Gothic",monospace;font-size:12px}
+    .commit-tab-hash{color:inherit}
+    .commit-tab-message{overflow:hidden;text-overflow:ellipsis}
+    .commit-panel[hidden]{display:none}
+    .commit-summary{display:flex;align-items:center;gap:12px;width:var(--table-width);min-height:36px;margin:0 0 6px;padding:5px 10px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;background:var(--paper);box-shadow:0 1px 3px rgba(15,23,42,.06);font-size:12px}
+    .commit-summary>code{padding:2px 6px;border-radius:4px;background:var(--accent-soft);color:#174ea6;font-weight:600}
+    .commit-summary-message{font-size:13px;font-weight:600}
+    .commit-metadata{display:flex;gap:12px;margin-left:auto;color:var(--muted)}
+    .commit-overview{width:var(--table-width);margin:0 0 14px;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:var(--paper);box-shadow:0 1px 3px rgba(15,23,42,.06)}
+    .commit-overview-title{height:26px;margin:0;padding:2px 10px;border-bottom:1px solid var(--line);background:var(--header-bg);color:#344054;font-size:14px;font-weight:600;line-height:21px}
+    .commit-overview-scroll{max-height:240px;overflow-y:auto;scrollbar-color:#aeb8c5 transparent;scrollbar-width:thin}
+    .commit-overview-body{max-width:1200px;margin:0;padding:9px 14px;color:var(--ink);font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .empty-commit{width:var(--table-width);margin:0;padding:16px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--muted)}
+    .flow-item[hidden]{display:none}
+    .root-section-heading{width:var(--table-width);margin:0 0 8px;padding:8px 12px;border:1px solid var(--line);border-left:4px solid #64748b;border-radius:6px;background:#e8edf3;color:var(--ink);break-after:avoid;page-break-after:avoid}
+    .root-section-heading--standalone{padding-top:6px;padding-bottom:6px}
+    .root-section-title{margin:0;font-size:14px;font-weight:700;line-height:1.5}
+    .root-section-description{max-width:1200px;margin:3px 0 0;color:#475467;font-size:12px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+    .flow-row{position:relative;width:100%;break-inside:avoid;page-break-inside:avoid}
+    .review-unit{position:relative;z-index:1;width:var(--table-width);margin-left:var(--screen-offset);border-radius:6px;background:var(--paper);box-shadow:var(--shadow)}
+    .source-header{display:flex;align-items:center;gap:3px;height:var(--source-height);padding:0 8px;overflow:hidden;border:1px solid var(--line);border-bottom:0;border-radius:6px 6px 0 0;background:var(--paper-soft)}
+    .source-location{min-width:0;margin:0;overflow:hidden;color:#344054;font-family:Consolas,"BIZ UDゴシック","MS Gothic",monospace;font-size:12px;font-weight:600;line-height:1.5;white-space:nowrap;text-overflow:ellipsis}
+    .nest-toggle,.nest-toggle-placeholder{flex:none;width:18px;height:18px}
+    .nest-toggle{display:inline-grid;place-items:center;padding:0;border:0;border-radius:3px;background:transparent;color:var(--muted);cursor:pointer}
+    .nest-toggle:hover{background:var(--accent-soft);color:var(--accent)}
+    .nest-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    .nest-toggle-icon{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+    .nest-toggle[aria-expanded="false"] .nest-toggle-icon{transform:rotate(-90deg)}
+    .comparison{display:grid;grid-template-columns:1fr 2fr 2fr 1fr;align-items:stretch;overflow:hidden;border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:0 0 6px 6px}
+    .column{display:grid;grid-template-rows:26px auto;align-content:start;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .column-title{margin:0;padding:2px 8px;border-bottom:1px solid var(--line);background:var(--header-bg);color:#344054;font-size:14px;font-weight:600;line-height:21px;text-align:center}
+    .editor{align-self:start;min-width:0;overflow:hidden;background:var(--code-surface)}
+    .editor .shiki{margin:0;padding:8px 10px;overflow:auto;background:var(--code-surface)!important;font-family:Consolas,"BIZ UDゴシック","MS Gothic",monospace;font-size:13px;line-height:1.5;white-space:pre;scrollbar-color:#aeb8c5 transparent;scrollbar-width:thin}
+    .editor .shiki code{display:block;width:max-content;min-width:100%}
+    .editor .shiki .diff-line{position:relative;display:block;min-height:1.5em;padding:0 12px 0 30px}
+    .editor .shiki .diff-line::before{position:absolute;top:0;left:0;width:24px;color:#6e7781;text-align:center;content:" ";user-select:none}
+    .editor .shiki .diff-line--removed{background:var(--diff-remove)}
+    .editor .shiki .diff-line--removed::before{color:#cf222e;content:"-"}
+    .editor .shiki .diff-line--added{background:var(--diff-add)}
+    .editor .shiki .diff-line--added::before{color:#1a7f37;content:"+"}
+    .details{display:grid;grid-template-rows:auto auto auto;align-content:start;min-height:0;background:var(--paper)}
+    .detail{padding:5px 8px;overflow:visible;border-bottom:1px solid var(--line)}
+    .detail:last-child{max-height:536px;overflow-y:auto;border-bottom:0;scrollbar-color:#aeb8c5 transparent;scrollbar-gutter:stable;scrollbar-width:thin}
+    .detail-title{margin:0 0 1px;color:var(--muted);font-size:12px;font-weight:600;line-height:1.4}
+    .detail-body{margin:0;padding-left:16px;font-size:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .specification-body{white-space:normal}
+    .specification-summary,.specification-example{margin:0;white-space:pre-wrap}
+    .specification-steps{margin:5px 0;padding-left:25px;list-style:decimal}
+    .specification-step{margin:0 0 4px;padding-left:2px;white-space:pre-wrap}
+    .specification-step:last-child{margin-bottom:0}
+    .specification-step::marker{color:#475467;font-weight:600}
+    .remarks{align-self:start;padding:6px 10px;background:var(--paper-soft)}
+    .remarks-body{margin:0;font-size:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .row-connectors{position:absolute;z-index:0;inset:0;pointer-events:none}
+    .row-track,.entry-stem,.connector-track{position:absolute;left:var(--screen-track);width:0}
+    .row-track,.connector-track{border-left:1px dotted var(--line-strong)}
+    .entry-stem,.connector-track--entry{border-left:1px solid var(--line-strong)}
+    .row-track{top:0;bottom:0}
+    .entry-stem{top:0;height:var(--source-height)}
+    .entry-branch{position:absolute;top:var(--source-height);left:var(--screen-branch-left);width:var(--screen-branch-width);border-top:1px solid var(--line-strong)}
+    .flow-connector{position:relative;width:100%;height:18px;pointer-events:none}
+    .connector-track{top:0;bottom:0}
+    @media(max-width:820px){main{margin:16px 10px 48px}}
+    @media print{
+      @page{size:A4 landscape;margin:10mm}
+      html,body{background:#fff}
+      main{--call-indent:12mm;--track-inset:6mm;--source-height:5mm;--flow-overhang:24mm;--table-width:260mm;width:calc(var(--table-width) + var(--flow-overhang));margin:0}
+      .commit-tabs{display:none}
+      .commit-panel[hidden]{display:block!important}
+      .flow-item[hidden]{display:block!important}
+      .commit-panel+.commit-panel{break-before:page}
+      .nest-toggle,.nest-toggle-placeholder{display:none}
+      .commit-overview{border-radius:0;box-shadow:none}
+      .commit-overview-scroll{max-height:none;overflow:visible}
+      .root-section-heading{border-radius:0;background:#eef1f4}
+      .review-unit{margin-left:var(--print-offset);border-radius:0;box-shadow:none}
+      .source-header,.comparison{border-radius:0}
+      .column{grid-template-rows:7mm auto}
+      .detail:last-child{max-height:none;overflow:visible;scrollbar-gutter:auto}
+      .flow-connector{height:5mm}
+      .row-track,.entry-stem,.connector-track{left:var(--print-track)}
+      .entry-branch{left:var(--print-branch-left);width:var(--print-branch-width)}
+    }
+  </style>
+</head>
+<body>
+  <main id="review-report" data-template-version="2026.09.13.3" data-max-depth="2">
+    <nav class="commit-tabs" aria-label="コミット一覧">
+      <div class="commit-tab-list" role="tablist" aria-label="表示するコミット">
+<button class="commit-tab" id="commit-tab-0" type="button" role="tab" aria-selected="true" aria-controls="commit-panel-0" tabindex="0"><span class="commit-tab-hash">4e91c2a</span><span class="commit-tab-message">注文状態を保存対象へ追加</span></button>
+<button class="commit-tab" id="commit-tab-1" type="button" role="tab" aria-selected="false" aria-controls="commit-panel-1" tabindex="-1"><span class="commit-tab-hash">9ab4e70</span><span class="commit-tab-message">監査ログに注文IDを追加</span></button>
+      </div>
+    </nav>
+<section class="commit-panel" id="commit-panel-0" role="tabpanel" aria-labelledby="commit-tab-0" data-max-depth="2">
+    <header class="commit-summary"><code>4e91c2a</code><span class="commit-summary-message">注文状態を保存対象へ追加</span><span class="commit-metadata"><span>作成者: Yuki</span><time datetime="2026-09-12 15:40">2026-09-12 15:40</time></span></header>
+    <section class="commit-overview" aria-labelledby="commit-overview-0">
+      <h2 class="commit-overview-title" id="commit-overview-0">概要</h2>
+      <div class="commit-overview-scroll"><p class="commit-overview-body">このコミットは、新規注文の状態を注文IDと一緒に保存し、登録後の処理が注文を受付済みと判定できる状態にする。<br>変更前は、OrderServiceがRECEIVEDを設定してもOrderRepositoryが状態をINSERT文へ渡さないため、データベースに注文状態が残らなかった。<br>注文状態とは、注文が受付、出荷、完了のどの段階にあるかを表す値である。<br>OrderRepositoryがorder.getStatus()をINSERT文へ渡すため、保存後に注文を読み直してもRECEIVEDを取得できる。<br>注文ID1001を登録して直後に照会すると、同じ注文レコードのstatusにはRECEIVEDが格納される。</p></div>
+    </section>
+<div class="flow-item" data-flow-index="0"><section class="root-section-heading root-section-heading--flow" data-section-kind="flow" aria-labelledby="root-section-0-0">
+  <h2 class="root-section-title" id="root-section-0-0">注文登録APIから注文状態を保存するフロー</h2>
+  <p class="root-section-description">API利用者が注文登録を要求してから、OrderController、OrderService、OrderRepositoryが注文状態を保存し、登録結果をHTTPレスポンスとして返すまでを示す。</p>
+</section><section class="flow-row" data-depth="0" style="--screen-offset:0px;--print-offset:0mm">
+  <div class="row-connectors" aria-hidden="true"></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-0-0"><button class="nest-toggle" type="button" aria-expanded="true" aria-label="呼び出し先を閉じる" title="呼び出し先を閉じる" data-flow-start="1" data-flow-end="3"><svg class="nest-toggle-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg></button><p class="source-location">src/main/java/example/OrderController.java:18-20</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderControllerは注文登録のHTTPリクエストを受け取り、注文データをOrderServiceへ渡す入口である。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、API利用者が送信した注文を登録処理へ渡し、登録結果が確定してから応答する入口である。</p><ol class="specification-steps"><li class="specification-step">OrderControllerがPOST /ordersへのHTTPリクエストからOrderRequestを受け取る。<br>OrderRequestは、API利用者が送信した注文内容を保持する。</li><li class="specification-step">OrderControllerがrequestをOrderServiceの登録処理へ渡す。<br>OrderControllerは、登録処理が結果または例外を返すまで待つ。</li><li class="specification-step">OrderControllerが登録結果をresponseへ保持する。<br>後続のレスポンス処理は、このresponseをHTTP応答の本文として使用する。</li></ol><p class="specification-example">保存処理が例外で終了した場合、OrderControllerはHTTP 201を返さず、既存の例外処理へ制御を渡す。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">@</span><span style="color:#D73A49">PostMapping</span><span style="color:#24292E">(</span><span style="color:#032F62">"/orders"</span><span style="color:#24292E">)</span></span><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> ResponseEntity</span><span style="color:#D73A49">&#x3C;</span><span style="color:#24292E">OrderResponse</span><span style="color:#D73A49">></span><span style="color:#6F42C1"> create</span><span style="color:#24292E">(@</span><span style="color:#D73A49">RequestBody</span><span style="color:#24292E"> OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    OrderResponse response </span><span style="color:#D73A49">=</span><span style="color:#24292E"> orderService.</span><span style="color:#6F42C1">create</span><span style="color:#24292E">(request);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">@</span><span style="color:#D73A49">PostMapping</span><span style="color:#24292E">(</span><span style="color:#032F62">"/orders"</span><span style="color:#24292E">)</span></span><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> ResponseEntity</span><span style="color:#D73A49">&#x3C;</span><span style="color:#24292E">OrderResponse</span><span style="color:#D73A49">></span><span style="color:#6F42C1"> create</span><span style="color:#24292E">(@</span><span style="color:#D73A49">RequestBody</span><span style="color:#24292E"> OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    OrderResponse response </span><span style="color:#D73A49">=</span><span style="color:#24292E"> orderService.</span><span style="color:#6F42C1">create</span><span style="color:#24292E">(request);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">Controllerとは、この処理ではHTTPリクエストをJavaメソッドへ受け渡すクラスを指す。<br>OrderRequestは、API利用者が送信した注文データを保持するオブジェクトである。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="1"><div class="flow-connector" aria-hidden="true"><span class="connector-track connector-track--entry" style="--screen-track:32px;--print-track:6mm"></span></div><section class="flow-row" data-depth="1" style="--screen-offset:64px;--print-offset:12mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span><span class="entry-stem" style="--screen-track:32px;--print-track:6mm"></span><span class="entry-branch" style="--screen-branch-left:32px;--screen-branch-width:32px;--print-branch-left:6mm;--print-branch-width:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-0-1"><button class="nest-toggle" type="button" aria-expanded="true" aria-label="呼び出し先を閉じる" title="呼び出し先を閉じる" data-flow-start="2" data-flow-end="2"><svg class="nest-toggle-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg></button><p class="source-location">src/main/java/example/OrderService.java:42-45</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderServiceは注文データを保存用のOrderへ変換し、新規注文の初期状態を設定してOrderRepositoryへ渡す。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、APIから受け取った注文を保存可能な形式へ変換し、新規注文を「受付済み」として保存処理へ渡す。</p><ol class="specification-steps"><li class="specification-step">OrderServiceがrequestの注文項目を保存用のOrderへ変換する。<br>mapperは、API入力の項目を業務処理が扱う項目へ対応付ける。</li><li class="specification-step">OrderServiceがOrderの注文状態をRECEIVEDへ設定する。<br>注文状態は、注文が受付、出荷、完了のどの段階にあるかを表す。</li><li class="specification-step">OrderServiceが状態設定済みのOrderをOrderRepositoryへ渡す。<br>OrderServiceは、保存結果がSavedOrderとして戻るまで後続処理へ進まない。</li></ol><p class="specification-example">例えば、注文IDが1001の注文を登録直後に照会するとstatusはRECEIVEDとなり、後続の出荷処理はその注文を処理対象として判定できる。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> OrderResponse </span><span style="color:#6F42C1">create</span><span style="color:#24292E">(OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    Order order </span><span style="color:#D73A49">=</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toEntity</span><span style="color:#24292E">(request);</span></span><span class="line diff-line"><span style="color:#24292E">    order.</span><span style="color:#6F42C1">initializeStatus</span><span style="color:#24292E">();</span></span><span class="line diff-line"><span style="color:#24292E">    SavedOrder savedOrder </span><span style="color:#D73A49">=</span><span style="color:#24292E"> repository.</span><span style="color:#6F42C1">save</span><span style="color:#24292E">(order);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> OrderResponse </span><span style="color:#6F42C1">create</span><span style="color:#24292E">(OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    Order order </span><span style="color:#D73A49">=</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toEntity</span><span style="color:#24292E">(request);</span></span><span class="line diff-line"><span style="color:#24292E">    order.</span><span style="color:#6F42C1">initializeStatus</span><span style="color:#24292E">();</span></span><span class="line diff-line"><span style="color:#24292E">    SavedOrder savedOrder </span><span style="color:#D73A49">=</span><span style="color:#24292E"> repository.</span><span style="color:#6F42C1">save</span><span style="color:#24292E">(order);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">Serviceとは、この処理では注文登録の手順を制御するクラスを指す。<br>RECEIVEDは、システムが注文を受け付けた直後を表す状態である。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="2"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span><span class="connector-track connector-track--entry" style="--screen-track:96px;--print-track:18mm"></span></div><section class="flow-row" data-depth="2" style="--screen-offset:128px;--print-offset:24mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span><span class="row-track" style="--screen-track:96px;--print-track:18mm"></span><span class="entry-stem" style="--screen-track:96px;--print-track:18mm"></span><span class="entry-branch" style="--screen-branch-left:96px;--screen-branch-width:32px;--print-branch-left:18mm;--print-branch-width:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-0-2"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/OrderRepository.java:30-32</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderRepositoryは注文状態をINSERT文の引数へ追加した。<br>これにより、Orderが保持するRECEIVEDを注文レコードへ保存する。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更前のINSERT文は注文IDだけを渡していたため、データベースは注文状態を保存できなかった。<br>OrderRepositoryがorder.getStatus()を追加すると、INSERT文は注文IDと注文状態の両方を受け取る。</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、注文IDと注文状態を同じデータベース行へ保存し、注文を再取得した後も処理段階を判定できるようにする。</p><ol class="specification-steps"><li class="specification-step">OrderRepositoryが保存対象のOrderから注文IDと注文状態を取得する。<br>注文IDは注文を識別し、注文状態は現在の処理段階を表す。</li><li class="specification-step">OrderRepositoryが注文IDと注文状態をINSERT文の引数へ渡す。<br>INSERT文は、2つの値を同じ注文レコードへ対応付ける。</li><li class="specification-step">JdbcTemplateがINSERT文を実行し、更新した行数をupdatedRowsへ返す。<br>OrderRepositoryは、この結果を後続の保存結果判定で使用できる。</li></ol><p class="specification-example">例えば、IDが1001で状態がRECEIVEDの注文を保存すると、注文テーブルの同じ行へ1001とRECEIVEDが記録される。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> SavedOrder </span><span style="color:#6F42C1">save</span><span style="color:#24292E">(Order order) {</span></span><span class="line diff-line diff-line--removed"><span style="color:#D73A49">    int</span><span style="color:#24292E"> updatedRows </span><span style="color:#D73A49">=</span><span style="color:#24292E"> jdbcTemplate.</span><span style="color:#6F42C1">update</span><span style="color:#24292E">(INSERT_SQL, order.</span><span style="color:#6F42C1">getId</span><span style="color:#24292E">());</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> SavedOrder </span><span style="color:#6F42C1">save</span><span style="color:#24292E">(Order order) {</span></span><span class="line diff-line diff-line--added"><span style="color:#D73A49">    int</span><span style="color:#24292E"> updatedRows </span><span style="color:#D73A49">=</span><span style="color:#24292E"> jdbcTemplate.</span><span style="color:#6F42C1">update</span><span style="color:#24292E">(</span></span><span class="line diff-line diff-line--added"><span style="color:#24292E">        INSERT_SQL, order.</span><span style="color:#6F42C1">getId</span><span style="color:#24292E">(), order.</span><span style="color:#6F42C1">getStatus</span><span style="color:#24292E">());</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">Repositoryとは、この処理ではJavaオブジェクトをデータベースへ保存するクラスを指す。<br>INSERT文は、データベースへ新しい行を追加するSQL文である。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="3"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span><span class="connector-track" style="--screen-track:96px;--print-track:18mm"></span></div><section class="flow-row" data-depth="1" style="--screen-offset:64px;--print-offset:12mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-0-3"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/OrderService.java:50-51</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderServiceは保存結果をAPI用のOrderResponseへ変換してOrderControllerへ返す。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、データベース保存用の結果をAPI利用者へ返せる形式へ変換し、内部項目の直接公開を防ぐ。</p><ol class="specification-steps"><li class="specification-step">OrderServiceがOrderRepositoryから返されたSavedOrderを受け取る。<br>SavedOrderは、保存後の注文IDや状態などの内部データを保持する。</li><li class="specification-step">mapperがSavedOrderからAPIで公開する項目を選び、OrderResponseを作成する。<br>OrderResponseに定義されていない内部項目はレスポンスへ含まれない。</li><li class="specification-step">OrderServiceが作成したOrderResponseをOrderControllerへ返す。<br>OrderControllerは、この戻り値をHTTPレスポンスの本文に使用する。</li></ol><p class="specification-example">例えば、SavedOrderが注文IDと状態を保持する場合、API利用者はOrderResponseを通じて公開対象の注文IDと状態を受け取る。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toResponse</span><span style="color:#24292E">(savedOrder);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toResponse</span><span style="color:#24292E">(savedOrder);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">OrderResponseは、注文登録APIが利用者へ返す項目を保持するオブジェクトである。<br>mapperは、保存結果の型をAPIレスポンスの型へ変換する処理を指す。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="4"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span></div><section class="flow-row" data-depth="0" style="--screen-offset:0px;--print-offset:0mm">
+  <div class="row-connectors" aria-hidden="true"></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-0-4"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/OrderController.java:24-25</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderControllerはOrderServiceの登録結果をHTTP 201のレスポンスとしてAPI利用者へ返す。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、新しい注文が作成されたことをHTTPステータス201で通知し、作成結果をレスポンス本文で返す。</p><ol class="specification-steps"><li class="specification-step">OrderControllerがOrderServiceからOrderResponseを受け取る。<br>OrderResponseは、API利用者へ公開する登録結果を保持する。</li><li class="specification-step">OrderControllerがHTTPステータスへ201 Createdを設定する。<br>201は、サーバーが新しい注文を作成したことを表す。</li><li class="specification-step">OrderControllerがOrderResponseをレスポンス本文へ設定し、HTTP応答をAPI利用者へ返す。<br>API利用者は、ステータスと本文を同じ応答で確認する。</li></ol><p class="specification-example">例えば、注文IDが1001として登録された場合、応答は201と注文ID1001を含む本文を返す。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> ResponseEntity.</span><span style="color:#6F42C1">status</span><span style="color:#24292E">(HttpStatus.CREATED).</span><span style="color:#6F42C1">body</span><span style="color:#24292E">(response);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> ResponseEntity.</span><span style="color:#6F42C1">status</span><span style="color:#24292E">(HttpStatus.CREATED).</span><span style="color:#6F42C1">body</span><span style="color:#24292E">(response);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">HTTP 201 Createdは、サーバーが新しいリソースを作成したことを表すステータスである。<br>この処理では、新しい注文の登録成功を表す。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+  </section>
+<section class="commit-panel" id="commit-panel-1" role="tabpanel" aria-labelledby="commit-tab-1" data-max-depth="2" hidden>
+    <header class="commit-summary"><code>9ab4e70</code><span class="commit-summary-message">監査ログに注文IDを追加</span><span class="commit-metadata"><span>作成者: Yuki</span><time datetime="2026-09-12 16:10">2026-09-12 16:10</time></span></header>
+    <section class="commit-overview" aria-labelledby="commit-overview-1">
+      <h2 class="commit-overview-title" id="commit-overview-1">概要</h2>
+      <div class="commit-overview-scroll"><p class="commit-overview-body">このコミットは、注文登録の監査ログへ保存済み注文IDを記録し、INFOレベルの登録ログを実行環境へ残す。<br>調査担当者は、障害発生時にログの注文IDと注文レコードを照合して、対象の登録処理を特定できる。<br>監査ログとは、誰がいつどの業務操作を行ったかを後から確認するための記録である。<br>AuditLoggerがsavedOrder.getId()をログへ埋め込み、logback-spring.xmlがINFOを出力対象に含めるため、注文ID付きの記録が実行環境へ残る。<br>注文ID1001の登録後に障害が発生した場合、調査担当者はログから1001を検索して登録時刻を確認できる。</p></div>
+    </section>
+<div class="flow-item" data-flow-index="0"><section class="root-section-heading root-section-heading--flow" data-section-kind="flow" aria-labelledby="root-section-1-0">
+  <h2 class="root-section-title" id="root-section-1-0">注文登録から監査ログを記録するフロー</h2>
+  <p class="root-section-description">API利用者が注文登録を要求してから、保存済み注文IDを監査ログへ記録し、登録結果をHTTPレスポンスとして返すまでを示す。</p>
+</section><section class="flow-row" data-depth="0" style="--screen-offset:0px;--print-offset:0mm">
+  <div class="row-connectors" aria-hidden="true"></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-0"><button class="nest-toggle" type="button" aria-expanded="true" aria-label="呼び出し先を閉じる" title="呼び出し先を閉じる" data-flow-start="1" data-flow-end="3"><svg class="nest-toggle-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg></button><p class="source-location">src/main/java/example/OrderController.java:18-20</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderControllerは注文登録のHTTPリクエストを受け取り、注文データをOrderServiceへ渡す入口である。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、API利用者の注文を登録フローへ渡し、保存と監査記録が完了してから成功応答を作る入口である。</p><ol class="specification-steps"><li class="specification-step">OrderControllerがPOST /ordersへのHTTPリクエストからOrderRequestを受け取る。<br>OrderRequestは、登録対象の注文内容を保持する。</li><li class="specification-step">OrderControllerがrequestをOrderServiceへ渡す。<br>OrderServiceは、注文の保存と監査記録を順番に実行する。</li><li class="specification-step">OrderControllerがOrderServiceの完了を待ち、戻り値をresponseへ保持する。<br>OrderServiceが例外を返した場合、OrderControllerは成功応答の作成へ進まない。</li></ol><p class="specification-example">例えば、保存処理が失敗した場合、後続の監査ログ処理とHTTP 201の応答は実行されない。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">@</span><span style="color:#D73A49">PostMapping</span><span style="color:#24292E">(</span><span style="color:#032F62">"/orders"</span><span style="color:#24292E">)</span></span><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> ResponseEntity</span><span style="color:#D73A49">&#x3C;</span><span style="color:#24292E">OrderResponse</span><span style="color:#D73A49">></span><span style="color:#6F42C1"> create</span><span style="color:#24292E">(@</span><span style="color:#D73A49">RequestBody</span><span style="color:#24292E"> OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    OrderResponse response </span><span style="color:#D73A49">=</span><span style="color:#24292E"> orderService.</span><span style="color:#6F42C1">create</span><span style="color:#24292E">(request);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">@</span><span style="color:#D73A49">PostMapping</span><span style="color:#24292E">(</span><span style="color:#032F62">"/orders"</span><span style="color:#24292E">)</span></span><span class="line diff-line"><span style="color:#D73A49">public</span><span style="color:#24292E"> ResponseEntity</span><span style="color:#D73A49">&#x3C;</span><span style="color:#24292E">OrderResponse</span><span style="color:#D73A49">></span><span style="color:#6F42C1"> create</span><span style="color:#24292E">(@</span><span style="color:#D73A49">RequestBody</span><span style="color:#24292E"> OrderRequest request) {</span></span><span class="line diff-line"><span style="color:#24292E">    OrderResponse response </span><span style="color:#D73A49">=</span><span style="color:#24292E"> orderService.</span><span style="color:#6F42C1">create</span><span style="color:#24292E">(request);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">Controllerとは、この処理ではHTTPリクエストをJavaメソッドへ受け渡すクラスを指す。<br>OrderRequestは、API利用者が送信した注文データを保持するオブジェクトである。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="1"><div class="flow-connector" aria-hidden="true"><span class="connector-track connector-track--entry" style="--screen-track:32px;--print-track:6mm"></span></div><section class="flow-row" data-depth="1" style="--screen-offset:64px;--print-offset:12mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span><span class="entry-stem" style="--screen-track:32px;--print-track:6mm"></span><span class="entry-branch" style="--screen-branch-left:32px;--screen-branch-width:32px;--print-branch-left:6mm;--print-branch-width:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-1"><button class="nest-toggle" type="button" aria-expanded="true" aria-label="呼び出し先を閉じる" title="呼び出し先を閉じる" data-flow-start="2" data-flow-end="2"><svg class="nest-toggle-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg></button><p class="source-location">src/main/java/example/OrderService.java:55-55</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderServiceは保存済み注文をAuditLoggerへ渡し、注文登録の監査記録を開始する。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、保存に成功した注文だけを監査記録の対象にし、存在しない注文の成功ログが残ることを防ぐ。</p><ol class="specification-steps"><li class="specification-step">OrderServiceが直前の保存処理からSavedOrderを受け取る。<br>SavedOrderの注文IDは、データベースへ登録された注文を識別する。</li><li class="specification-step">OrderServiceがSavedOrderをAuditLoggerへ渡す。<br>AuditLoggerは、保存済み注文のIDを監査ログへ記録する。</li><li class="specification-step">OrderServiceがAuditLoggerの処理完了を待つ。<br>監査処理が正常に戻った場合だけ、OrderServiceはレスポンス作成へ進む。</li></ol><p class="specification-example">例えば、注文ID1001の保存が成功した場合だけ1001の監査ログを記録し、保存が例外で終了した場合は成功ログを記録しない。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">auditLogger.</span><span style="color:#6F42C1">created</span><span style="color:#24292E">(savedOrder);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#24292E">auditLogger.</span><span style="color:#6F42C1">created</span><span style="color:#24292E">(savedOrder);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">監査ログとは、誰がいつどの業務操作を行ったかを後から確認するための記録である。<br>この例では、注文登録が成功した事実と注文IDを記録する。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="2"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span><span class="connector-track connector-track--entry" style="--screen-track:96px;--print-track:18mm"></span></div><section class="flow-row" data-depth="2" style="--screen-offset:128px;--print-offset:24mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span><span class="row-track" style="--screen-track:96px;--print-track:18mm"></span><span class="entry-stem" style="--screen-track:96px;--print-track:18mm"></span><span class="entry-branch" style="--screen-branch-left:96px;--screen-branch-width:32px;--print-branch-left:18mm;--print-branch-width:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-2"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/AuditLogger.java:20-20</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">AuditLoggerは、注文登録ログへ保存済み注文IDを追加した。<br>例えば、IDが1001の注文を保存した場合、ログにはorder created: 1001と出力する。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更前のログは固定文だけを出力していたため、複数の注文登録が続くと各ログがどの注文を表すか判定できなかった。<br>AuditLoggerが注文IDを出力すると、調査担当者はログと注文レコードをIDで照合できる。</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、注文登録の記録と実際の注文を同じIDで結び付け、調査担当者が対象注文を特定できるようにする。</p><ol class="specification-steps"><li class="specification-step">AuditLoggerが保存済み注文を受け取る。<br>保存済み注文は、データベースが確定した注文IDを保持する。</li><li class="specification-step">AuditLoggerが保存済み注文から注文IDを取得する。<br>注文IDは、ログと注文レコードを照合するための識別値になる。</li><li class="specification-step">ログ処理がメッセージ内の{}を注文IDへ置き換え、INFOレベルの記録を出力する。<br>各ログは、固定文だけのログと異なり対象注文を示す。</li></ol><p class="specification-example">例えば、注文ID1001の登録後に障害が起きた場合、調査担当者はログから1001を検索して該当する登録記録を確認できる。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line diff-line--removed"><span style="color:#24292E">log.</span><span style="color:#6F42C1">info</span><span style="color:#24292E">(</span><span style="color:#032F62">"order created"</span><span style="color:#24292E">);</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line diff-line--added"><span style="color:#24292E">log.</span><span style="color:#6F42C1">info</span><span style="color:#24292E">(</span><span style="color:#032F62">"order created: {}"</span><span style="color:#24292E">, savedOrder.</span><span style="color:#6F42C1">getId</span><span style="color:#24292E">());</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">プレースホルダーとは、ログ出力時に実際の値へ置き換わる{}の部分を指す。<br>ログには注文IDだけを記録し、氏名や住所などの個人情報を追加しない。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="3"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span><span class="connector-track" style="--screen-track:96px;--print-track:18mm"></span></div><section class="flow-row" data-depth="1" style="--screen-offset:64px;--print-offset:12mm">
+  <div class="row-connectors" aria-hidden="true"><span class="row-track" style="--screen-track:32px;--print-track:6mm"></span></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-3"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/OrderService.java:57-58</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderServiceは監査ログの記録後、保存結果をAPI用のOrderResponseへ変換してOrderControllerへ返す。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、監査記録が完了した保存結果をAPIレスポンス用の形式へ変換し、呼び出し元へ返す。</p><ol class="specification-steps"><li class="specification-step">OrderServiceがAuditLoggerから正常終了の制御を受け取る。<br>監査処理が例外で終了した場合、OrderServiceはこの戻り処理へ進まない。</li><li class="specification-step">mapperがSavedOrderからAPIで公開する項目を選び、OrderResponseを作成する。<br>OrderResponseは、内部の保存形式をAPI利用者向けの形式へ変える。</li><li class="specification-step">OrderServiceがOrderResponseをOrderControllerへ返す。<br>OrderControllerは、この戻り値をHTTPレスポンスの本文に使用する。</li></ol><p class="specification-example">例えば、注文ID1001の監査ログが正常に記録されると、OrderServiceは同じ注文の公開項目を含むOrderResponseをOrderControllerへ返す。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toResponse</span><span style="color:#24292E">(savedOrder);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> mapper.</span><span style="color:#6F42C1">toResponse</span><span style="color:#24292E">(savedOrder);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">この表はAuditLoggerの呼び出し元と同じ2段目に配置する。<br>この配置によって、監査ログから戻った後でOrderServiceの処理が続くことを示す。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="4"><div class="flow-connector" aria-hidden="true"><span class="connector-track" style="--screen-track:32px;--print-track:6mm"></span></div><section class="flow-row" data-depth="0" style="--screen-offset:0px;--print-offset:0mm">
+  <div class="row-connectors" aria-hidden="true"></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-4"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/java/example/OrderController.java:24-25</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">OrderControllerは監査ログ記録後の注文結果をHTTP 201のレスポンスとしてAPI利用者へ返す。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">変更なし</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この処理は、保存と監査記録を終えた注文だけを登録成功としてAPI利用者へ返す。</p><ol class="specification-steps"><li class="specification-step">OrderControllerがOrderServiceからOrderResponseを受け取る。<br>この戻り値が返った時点で、通常経路の保存と監査記録は完了している。</li><li class="specification-step">OrderControllerがHTTPステータスへ201 Createdを設定する。<br>201は、サーバーが注文を新しく作成したことを示す。</li><li class="specification-step">OrderControllerがOrderResponseをレスポンス本文へ設定し、HTTP応答をAPI利用者へ返す。</li></ol><p class="specification-example">例えば、注文ID1001の登録が完了すると、利用者は201と注文ID1001を含む本文を受け取る。</p></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> ResponseEntity.</span><span style="color:#6F42C1">status</span><span style="color:#24292E">(HttpStatus.CREATED).</span><span style="color:#6F42C1">body</span><span style="color:#24292E">(response);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line"><span style="color:#D73A49">return</span><span style="color:#24292E"> ResponseEntity.</span><span style="color:#6F42C1">status</span><span style="color:#24292E">(HttpStatus.CREATED).</span><span style="color:#6F42C1">body</span><span style="color:#24292E">(response);</span></span><span class="line diff-line"><span style="color:#24292E">}</span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">HTTP 201 Createdは、サーバーが新しいリソースを作成したことを表すステータスである。<br>このレスポンス処理は監査ログの内容をレスポンス本文へ追加しない。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+<div class="flow-item" data-flow-index="5"><div class="flow-connector flow-connector--disconnected" aria-hidden="true"></div><section class="root-section-heading root-section-heading--standalone" data-section-kind="standalone" aria-labelledby="root-section-1-1">
+  <h2 class="root-section-title" id="root-section-1-1">監査ログの出力レベル設定</h2>
+  
+</section><section class="flow-row" data-depth="0" style="--screen-offset:0px;--print-offset:0mm">
+  <div class="row-connectors" aria-hidden="true"></div>
+  <div class="review-unit">
+    <div class="source-header" id="flow-1-5"><span class="nest-toggle-placeholder" aria-hidden="true"></span><p class="source-location">src/main/resources/logback-spring.xml:12-12</p></div>
+    <div class="comparison">
+    <section class="column">
+      <h2 class="column-title">解説</h2>
+      <div class="details">
+        <section class="detail"><h3 class="detail-title">概説</h3><p class="detail-body">logback-spring.xmlは、AuditLoggerの出力レベルをWARNからINFOへ変更した。<br>ログレベルは、どの重要度以上のログを出力するかを指定する値である。</p></section>
+        <section class="detail"><h3 class="detail-title">変更理由</h3><p class="detail-body">AuditLoggerは注文登録をINFOとして記録するが、変更前のWARN設定はINFOを出力対象から除外していた。<br>LogbackがINFOを出力対象にすると、AuditLoggerが生成した注文ID付きログを実行環境へ記録できる。</p></section>
+        <section class="detail"><h3 class="detail-title">処理仕様</h3><div class="detail-body specification-body"><p class="specification-summary">この設定は、注文登録の監査ログを実行環境へ残し、調査担当者が後から検索できる状態にする。</p><ol class="specification-steps"><li class="specification-step">Logbackがアプリケーション起動時にAuditLoggerのlogger設定を読み込む。<br>logger設定は、どの重要度のログを出力対象にするかを決める。</li><li class="specification-step">LogbackがAuditLoggerの出力下限をINFOとして設定する。<br>INFO以上の重要度を持つログは出力対象になり、INFO未満のログは除外される。</li><li class="specification-step">AuditLoggerが注文登録をINFOレベルで記録すると、Logbackがその記録を実行環境の出力先へ渡す。</li></ol></div></section>
+      </div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更前</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line diff-line--removed"><span style="color:#24292E">&#x3C;</span><span style="color:#22863A">logger</span><span style="color:#6F42C1"> name</span><span style="color:#24292E">=</span><span style="color:#032F62">"example.AuditLogger"</span><span style="color:#6F42C1"> level</span><span style="color:#24292E">=</span><span style="color:#032F62">"WARN"</span><span style="color:#24292E"> /></span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">変更後</h2>
+      <div class="editor"><pre class="shiki github-light" style="background-color:#fff;color:#24292e"><code><span class="line diff-line diff-line--added"><span style="color:#24292E">&#x3C;</span><span style="color:#22863A">logger</span><span style="color:#6F42C1"> name</span><span style="color:#24292E">=</span><span style="color:#032F62">"example.AuditLogger"</span><span style="color:#6F42C1"> level</span><span style="color:#24292E">=</span><span style="color:#032F62">"INFO"</span><span style="color:#24292E"> /></span></span></code></pre></div>
+    </section>
+    <section class="column">
+      <h2 class="column-title">備考</h2>
+      <div class="remarks"><p class="remarks-body">この設定ファイルはOrderControllerから同期的に呼び出される処理ではない。<br>そのため、この表を独立した1段目として表示し、直前のControllerフローとは線で接続しない。</p></div>
+    </section>
+    </div>
+  </div>
+</section></div>
+  </section>
+  </main>
+  <script>
+    (() => {
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+      const keepTabVisible = (tab) => {
+        const tabViewport = tab.closest('.commit-tabs');
+        if (!tabViewport) return;
+        const tabLeft = tab.offsetLeft;
+        const tabRight = tabLeft + tab.offsetWidth;
+        const visibleLeft = tabViewport.scrollLeft;
+        const visibleRight = visibleLeft + tabViewport.clientWidth;
+        if (tabLeft < visibleLeft) {
+          tabViewport.scrollLeft = tabLeft;
+        } else if (tabRight > visibleRight) {
+          tabViewport.scrollLeft = Math.max(0, tabRight - tabViewport.clientWidth);
+        }
+      };
+      const activate = (tab, moveFocus) => {
+        const panelId = tab.getAttribute('aria-controls');
+        tabs.forEach((item) => {
+          const active = item === tab;
+          item.setAttribute('aria-selected', String(active));
+          item.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach((panel) => { panel.hidden = panel.id !== panelId; });
+        if (moveFocus) {
+          tab.focus({ preventScroll: true });
+          keepTabVisible(tab);
+        }
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activate(tab, false));
+        tab.addEventListener('keydown', (event) => {
+          let targetIndex = null;
+          if (event.key === 'ArrowRight') targetIndex = (index + 1) % tabs.length;
+          if (event.key === 'ArrowLeft') targetIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === 'Home') targetIndex = 0;
+          if (event.key === 'End') targetIndex = tabs.length - 1;
+          if (targetIndex === null) return;
+          event.preventDefault();
+          activate(tabs[targetIndex], true);
+        });
+      });
+
+      const updateNestedVisibility = (panel) => {
+        const collapsedRanges = [...panel.querySelectorAll('.nest-toggle[aria-expanded="false"]')]
+          .map((button) => ({
+            start: Number(button.dataset.flowStart),
+            end: Number(button.dataset.flowEnd)
+          }))
+          .sort((left, right) => left.start - right.start);
+        const mergedRanges = [];
+        collapsedRanges.forEach((range) => {
+          const previous = mergedRanges[mergedRanges.length - 1];
+          if (previous && range.start <= previous.end + 1) {
+            previous.end = Math.max(previous.end, range.end);
+          } else {
+            mergedRanges.push({ ...range });
+          }
+        });
+        let rangeIndex = 0;
+        panel.querySelectorAll('.flow-item').forEach((item) => {
+          const itemIndex = Number(item.dataset.flowIndex);
+          while (rangeIndex < mergedRanges.length && mergedRanges[rangeIndex].end < itemIndex) {
+            rangeIndex += 1;
+          }
+          const range = mergedRanges[rangeIndex];
+          item.hidden = Boolean(range && itemIndex >= range.start && itemIndex <= range.end);
+        });
+      };
+
+      document.querySelectorAll('.nest-toggle').forEach((button) => {
+        button.addEventListener('click', () => {
+          const expanded = button.getAttribute('aria-expanded') === 'true';
+          button.setAttribute('aria-expanded', String(!expanded));
+          const label = expanded ? '呼び出し先を開く' : '呼び出し先を閉じる';
+          button.setAttribute('aria-label', label);
+          button.title = label;
+          updateNestedVisibility(button.closest('.commit-panel'));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

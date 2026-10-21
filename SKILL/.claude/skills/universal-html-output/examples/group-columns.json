@@ -1,0 +1,108 @@
+{
+  "title": "グループ行の列表示サンプル",
+  "legend": "子要素のある行でも、グループごとに全列結合または列表示を選択できます。",
+  "blocks": [
+    {
+      "type": "table",
+      "id": "group-modes",
+      "title": "混在サンプル（5列）",
+      "columns": [
+        {
+          "key": "name",
+          "label": "項目"
+        },
+        {
+          "key": "a",
+          "label": "内容1"
+        },
+        {
+          "key": "b",
+          "label": "内容2"
+        },
+        {
+          "key": "label",
+          "label": "ラベル",
+          "kind": "badge"
+        },
+        {
+          "key": "ref",
+          "label": "参照",
+          "kind": "chips"
+        }
+      ],
+      "rows": [
+        {
+          "name": "列を使うグループ（自動判定）",
+          "cells": {
+            "a": "説明をグループの横に表示",
+            "b": {
+              "html": "<strong>太字</strong>・<span class=\"rich-red\">赤字</span>"
+            },
+            "label": {
+              "text": "分類",
+              "style": "st-wip"
+            },
+            "ref": [
+              {
+                "text": "G-001",
+                "style": "j-ok"
+              }
+            ]
+          },
+          "children": [
+            {
+              "name": "全列結合する子グループ（従来形式）",
+              "children": [
+                {
+                  "name": "データ行",
+                  "cells": {
+                    "a": "通常文",
+                    "b": "改行も可\n2行目",
+                    "label": {
+                      "text": "確認済",
+                      "style": "st-done"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "空の列も表示する子グループ（明示指定）",
+              "layout": "columns",
+              "children": [
+                {
+                  "name": "さらに深いグループに列を表示",
+                  "layout": "columns",
+                  "cells": {
+                    "a": "深い階層も対応",
+                    "b": "詳細"
+                  },
+                  "children": [
+                    {
+                      "name": "末端行",
+                      "cells": {
+                        "a": "内容A"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "結合表示の別グループ（明示指定）",
+          "layout": "merged",
+          "children": [
+            {
+              "name": "末端行2",
+              "cells": {
+                "a": "別の行"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

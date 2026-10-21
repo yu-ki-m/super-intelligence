@@ -1,0 +1,9 @@
+<section class="rc-panel" aria-labelledby="rc-panel-title">
+<h2 id="rc-panel-title">レビュー確認リスト</h2>
+<p class="rc-lead">各テーブルを確認したらチェックする。点数は「重要度」(確認しなかった場合に見逃す影響の大きさ、0〜10)で、高いものから確認する。</p>
+<div class="rc-progress"><progress id="rc-progress" max="{{total}}" value="0"></progress><span id="rc-progress-text">0 / {{total}} 確認済み</span></div>
+<p class="rc-summary">未確認: 最優先 <b data-rc-open="critical">{{critical}}</b> 件 ・ 高 <b data-rc-open="high">{{high}}</b> 件 ・ 中 <b data-rc-open="mid">{{mid}}</b> 件 ・ 低 <b data-rc-open="low">{{low}}</b> 件</p>
+<div class="rc-actions"><button type="button" id="rc-next">未確認で最も重要度が高いものへ移動</button><button type="button" id="rc-reset">チェックをすべて解除</button></div>
+<ol class="rc-queue" id="rc-queue">{{{items}}}</ol>
+<p class="rc-note">重要度は調査担当の判断であり、重要度が低いことは「人が見なくてよい」ことを保証しない。チェックはこのブラウザにだけ保存される。</p>
+</section>

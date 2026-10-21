@@ -1,0 +1,263 @@
+{
+  "commits": [
+    {
+      "hash": "aaaa111",
+      "message": "注文処理の変更(パターン見本)",
+      "overview": "採点パターンを網羅する見本。実在しない。",
+      "callerCoverage": {
+        "version": 1,
+        "targets": [
+          {
+            "id": "t",
+            "displayName": "target",
+            "analysisMode": "callers",
+            "changedStepIds": [
+              "chg-branch"
+            ],
+            "evidence": [],
+            "callSites": [
+              {
+                "id": "cs1",
+                "status": "included",
+                "changedStepId": "chg-branch"
+              },
+              {
+                "id": "cs2",
+                "status": "included",
+                "changedStepId": "chg-branch"
+              }
+            ]
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "ctx-entry",
+          "filePath": "src/main/java/example/OrderController.java",
+          "startLine": 110,
+          "endLine": 113,
+          "overview": "ctx-entry の説明。",
+          "reason": "変更なし",
+          "remarks": "",
+          "beforeCode": "@PostMapping(\"/orders\")\nOrder create(Request request) {\n    return service.place(request);\n}",
+          "afterCode": "@PostMapping(\"/orders\")\nOrder create(Request request) {\n    return service.place(request);\n}",
+          "calls": [
+            {
+              "steps": [
+                {
+                  "id": "ctx-passthrough",
+                  "filePath": "src/main/java/example/OrderController.java",
+                  "startLine": 50,
+                  "endLine": 50,
+                  "overview": "ctx-passthrough の説明。",
+                  "reason": "変更なし",
+                  "remarks": "",
+                  "beforeCode": "return service.place(request);",
+                  "afterCode": "return service.place(request);",
+                  "calls": [
+                    {
+                      "steps": [
+                        {
+                          "id": "chg-branch",
+                          "filePath": "src/main/java/example/OrderService.java",
+                          "startLine": 20,
+                          "endLine": 22,
+                          "overview": "chg-branch の説明。",
+                          "reason": "chg-branch の変更理由。",
+                          "remarks": "[考慮漏れ] limit が0のときの扱いが書かれていない。",
+                          "beforeCode": "if (order.total() > limit) {\n    reject(order);\n}",
+                          "afterCode": "if (order.total() >= limit) {\n    reject(order);\n}",
+                          "calls": []
+                        },
+                        {
+                          "id": "chg-money",
+                          "filePath": "src/main/java/example/TaxCalculator.java",
+                          "startLine": 30,
+                          "endLine": 30,
+                          "overview": "chg-money の説明。",
+                          "reason": "chg-money の変更理由。",
+                          "remarks": "[懸念点] 端数処理が切り捨てから四捨五入に変わる。",
+                          "beforeCode": "return price * 108 / 100;",
+                          "afterCode": "return Math.round(price * 1.08);",
+                          "calls": []
+                        },
+                        {
+                          "id": "ctx-guard",
+                          "filePath": "src/main/java/example/OrderService.java",
+                          "startLine": 40,
+                          "endLine": 42,
+                          "overview": "ctx-guard の説明。",
+                          "reason": "変更なし",
+                          "remarks": "この未変更の分岐が、上流の変更の効果を実際に成立させる。",
+                          "beforeCode": "if (order.isPaid()) {\n    ship(order);\n}",
+                          "afterCode": "if (order.isPaid()) {\n    ship(order);\n}",
+                          "calls": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "chg-persist",
+                  "filePath": "src/main/java/example/OrderRepository.java",
+                  "startLine": 60,
+                  "endLine": 60,
+                  "overview": "chg-persist の説明。",
+                  "reason": "chg-persist の変更理由。",
+                  "remarks": "",
+                  "beforeCode": "update(order.id(), order.total());",
+                  "afterCode": "update(order.id(), order.total(), order.status());",
+                  "calls": []
+                },
+                {
+                  "id": "ctx-with-finding",
+                  "filePath": "src/main/java/example/OrderRepository.java",
+                  "startLine": 70,
+                  "endLine": 70,
+                  "overview": "ctx-with-finding の説明。",
+                  "reason": "変更なし",
+                  "remarks": "[懸念点] 既存の保存処理は同じIDを黙って上書きする。今回の変更後も同じ経路を通る。",
+                  "beforeCode": "orders.put(order.id(), order);",
+                  "afterCode": "orders.put(order.id(), order);",
+                  "calls": []
+                },
+                {
+                  "id": "chg-external",
+                  "filePath": "src/main/java/example/OrderPublisher.java",
+                  "startLine": 80,
+                  "endLine": 80,
+                  "overview": "chg-external の説明。",
+                  "reason": "chg-external の変更理由。",
+                  "remarks": "",
+                  "beforeCode": "publish(\"order.created\", order.id());",
+                  "afterCode": "publish(\"order.created\", order.id(), order.total());",
+                  "calls": []
+                },
+                {
+                  "id": "chg-authz",
+                  "filePath": "src/main/java/example/OrderController.java",
+                  "startLine": 90,
+                  "endLine": 90,
+                  "overview": "chg-authz の説明。",
+                  "reason": "chg-authz の変更理由。",
+                  "remarks": "[考慮漏れ] 参照権限の確認を外している。",
+                  "beforeCode": "if (user.canView(order)) return order;",
+                  "afterCode": "return order;",
+                  "calls": []
+                },
+                {
+                  "id": "chg-concurrency",
+                  "filePath": "src/main/java/example/OrderJob.java",
+                  "startLine": 100,
+                  "endLine": 100,
+                  "overview": "chg-concurrency の説明。",
+                  "reason": "chg-concurrency の変更理由。",
+                  "remarks": "",
+                  "beforeCode": "if (!done.contains(id)) run(id);",
+                  "afterCode": "run(id);",
+                  "calls": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chg-failure",
+          "filePath": "src/main/java/example/PaymentClient.java",
+          "startLine": 120,
+          "endLine": 120,
+          "overview": "chg-failure の説明。",
+          "reason": "chg-failure の変更理由。",
+          "remarks": "",
+          "beforeCode": "try { charge(order); } catch (Exception e) { log(e); }",
+          "afterCode": "try { charge(order); } catch (Exception e) { log(e); rollback(order); }",
+          "calls": []
+        },
+        {
+          "id": "chg-io-compat",
+          "filePath": "src/main/java/example/OrderResponse.java",
+          "startLine": 130,
+          "endLine": 130,
+          "overview": "chg-io-compat の説明。",
+          "reason": "chg-io-compat の変更理由。",
+          "remarks": "",
+          "beforeCode": "record OrderResponse(String id) {}",
+          "afterCode": "record OrderResponse(String id, String status) {}",
+          "calls": []
+        },
+        {
+          "id": "chg-config",
+          "filePath": "src/main/java/example/AppConfig.java",
+          "startLine": 140,
+          "endLine": 140,
+          "overview": "chg-config の説明。",
+          "reason": "chg-config の変更理由。",
+          "remarks": "",
+          "beforeCode": "int retry = 3;",
+          "afterCode": "int retry = 5;",
+          "calls": []
+        },
+        {
+          "id": "chg-local-logic",
+          "filePath": "src/main/java/example/OrderMapper.java",
+          "startLine": 150,
+          "endLine": 150,
+          "overview": "chg-local-logic の説明。",
+          "reason": "chg-local-logic の変更理由。",
+          "remarks": "",
+          "beforeCode": "name = raw.trim();",
+          "afterCode": "name = raw.trim().toLowerCase();",
+          "calls": []
+        },
+        {
+          "id": "chg-display",
+          "filePath": "src/main/java/example/OrderLabel.java",
+          "startLine": 160,
+          "endLine": 160,
+          "overview": "chg-display の説明。",
+          "reason": "chg-display の変更理由。",
+          "remarks": "",
+          "beforeCode": "return \"Order \" + id;",
+          "afterCode": "return \"Order #\" + id;",
+          "calls": []
+        }
+      ]
+    },
+    {
+      "hash": "bbbb222",
+      "message": "削除範囲の変更(パターン見本)",
+      "overview": "別コミットの見本。",
+      "steps": [
+        {
+          "id": "b-ctx-entry",
+          "filePath": "src/main/java/example/CleanupController.java",
+          "startLine": 30,
+          "endLine": 30,
+          "overview": "b-ctx-entry の説明。",
+          "reason": "変更なし",
+          "remarks": "",
+          "beforeCode": "purge(request.range());",
+          "afterCode": "purge(request.range());",
+          "calls": [
+            {
+              "steps": [
+                {
+                  "id": "b-chg-bug",
+                  "filePath": "src/main/java/example/CleanupService.java",
+                  "startLine": 20,
+                  "endLine": 20,
+                  "overview": "b-chg-bug の説明。",
+                  "reason": "b-chg-bug の変更理由。",
+                  "remarks": "[バグ] 範囲の終端が1つ広がり、対象外のデータも削除する。",
+                  "beforeCode": "delete(from, to);",
+                  "afterCode": "delete(from, to + 1);",
+                  "calls": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

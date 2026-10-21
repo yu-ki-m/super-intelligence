@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev ローンチの事後分析</title>
+<style>
+/* ===== 色とフォント（ライト / ダーク） ===== */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8; --arrow:#7a8394;
+  --accent:#1f5f8b; --accent-soft:#e3eef6;
+  --fact:#2f6f9f; --fact-soft:#e3eef6;
+  --est:#3d7f6a;  --est-soft:#e2f1ec;
+  --hyp:#8a6a1f;  --hyp-soft:#f7f0de;
+  --abs:#5a5a9a;  --abs-soft:#ececf7;
+  --crit:#a0472f; --crit-soft:#f8e7e2;
+  --display:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif;
+  --body:"Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",system-ui,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Menlo",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12151c; --surface:#1a1f29; --ink:#e6e9ef; --muted:#9aa3b3; --line:#2c3340; --arrow:#8792a6;
+    --accent:#7fb4dc; --accent-soft:#1d2d3b;
+    --fact:#7fb4dc; --fact-soft:#1d2d3b;
+    --est:#6fb79e;  --est-soft:#1a2e28;
+    --hyp:#cfa851;  --hyp-soft:#2e2818;
+    --abs:#9d9de0;  --abs-soft:#25253a;
+    --crit:#e08b70; --crit-soft:#35221c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12151c; --surface:#1a1f29; --ink:#e6e9ef; --muted:#9aa3b3; --line:#2c3340; --arrow:#8792a6;
+  --accent:#7fb4dc; --accent-soft:#1d2d3b;
+  --fact:#7fb4dc; --fact-soft:#1d2d3b;
+  --est:#6fb79e;  --est-soft:#1a2e28;
+  --hyp:#cfa851;  --hyp-soft:#2e2818;
+  --abs:#9d9de0;  --abs-soft:#25253a;
+  --crit:#e08b70; --crit-soft:#35221c;
+}
+
+/* ===== 基本 ===== */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.85;padding:0 16px 72px}
+.wrap{max-width:920px;margin:0 auto}
+p{margin:.5em 0;max-width:68ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.88em}
+ul.sentences{padding-left:1.2em;max-width:68ch}
+ul.sentences li{margin:4px 0}
+.small{font-size:13px;color:var(--muted)}
+
+/* ===== 表紙・目次 ===== */
+.cover{padding:48px 0 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(24px,4.2vw,36px);line-height:1.4;margin:8px 0 18px;text-wrap:balance}
+.meta{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 18px;margin:0;font-size:14px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0}
+@media (max-width:560px){.meta{grid-template-columns:1fr;gap:0}.meta dd{margin-bottom:8px}}
+.toc{padding:14px 0;border-bottom:1px solid var(--line);font-size:13px}
+.toc ol{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0;padding:0;list-style:none}
+.toc a{text-decoration:none}
+.toc a:hover,.toc a:focus-visible{text-decoration:underline}
+
+/* ===== 章 ===== */
+section{padding:44px 0 8px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:4px}
+.sec-no{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+h2{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.45;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.5;margin:30px 0 8px}
+h4{font-family:var(--display);font-weight:700;font-size:15px;line-height:1.5;margin:0 0 4px}
+.phase-tag{font-size:12px;color:var(--muted);margin:0 0 14px}
+.grain{font-size:12px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 10px;white-space:nowrap;line-height:1.8}
+
+/* ===== 結論 ===== */
+.gist{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0 22px}
+.gist>.k{display:block;font-family:var(--display);font-weight:900;font-size:13px;color:var(--accent);letter-spacing:.06em}
+.gist p{margin:2px 0 0;font-size:16px;font-weight:500;max-width:none}
+.gist.lead p{font-size:18px;line-height:1.8}
+
+/* ===== 枠（前提・用語・具体例・反証） ===== */
+.box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:16px 0}
+.box>.k{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;padding:0 10px;border-radius:999px;margin-bottom:4px;line-height:1.9}
+.box p{max-width:none}
+.box p:last-child{margin-bottom:0}
+.premise{border-style:dashed;border-color:var(--arrow)}
+.premise>.k{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.term{border-left:4px solid var(--abs)}
+.term>.k{background:var(--abs-soft);color:var(--abs)}
+.term .name{font-weight:700;margin:2px 0 6px}
+.term dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:0}
+.term dt{font-size:13px;color:var(--muted);padding-top:2px}
+.term dd{margin:0}
+@media (max-width:560px){.term dl{grid-template-columns:1fr;gap:0}.term dd{margin-bottom:6px}}
+.example{border-left:4px solid var(--est)}
+.example>.k{background:var(--est-soft);color:var(--est)}
+.falsify{border-left:4px solid var(--hyp)}
+.falsify>.k{background:var(--hyp-soft);color:var(--hyp)}
+.next{font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;margin-top:26px;max-width:none}
+.next b{color:var(--accent)}
+
+/* ===== 証拠ラベル・状態 ===== */
+.badge{display:inline-block;max-width:100%;font-size:12px;line-height:1.6;padding:1px 7px;border-radius:4px;border:1px solid currentColor;margin:0 2px;font-weight:500;vertical-align:1px}
+.badge.fact{color:var(--fact);background:var(--fact-soft)}
+.badge.est{color:var(--est);background:var(--est-soft)}
+.badge.hyp{color:var(--hyp);background:var(--hyp-soft)}
+.badge.abs{color:var(--abs);background:var(--abs-soft)}
+.st{display:inline-block;font-size:12px;font-weight:700;padding:0 10px;border-radius:999px;white-space:nowrap;line-height:1.9}
+.st.ok{background:var(--est-soft);color:var(--est)}
+.st.todo{background:var(--hyp-soft);color:var(--hyp)}
+.st.na{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+
+/* ===== 因果の図（縦。矢印にラベル） ===== */
+.chain{list-style:none;margin:18px 0;padding:0;max-width:700px}
+.chain .node{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
+.chain .node .nk{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.chain .node p{margin:2px 0 0;max-width:none}
+.chain .node.goal{border:2px solid var(--accent);background:var(--accent-soft)}
+.chain .node.goal .nk{color:var(--accent)}
+.chain .link{position:relative;margin-left:22px;padding:8px 0 16px 28px;font-size:13px;font-weight:700;color:var(--muted)}
+.chain .link::before{content:"";position:absolute;left:9px;top:0;bottom:6px;width:2px;background:var(--arrow)}
+.chain .link::after{content:"";position:absolute;left:4px;bottom:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+
+/* ===== 流れ図（横。狭い画面では縦） ===== */
+.flow{list-style:none;margin:18px 0;padding:0;display:flex;align-items:stretch;gap:32px}
+.flow>li{position:relative;flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.flow>li .sk{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.flow>li h4{margin:2px 0}
+.flow>li p{font-size:14px;margin:4px 0 0;max-width:none}
+.flow>li.pick{border:2px solid var(--accent)}
+.flow>li:not(:last-child)::after{content:"";position:absolute;top:50%;right:-26px;width:18px;height:2px;background:var(--arrow)}
+.flow>li:not(:last-child)::before{content:"";position:absolute;top:calc(50% - 5px);right:-29px;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid var(--arrow)}
+.flow.v{flex-direction:column;gap:30px}
+.flow.v>li{flex:none}
+.flow.v>li:not(:last-child)::after{top:auto;right:auto;left:22px;bottom:-24px;width:2px;height:16px}
+.flow.v>li:not(:last-child)::before{top:auto;right:auto;left:17px;bottom:-29px;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+/* 「かつ」でつなぐ */
+.flow.and>li:not(:last-child)::before{display:none}
+.flow.and>li:not(:last-child)::after{content:"かつ";background:none;width:32px;height:auto;right:-32px;top:50%;transform:translateY(-50%);text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+.flow.v.and>li:not(:last-child)::after{left:14px;right:auto;bottom:-27px;top:auto;transform:none;width:auto;text-align:left}
+.result{background:var(--accent-soft);border:2px solid var(--accent);border-radius:8px;padding:12px 16px;margin:-4px 0 18px}
+.result p{margin:0;max-width:none}
+@media (max-width:720px){
+  .flow{flex-direction:column;gap:30px}
+  .flow>li{flex:none}
+  .flow>li:not(:last-child)::after{top:auto;right:auto;left:22px;bottom:-24px;width:2px;height:16px}
+  .flow>li:not(:last-child)::before{top:auto;right:auto;left:17px;bottom:-29px;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+  .flow.and>li:not(:last-child)::after{left:14px;right:auto;bottom:-27px;top:auto;transform:none;width:auto;text-align:left;height:auto;background:none}
+}
+
+/* ===== 対比（○○ではなく△△ / Before → After） ===== */
+.contrast{display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);align-items:stretch;margin:18px 0}
+.contrast .side{border-radius:8px;padding:12px 16px}
+.contrast .side p{margin:2px 0 0;max-width:none}
+.contrast .old{background:var(--bg);border:1px dashed var(--arrow)}
+.contrast .new{background:var(--surface);border:2px solid var(--accent)}
+.contrast .ck{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.contrast .new .ck{color:var(--accent)}
+.contrast .turn{position:relative}
+.contrast .turn::before{content:"";position:absolute;top:50%;left:8px;right:14px;height:2px;background:var(--arrow)}
+.contrast .turn::after{content:"";position:absolute;top:calc(50% - 5px);right:6px;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid var(--arrow)}
+@media (max-width:620px){
+  .contrast{grid-template-columns:1fr}
+  .contrast .turn{height:32px}
+  .contrast .turn::before{top:4px;bottom:12px;left:22px;right:auto;width:2px;height:auto}
+  .contrast .turn::after{top:auto;bottom:4px;left:17px;right:auto;border:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+}
+
+/* ===== カード ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c,var(--accent));border-radius:8px;padding:12px 16px}
+.card .ck{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.card p{font-size:14px;max-width:none}
+.card dl{margin:4px 0 0;font-size:14px}
+.card dt{font-size:12px;font-weight:700;color:var(--muted);margin-top:8px}
+.card dd{margin:0}
+
+/* ===== 表 ===== */
+.scroll{overflow-x:auto;margin:18px 0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface);min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.04em;color:var(--muted);font-weight:700;background:var(--bg)}
+tr.pick td{background:var(--accent-soft)}
+tr.pick td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+caption{caption-side:top;text-align:left;font-size:13px;color:var(--muted);padding:0 0 6px}
+
+/* ===== 階層図 ===== */
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree{margin:18px 0}
+.tree li{position:relative;margin:10px 0}
+.tree ul{margin-left:18px}
+.tree ul>li{padding-left:26px}
+.tree ul>li::before{content:"";position:absolute;left:0;top:21px;width:20px;border-top:2px solid var(--arrow)}
+.tree ul>li::after{content:"";position:absolute;left:0;top:-10px;bottom:-10px;border-left:2px solid var(--arrow)}
+.tree ul>li:last-child::after{bottom:auto;height:33px}
+.tree .tn{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;max-width:100%}
+.tree>li>.tn{border:2px solid var(--accent);font-weight:700}
+.tree .tk{display:block;font-size:11px;color:var(--muted);font-weight:700}
+
+/* ===== Message House ===== */
+.house{max-width:720px;margin:18px auto}
+.house .roof{background:var(--accent-soft);clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);padding:14px 14%;text-align:center}
+.house .pillars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 4%}
+.house .pillar{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--accent);padding:10px 12px;font-size:14px}
+.house .base{background:var(--surface);border:1px solid var(--line);border-top:3px double var(--arrow);padding:10px 16px;text-align:center;font-size:14px}
+.house .hk{display:block;font-size:11px;font-weight:700;color:var(--muted)}
+.house p{margin:2px 0 0;max-width:none}
+@media (max-width:560px){.house .pillars{grid-template-columns:1fr}}
+
+/* ===== 循環 ===== */
+.loop .flow{margin-bottom:8px}
+.loop-back{position:relative;margin:0 10% 18px;padding-top:26px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);max-width:none}
+.loop-back::before{content:"";position:absolute;top:0;left:0;right:0;height:16px;border:2px solid var(--arrow);border-top:0;border-radius:0 0 10px 10px}
+.loop-back::after{content:"";position:absolute;top:-8px;left:-5px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:8px solid var(--arrow)}
+@media (max-width:720px){.loop-back{margin:0 0 18px;padding-top:0;text-align:left}.loop-back::before,.loop-back::after{display:none}}
+
+/* ===== 時系列 ===== */
+.timeline{list-style:none;margin:18px 0;padding:0 0 0 22px;border-left:2px solid var(--line)}
+.timeline li{position:relative;margin:0 0 16px;padding-left:12px}
+.timeline li::before{content:"";position:absolute;left:-27px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.timeline .when{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent)}
+.timeline p{margin:0}
+
+/* ===== 漏斗 ===== */
+.funnel{list-style:none;margin:18px 0;padding:0}
+.funnel li{width:var(--w,100%);min-width:min(100%,240px);margin:0 auto 6px;background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;padding:8px 14px;text-align:center}
+.funnel li b{display:block}
+.funnel li span{font-size:13px;color:var(--muted)}
+
+/* ===== 分岐（判断ルール） ===== */
+.branch{margin:18px 0}
+.branch .cond{background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:12px 16px;max-width:620px;margin:0 auto}
+.branch .cond p{max-width:none}
+.branch .outs{display:grid;gap:12px;position:relative;padding-top:34px}
+.branch .outs.n2{grid-template-columns:repeat(2,minmax(0,1fr));--bl:calc(25% - 5px)}
+.branch .outs.n3{grid-template-columns:repeat(3,minmax(0,1fr));--bl:calc(16.667% - 6px)}
+.branch .outs::before{content:"";position:absolute;top:0;left:calc(50% - 1px);height:14px;width:2px;background:var(--arrow)}
+.branch .outs::after{content:"";position:absolute;top:14px;left:var(--bl);right:var(--bl);height:2px;background:var(--arrow)}
+.branch .out{position:relative;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c,var(--arrow));border-radius:8px;padding:10px 14px}
+.branch .out p{margin:2px 0 0;max-width:none}
+.branch .out::before{content:"";position:absolute;top:-20px;left:calc(50% - 1px);height:12px;width:2px;background:var(--arrow)}
+.branch .out::after{content:"";position:absolute;top:-12px;left:calc(50% - 6px);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--arrow)}
+.branch .out.ok{--c:var(--est)}
+.branch .out.ng{--c:var(--crit)}
+.branch .out.mid{--c:var(--hyp)}
+.branch .bk{display:block;font-size:12px;font-weight:700;color:var(--c,var(--muted))}
+@media (max-width:620px){
+  .branch .outs.n2,.branch .outs.n3{grid-template-columns:1fr}
+  .branch .outs{padding-top:12px}
+  .branch .outs::before,.branch .outs::after,.branch .out::before,.branch .out::after{display:none}
+  .branch .out{border-top-width:1px;border-left:6px solid var(--c,var(--arrow))}
+}
+
+/* ===== 深刻度の段 ===== */
+.levels{display:grid;gap:10px;margin:18px 0}
+.lv{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:0 8px 8px 0;padding:10px 16px}
+.lv .lk{display:block;font-size:12px;font-weight:700;color:var(--c)}
+.lv p{max-width:none}
+.lv ol,.lv ul{margin:4px 0 0;padding-left:1.3em}
+.lv li{margin:6px 0}
+.lv.crit{--c:var(--crit)}
+.lv.major{--c:var(--hyp)}
+.lv.watch{--c:var(--arrow)}
+
+/* ===== 2階層の目次（Full Strategy） ===== */
+.toc.deep>ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 22px}
+.toc.deep>ol>li>a{font-weight:700}
+.toc.deep ol ol{display:block;margin:2px 0 0;padding:0 0 0 12px;border-left:2px solid var(--line);list-style:none}
+.toc.deep ol ol li{margin:1px 0}
+
+/* ===== Phase の節（Full Strategy） ===== */
+section.phase{padding:30px 0 4px;margin-top:22px;border-top:1px solid var(--line)}
+.sec-head h3{margin:0;font-size:19px}
+
+/* ===== 範囲の帯（価格の下限・案・上限など） ===== */
+.range{margin:18px 0}
+.range .track{position:relative;height:56px;margin:0 28px}
+.range .track::before{content:"";position:absolute;left:0;right:0;top:38px;height:4px;background:var(--line);border-radius:2px}
+.range .band{position:absolute;top:34px;height:12px;left:var(--from);width:calc(var(--to) - var(--from));background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px}
+.range .mark{position:absolute;left:var(--x);top:0;transform:translateX(-50%);font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;text-align:center;line-height:1.6}
+.range .mark::after{content:"";display:block;width:2px;height:28px;margin:2px auto 0;background:var(--arrow)}
+.range .mark.pick{color:var(--accent)}
+.range .mark.pick::after{background:var(--accent);width:3px}
+.range-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0 0}
+.range-legend>div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
+.range-legend dt{font-weight:700}
+.range-legend dd{margin:2px 0 0}
+
+/* ===== 計算の分解（LTV、現状の総コストなど） ===== */
+.calc{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:18px 0}
+.calc .v{flex:1 1 130px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.calc .v .ck{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.calc .v b{display:block;font-family:var(--mono);font-size:20px;line-height:1.4}
+.calc .v p{font-size:13px;margin:2px 0 0;max-width:none}
+.calc .v.ans{border:2px solid var(--accent);background:var(--accent-soft)}
+.calc .op{align-self:center;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--muted);padding:0 2px}
+@media (max-width:560px){.calc{flex-direction:column;gap:4px}.calc .v{flex:none}.calc .op{align-self:flex-start;padding:0 0 0 14px;line-height:1.2}}
+
+/* ===== 数値のカード・状態の追加 ===== */
+.card .big{display:block;font-family:var(--mono);font-size:28px;font-weight:700;line-height:1.3;color:var(--accent);margin:4px 0}
+.st.ng{background:var(--surface);color:var(--crit);border:1px solid var(--crit)}
+tr.alert td{background:var(--crit-soft)}
+
+/* ===== 骨組みの例でだけ使う ===== */
+.box.skeleton{border-style:dashed;border-color:var(--abs)}
+.box.skeleton>.k{background:var(--abs-soft);color:var(--abs)}
+
+/* ===== 更新履歴・フッター ===== */
+.changelog{font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px;margin-top:18px}
+.changelog ul{margin:4px 0 0;padding-left:1.2em}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+
+/* ===== 印刷 ===== */
+@media print{
+  body{background:#fff;padding:0}
+  .toc{display:none}
+  .box,.card,.chain .node,.flow>li,.lv,.branch .out,.contrast,.calc,.range,tr{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div class="eyebrow">REPORT · 全体の見立て（Quick Diagnosis）· 事後分析</div>
+  <h1>Jev の売り出し方は成り立つのか ── ローンチの事後分析</h1>
+  <dl class="meta">
+    <dt>分析の対象</dt><dd>Jev。TypeSafe AI が2026年9月に公開したAIで、文章を作らずに、決められた選択肢から答えを1つ選ぶ。</dd>
+    <dt>分析の種類</dt><dd>全体の見立て（Quick Diagnosis）。公開後に振り返る事後分析である。</dd>
+    <dt>使った情報</dt><dd>公開情報だけを使った。TypeSafe AI の公式ブログとサイト、Vercel・LangChain・DCVC の発表、OpenChamber による SNS の収集分析である。</dd>
+    <dt>分析の状態</dt><dd><b>分析完了ではない。</b>先行事例（同じ問題をすでに解いている手段）の一部を、公式の資料でまだ確認していない（第0章、第9章）。</dd>
+    <dt>説明の粒度</dt><dd>全章 1（標準）</dd>
+    <dt>作成日</dt><dd>2026年9月26日</dd>
+  </dl>
+</header>
+
+<nav class="toc" aria-label="目次">
+  <ol>
+    <li><a href="#gist">結論</a></li>
+    <li><a href="#premise">0. 前提</a></li>
+    <li><a href="#overview">全体像</a></li>
+    <li><a href="#c1">1. すでに解かれている部分</a></li>
+    <li><a href="#c2">2. 市場の当たり前</a></li>
+    <li><a href="#c3">3. 本当の問題</a></li>
+    <li><a href="#c4">4. 反対の仮説</a></li>
+    <li><a href="#c5">5. 置き換えるもの</a></li>
+    <li><a href="#c6">6. 戦う市場</a></li>
+    <li><a href="#risk">7. 弱いところ</a></li>
+    <li><a href="#next">8. 次に確かめること</a></li>
+    <li><a href="#unknown">9. まだ分かっていないこと</a></li>
+    <li><a href="#appendix">付録</a></li>
+  </ol>
+</nav>
+
+<!-- ===== 結論 ===== -->
+<section id="gist">
+  <div class="gist lead"><span class="k">結論</span>
+    <p>TypeSafe AI は、Jev を「文章を作らずに、決められた選択肢から答えを1つ選ぶだけのAI」として売り出し、そのための新しい市場の名前（System One Model）を作った。この売り方が成り立つかは、長くて整理されていない入力でも、Jev が文章を作るAI（LLM）と同じくらい正しく選べるかにかかっており、その点はまだ確かめられていない。</p>
+  </div>
+</section>
+
+<!-- ===== 第0章 前提 ===== -->
+<section id="premise">
+  <div class="sec-head"><span class="sec-no">第0章</span><h2>このレポートを読むための前提</h2><span class="grain">粒度 1（標準）</span></div>
+  <div class="gist"><span class="k">結論</span><p>このレポートを読むには、「LLM が答えを作る方法」「Agent が判断を繰り返すこと」「このレポートでいう判断の意味」の3つの知識と、根拠の強さを示すラベルの読み方が必要である。この章では、それらを1つずつ説明し、最後にこの分析の限界を示す。</p></div>
+
+  <p class="small">前提1〜3の説明は、LLM や Agent の一般的な仕組みであり、この分析の主張ではない。</p>
+
+  <h3>前提1: LLM は、答えを小さな単位に分けて、1つずつ順番に計算して作る</h3>
+  <p>LLM（大規模言語モデル）は、文章を作るAIである。ChatGPT や Claude の中で動いているのが LLM である。LLM は、答えの文章を「トークン」という小さな単位（単語や、単語の一部）に分け、1つずつ順番に計算して作る。</p>
+  <p>多くの LLM の料金は、LLM に渡した文章の量と、LLM が作った文章の量（どちらもトークンの数）で決まる。そのため、LLM が作る文章が長いほど、答えが返るまでの時間と料金が増える。</p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>開発者が LLM に「この問い合わせは billing（請求）と technical（技術）のどちらの担当に回すべきか」と聞く。欲しい答えは "billing" の1語だけでも、LLM はその答えを、長い文章を作るときと同じ方法で、トークンを計算して作る。</p></div>
+
+  <h3>前提2: Agent は、1つの作業の中で、判断を何度も繰り返す</h3>
+  <p>Agent（AIエージェント）は、1つの作業を終えるまでに、「次に何をするか」を繰り返し決めながら動くプログラムである。Agent が判断のたびに LLM を呼ぶと、LLM を呼んだ回数だけ、時間と料金がかかる。Agent が判断を繰り返す流れを、このレポートでは Agent Loop と呼ぶ。</p>
+  <ol class="flow">
+    <li><span class="sk">判断 1</span><h4>どの担当に回すか</h4><p>Agent が LLM を呼ぶ（1回目）。</p></li>
+    <li><span class="sk">判断 2</span><h4>追加の情報を聞くか</h4><p>Agent が LLM を呼ぶ（2回目）。</p></li>
+    <li><span class="sk">判断 3</span><h4>返信を送ってよいか</h4><p>Agent が LLM を呼ぶ（3回目）。</p></li>
+  </ol>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>問い合わせに対応する Agent は、1件の問い合わせについて、上の図の3つの判断を順番に行う。3つの判断のたびに LLM を呼ぶと、1件で LLM を3回呼ぶことになり、料金も3回分かかる。</p></div>
+
+  <h3>前提3: このレポートでいう「判断」は、決められた選択肢から1つを選ぶこと</h3>
+  <p>このレポートでいう判断は、あらかじめ決めた選択肢の中から、答えを1つ選ぶことを指す。判断の答えは選択肢のどれかであり、文章ではない。</p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>選択肢が billing と technical の2つなら、判断の答えは billing か technical のどちらかである。「この問い合わせは請求に関するものなので……」のような説明の文章は、判断の答えに含まない。</p></div>
+
+  <h3>根拠の強さを示すラベル</h3>
+  <p>この分析では、主な主張に、根拠の強さを示すラベルを付けている。ラベルは次の4種類である。</p>
+  <div class="cards legend">
+    <div class="card" style="--c:var(--fact)"><h4><span class="badge fact">[事実: 出典]</span></h4><p>出典を示せることを表す。公開情報や実測にもとづく。</p><p>例: 公開から24時間以内に、Vercel の有料チームの約13%が Jev を使った。<span class="badge fact">[事実: Vercel]</span></p></div>
+    <div class="card" style="--c:var(--est)"><h4><span class="badge est">[推定]</span></h4><p>事実から、筋道を立てて導いたことを表す。筋道が間違っていれば、結論も変わる。</p><p>例: 大手が同じ機能を出したとき、Jev を守るものは、Vercel と LangChain への組み込みに頼っている。</p></div>
+    <div class="card" style="--c:var(--hyp)"><h4><span class="badge hyp">[仮説]</span></h4><p>まだ確かめていないことを表す。第8章で、確かめ方を示す。</p><p>例: 長くて整理されていない入力でも、Jev は LLM と同じくらい正しく選べる。</p></div>
+    <div class="card" style="--c:var(--abs)"><h4><span class="badge abs">[不在確認: 調査範囲]</span></h4><p>「存在しない」と言うために、決められた基準で調べた結果を表す。</p><p>例: この分析では使っていない。「存在しない」と言えるだけの調べ方をしていないためである。</p></div>
+  </div>
+
+  <h3>この分析の限界</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>限界</th><th>その結果、この分析で言えないこと</th></tr></thead>
+    <tbody>
+      <tr><td>分析は公開情報だけを使った。TypeSafe AI の内部の数値（売上、使い続けている割合）は入手できなかった。</td><td>Jev が事業として続くか（利用者が有料で使い続けるか）は、この分析では判断できない。</td></tr>
+      <tr><td>先行事例の一部を、公式の資料でまだ確認していない。調べた日・期間・検索語の記録も残していない。</td><td>第1章の「Jev に残る違い」は、公式の資料で確認すると変わる可能性がある。そのため、この分析は「分析完了」ではない。</td></tr>
+    </tbody>
+  </table></div>
+  <p>分析の途中で、前の段階に戻ってやり直すほどの事実は見つからなかった（差し戻しはない）。</p>
+</section>
+
+<!-- ===== 全体像 ===== -->
+<section id="overview">
+  <div class="sec-head"><span class="sec-no">OVERVIEW</span><h2>全体像: 分析はどの順に進み、どこで結論が出たか</h2><span class="grain">粒度 1（標準）</span></div>
+  <div class="gist"><span class="k">結論</span><p>この分析は、「すでに解かれている部分を除く」ことから始め、残った部分について原因をたどり、戦う市場を決め、最後に弱いところと次に確かめることを決めた。各段の結論が、次の段の前提になっている。</p></div>
+  <ol class="flow v">
+    <li><span class="sk">第1章</span><h4>すでに解かれている部分を除く</h4><p>答えを決まった形式で返すことと、選択肢をその場で指定して分類することは、既存の手段ですでにできる。Jev に残る違いは、長い入力について、LLM と同じくらい正しく、けた違いに安く速く判断できるかだけである。</p></li>
+    <li><span class="sk">第2章</span><h4>市場の当たり前を確かめる</h4><p>Agent を作る開発者は、「AI に判断させるには、LLM に文章を作らせる必要がある」と考え、判断のたびに LLM を呼んでいる。</p></li>
+    <li class="pick"><span class="sk">第3章</span><h4>本当の問題を特定する</h4><p>長い入力を正しく判断できる手段が LLM しかないため、文章が要らない判断にまで、文章を作る時間と料金を払っている（仮説）。</p></li>
+    <li><span class="sk">第4章</span><h4>反対の仮説を立てる</h4><p>TypeSafe AI は、「判断だけが必要な場合、文章を作ること自体が要らないのではないか」と考えた。</p></li>
+    <li><span class="sk">第5章</span><h4>置き換えるものを決める</h4><p>TypeSafe AI が置き換えるのは LLM ではなく、文章が要らない判断にまで LLM を使う設計である。</p></li>
+    <li class="pick"><span class="sk">第6章</span><h4>戦う市場を決める</h4><p>TypeSafe AI は、既存の「分類器（入力を決まった選択肢に振り分けるモデル）」の枠を避け、新しい市場の名前（System One Model）を作った。</p></li>
+    <li><span class="sk">第7章</span><h4>弱いところを探す</h4><p>戦略の前提が崩れるほどの問題は見つからなかったが、Jev の答えの正しさを示す証拠がない。</p></li>
+    <li><span class="sk">第8章</span><h4>次に確かめることを決める</h4><p>最初に、実際の業務の判断で、Jev が LLM と同じくらい正しく答えられるかを確かめる。</p></li>
+  </ol>
+  <p>図の中で枠が太い第3章と第6章が、この分析の中心の結論である。第3章で特定した問題の見方（長い入力を正しく判断できる手段が LLM しかない）が、第6章で新しい市場の名前を作った理由になっている。第1章から第6章までの各段は、前の段の結論を前提にしているので、前の段の結論が崩れると、後ろの段の結論も変わる。</p>
+
+  <h3>この分析の3つの結論</h3>
+  <p>3つの結論は、上の図の第5章・第6章・第7章から取り出したものである。1つ目は市場の選び方を、2つ目は売り出し方の強みを、3つ目は弱みを示している。各カードの下に、詳しく説明している章を示す。</p>
+  <div class="cards">
+    <div class="card"><span class="ck">市場の定め方</span><p>TypeSafe AI は、Jev を既存の「分類器」の一種として売らず、System One Model という新しい市場の名前を作った。既存の枠で比べられると、Jev に残る違いが見えにくくなるためである。<span class="badge est">[推定]</span></p><p class="small">→ 第6章</p></div>
+    <div class="card" style="--c:var(--est)"><span class="ck">最大の勝ち筋</span><p>Jev は LLM を置き換えず、「LLM を呼ぶ必要があるかを先に決める段階」に入った。そのため、LLM を使う Agent が増えるほど、Jev が使われる場面も増える。<span class="badge est">[推定]</span></p><p class="small">→ 第5章</p></div>
+    <div class="card" style="--c:var(--crit)"><span class="ck">最大のリスク</span><p>LLM を提供する大手（OpenAI・Anthropic・Google）が、自社の LLM の機能として同じ判断の機能を加えると、Jev の違いが吸収される。<span class="badge est">[推定]</span></p><p class="small">→ 第7章</p></div>
+  </div>
+</section>
+
+<!-- ===== 第1章 ===== -->
+<section id="c1">
+  <div class="sec-head"><span class="sec-no">第1章</span><h2>すでに解かれている部分はどこか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P0.5 先行事例の確認（Prior Art Sweep）</p>
+  <div class="gist"><span class="k">結論</span><p>「答えを決まった形式で返すこと」と「選択肢をその場で指定して分類すること」は、Jev より前からある手段ですでにできる。Jev に残る違いは、長くて整理されていない入力について、LLM と同じくらい正しい判断を、LLM よりけた違いに安く速く返せるかどうかだけであり、この点はまだ確かめられていない。</p></div>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">先行事例</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>Jev と同じ問題（判断の答えを得ること）を、Jev より前から解いている製品や手法。</dd>
+      <dt>例</dt><dd>下の3枚のカード（構造化出力、分類器、小型の LLM）。</dd>
+    </dl>
+  </div>
+
+  <p>この分析では、3つの先行事例について、「できること」と「できないこと」を分けて確認した。</p>
+  <div class="cards">
+    <div class="card" style="--c:var(--fact)"><span class="ck">先行事例 1</span><h4>LLM の構造化出力（Structured Outputs、Tool Calling）</h4>
+      <dl>
+        <dt>何か</dt><dd>LLM の提供企業が用意している機能である。LLM の答えを、あらかじめ決めた形式（JSON。プログラムが読み取りやすいデータの書き方）に合わせて返させる。</dd>
+        <dt>できること</dt><dd>開発者は、判断の結果を、プログラムが読める決まった形式で受け取れる。</dd>
+        <dt>できないこと</dt><dd>Agent が判断のたびに LLM を呼ぶことは変わらないので、判断を繰り返すと遅くなり、料金も高くなる。<span class="badge fact">[事実: LangChain blog]</span></dd>
+        <dt>確認の状況</dt><dd>二次資料（LangChain の記事）で確認した。各 LLM 提供企業の公式の説明書では、まだ確認していない。</dd>
+      </dl>
+    </div>
+    <div class="card" style="--c:var(--fact)"><span class="ck">先行事例 2</span><h4>分類器（zero-shot 分類器・専用の分類器）</h4>
+      <dl>
+        <dt>何か</dt><dd>分類器は、入力を、決まった選択肢のどれかに振り分けるモデルである。分類器は文章を作らない。zero-shot 分類器は、選択肢を、学習のときではなく、使うときに言葉で指定できる分類器である。</dd>
+        <dt>できること</dt><dd>開発者は、使うときに選択肢を指定して、分類器に判断させられる。分類器は、LLM より安く分類できる。</dd>
+        <dt>できないこと</dt><dd>分類器は、長くて整理されていない入力について、LLM と同じくらい正しく判断することはできない（まだ確かめていない）。<span class="badge hyp">[仮説]</span></dd>
+        <dt>確認の状況</dt><dd>コミュニティでの比較の議論で確認した。<span class="badge fact">[事実: OpenChamber]</span> 各ライブラリ（開発者が使う部品）の公式の説明書では、まだ確認していない。</dd>
+      </dl>
+    </div>
+    <div class="card" style="--c:var(--fact)"><span class="ck">先行事例 3</span><h4>小型・軽量の LLM</h4>
+      <dl>
+        <dt>何か</dt><dd>大型の LLM より小さく、安く速く動く LLM である。</dd>
+        <dt>できること</dt><dd>開発者は、大型の LLM より安く速く、小型の LLM に判断させられる。</dd>
+        <dt>できないこと</dt><dd>小型の LLM も文章を作る方法で答えるので、判断だけが必要な用途では、文章を作る分の時間と料金が残る。<span class="badge est">[推定]</span></dd>
+        <dt>確認の状況</dt><dd>まだ確認していない。本来は、各モデルの公式の料金表と仕様で確認する。</dd>
+      </dl>
+    </div>
+  </div>
+
+  <p>3つのカードを並べると、先行事例は、Jev が提供するものの一部をすでに提供していることが分かる。構造化出力は決まった形式の答えを、分類器は文章を作らない判断を、小型の LLM は安さと速さを、それぞれすでに提供している。3つのどれも提供していないのは、長くて整理されていない入力について、LLM と同じくらい正しく、しかも安く速く判断することである。</p>
+  <h3>Jev に残る違い（残る隙間）</h3>
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">残る隙間</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>先行事例がまだ解いていない部分。Jev が新しさを主張できるのは、この部分だけである。</dd>
+      <dt>例</dt><dd>下の図の3つの条件を、すべて満たす判断。</dd>
+    </dl>
+  </div>
+  <ol class="flow and">
+    <li><span class="sk">条件 1</span><p>入力が長く、決まった項目に整理されていない。</p></li>
+    <li><span class="sk">条件 2</span><p>判断の答えが、LLM と同じくらい正しい。</p></li>
+    <li><span class="sk">条件 3</span><p>LLM を呼ぶよりけた違いに安く、速く答えを返す。</p></li>
+  </ol>
+  <div class="result"><p>3つの条件をすべて満たす判断が、Jev に残る違いである。<span class="badge hyp">[仮説: 第8章の検証1で確かめる]</span></p></div>
+  <p>3つの条件は、すべてを同時に満たす必要がある。入力が短く整理されている判断（条件1を満たさない判断）なら、既存の分類器で足りる。LLM と同じくらい正しくても、料金と時間が LLM と変わらなければ（条件3を満たさない場合）、開発者が LLM から Jev に切り替える理由がない。<span class="badge est">[推定]</span></p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>Agent がそれまでに行った操作の記録や、顧客とのやり取りの全文は、「金額」「日付」のような決まった項目に分かれていない長い文章である。このような入力を見て「次に何をするか」を選ぶことが、条件1に当たる判断である。</p></div>
+
+  <p>この分析は、この領域を「部分的に解決済み」と判定した。部分的に解決済みとは、既存の手段はあるが、特定の条件（上の3つ）ではまだ解けていない状態を指す。以降の章は、この残る隙間だけを対象にする。</p>
+
+  <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>公式の資料を確認して、既存の手段が上の3つの条件をすでに満たしているとわかった場合、Jev に残る違いはなくなり、以降の章の結論も変わる。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、Agent を作る開発者が、判断についてどのようなことを当たり前だと思っているかを確かめる。</p>
+</section>
+
+<!-- ===== 第2章 ===== -->
+<section id="c2">
+  <div class="sec-head"><span class="sec-no">第2章</span><h2>市場は何を当たり前だと思っているか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P1 既存の前提（Existing World）</p>
+  <div class="gist"><span class="k">結論</span><p>Agent を作る開発者は、「AI に判断させるには、LLM に文章を作らせる必要がある」と考えている。この考えのもとで、判断のたびに LLM を呼ぶ設計が当たり前になっている。</p></div>
+
+  <p>分析は、公開情報から、今の設計を支えている3つの前提を推定した。<span class="badge est">[推定]</span> 下の図は、3つの前提が、今の設計を支えている関係を示す。</p>
+  <ul class="tree">
+    <li><span class="tn"><span class="tk">今の設計</span>Agent は、判断のたびに LLM を呼ぶ。</span>
+      <ul>
+        <li><span class="tn"><span class="tk">支えている前提 1</span>開発者は、「AI の判断を得るには、LLM に文章を作らせる必要がある」と考えている。</span></li>
+        <li><span class="tn"><span class="tk">支えている前提 2</span>開発者は、「答えの形式を守らせるには、構造化出力で LLM の文章の作り方を制限すればよい」と考えている。</span></li>
+        <li><span class="tn"><span class="tk">支えている前提 3</span>開発者は、「いろいろな判断に対応するには大きな汎用の LLM が必要で、専用の分類器は判断の種類ごとに作るものだ」と考えている。</span></li>
+      </ul>
+    </li>
+  </ul>
+  <p>3つの前提は、どれも「判断には LLM が必要だ」という同じ方向を向いている。そのため、開発者は、判断のたびに LLM を呼ぶ設計を、ほかの選択肢と比べずに選んでいる。<span class="badge est">[推定]</span></p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>開発者は、問い合わせの振り分けに構造化出力を使い、LLM に {"team": "billing"} という形式で答えさせる。答えの形式は守られるが、LLM を1回呼ぶ時間と料金は変わらない。これは、前提2に従った設計である。</p></div>
+
+  <div class="box falsify"><span class="k">まだ確かめていないこと</span><p>この3つの前提は、公開情報からの推定であり、開発者への聞き取りで確かめたものではない。開発者の実際の作業の流れと、判断にかかっている今の費用も、公開情報からは得られていない（第9章）。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、この当たり前のもとで何が起きているかを、目に見える症状から原因へと1段ずつたどる。</p>
+</section>
+
+<!-- ===== 第3章 ===== -->
+<section id="c3">
+  <div class="sec-head"><span class="sec-no">第3章</span><h2>本当の問題は何か</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P2 問題の再定義（Problem Discovery）</p>
+  <div class="gist"><span class="k">結論</span><p>問題は、LLM が十分に賢くないことではない。長くて整理されていない入力を正しく判断できる手段が LLM しかないため、文章が要らない判断にまで、文章を作る時間と料金を払っていることが問題である（仮説）。</p></div>
+
+  <div class="contrast">
+    <div class="side old"><span class="ck">よく言われる説明</span><p>LLM が十分に賢くない。モデルが大きすぎる。指示の文章（プロンプト）が長い。</p></div>
+    <div class="turn" aria-hidden="true"></div>
+    <div class="side new"><span class="ck">この分析の見方</span><p>長い入力を正しく判断できる手段が LLM しかないため、文章が要らない判断にまで、文章を作る時間と料金を払っている。<span class="badge hyp">[仮説]</span></p></div>
+  </div>
+
+  <p>左側の説明は、LLM そのもの（賢さ、大きさ、指示の長さ）に原因を求めている。右側のこの分析の見方は、LLM の使い方（文章が要らない判断にまで LLM を使っていること）に原因を求めている。原因の置き場所が変わると、解決策も「LLM を改良する」から「文章が要らない判断には LLM を使わない」に変わる。</p>
+  <h3>症状から原因へのたどり方</h3>
+  <p>下の図は、目に見える症状から、1段ずつ「なぜ」をたどったものである。</p>
+  <ol class="chain">
+    <li class="node"><span class="nk">症状</span><p>Agent の動きが遅く、料金が高い。<span class="badge fact">[事実: LangChain blog]</span></p></li>
+    <li class="link">なぜ遅く、高いのか？</li>
+    <li class="node"><span class="nk">第1原因</span><p>Agent が、判断のたびに LLM を呼んでいる。</p></li>
+    <li class="link">なぜ、判断のたびに LLM を呼ぶのか？</li>
+    <li class="node"><span class="nk">第1原因の理由</span><p>長くて整理されていない入力を、十分に正しく判断できる手段が、LLM しかない。<span class="badge hyp">[仮説]</span></p></li>
+    <li class="link">LLM を呼ぶと、判断で何が起きるのか？</li>
+    <li class="node"><span class="nk">第2原因</span><p>欲しい答えは billing のような選択肢1つなのに、LLM は文章を作るときと同じ方法で、トークンを1つずつ計算して答えを作る。</p></li>
+    <li class="link">なぜ、この無駄が今になって大きくなったのか？</li>
+    <li class="node"><span class="nk">構造原因</span><p>AI の提供の形が、人との会話（Chat）に合わせて作られている。Agent が1つの作業で判断を何度も繰り返すようになり、この無駄が、判断の回数の分だけ積み重なるようになった。<span class="badge est">[推定]</span></p></li>
+    <li class="link">その結果、本当に解くべき問題は</li>
+    <li class="node goal"><span class="nk">本当の問題</span><p>長い入力を LLM と同じくらい正しく判断し、しかも文章を作る時間と料金を払わずに答えを返す手段がない。<span class="badge hyp">[仮説: 第8章の検証1で確かめる]</span></p></li>
+  </ol>
+  <p>図の5つの段のうち、「第1原因の理由」の段は、まだ確かめていない仮説である。この段が間違っていれば（長い入力でも分類器で十分に正しく判断できれば）、開発者は分類器を使えばよく、第2原因から先の無駄も生まれない。この章の問題の見方は、この1つの仮説に支えられている。</p>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">構造原因</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>1回の失敗ではなく、製品の作られ方や市場の仕組みから、同じ無駄が繰り返し生まれる原因。</dd>
+      <dt>例</dt><dd>「AI の提供の形が Chat に合わせて作られている」ことが、判断のたびに文章を作る無駄を、どの Agent でも繰り返し生んでいる。</dd>
+    </dl>
+  </div>
+
+  <div class="box example"><span class="k">例（仮の場面。数値は説明のための仮置き）</span><p>問い合わせ対応の Agent が、1件ごとに「担当」「緊急度」「返信の要否」の3つを判断する。1日に1,000件の問い合わせがあれば、Agent は1日に3,000回 LLM を呼ぶ。LLM は3,000回とも、答えの選択肢1つを、トークンを計算して作る。</p></div>
+
+  <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>既存の分類器が、長くて整理されていない入力でも、LLM と同じくらい正しく判断できるとわかった場合、この問題の定義は成り立たない（第8章の検証1で確かめる）。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、この問題の見方から TypeSafe AI が立てた、市場の常識と反対の仮説を示す。</p>
+</section>
+
+<!-- ===== 第4章 ===== -->
+<section id="c4">
+  <div class="sec-head"><span class="sec-no">第4章</span><h2>Jev はどんな反対の仮説を立てたか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P3 反対仮説（Contrarian Thesis）</p>
+  <div class="gist"><span class="k">結論</span><p>TypeSafe AI は、「判断だけが必要な場合、文章を作ること自体が要らないのではないか」という、市場の常識と反対の仮説を立てた。TypeSafe AI が公表した数値は、料金と速さの証拠にはなるが、正しさが LLM と同じであることの証拠にはならない。</p></div>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">反対の仮説</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>市場の多くの人が当たり前だと思っていること（第2章）の反対で、証拠によって正しいと示せるかもしれない考え。</dd>
+      <dt>例</dt><dd>下の図の右側の「文章を作ること自体が要らないのではないか」。</dd>
+    </dl>
+  </div>
+
+  <div class="contrast">
+    <div class="side old"><span class="ck">市場の常識（第2章の前提1）</span><p>AI の判断を得るには、LLM に文章を作らせる必要がある。</p></div>
+    <div class="turn" aria-hidden="true"></div>
+    <div class="side new"><span class="ck">反対の仮説</span><p>判断だけが必要な場合、文章を作ること自体が要らないのではないか。</p></div>
+  </div>
+
+  <p>市場の常識は、「文章を作ること」を、判断を得るための手段だと考えている。反対の仮説は、判断だけが目的なら、文章を作る手順そのものを省けると考える。2つの考えの違いは、LLM の性能ではなく、判断を得るための手順にある。</p>
+  <h3>公表された数値が示すこと、示さないこと</h3>
+  <p>以下の数値は、TypeSafe AI 自身が公表した数値（自社公表値）であり、第三者が確かめたものではない。</p>
+  <div class="scroll"><table>
+    <thead><tr><th>数値</th><th>数値が示すこと</th><th>数値が示さないこと</th><th>ラベル</th></tr></thead>
+    <tbody>
+      <tr><td>入力100万トークンあたり 0.042ドル</td><td>Jev に渡す入力の料金が低いことを示す。</td><td>Jev の答えが正しいかどうかは示さない。</td><td><span class="badge fact">[事実: TypeSafe blog（自社公表値）]</span></td></tr>
+      <tr><td>出力の料金なし</td><td>Jev が答えの文章を作らないので、作った文章の量に応じた料金がないことを示す。</td><td>Jev の答えが正しいかどうかは示さない。</td><td><span class="badge fact">[事実: TypeSafe blog（自社公表値）]</span></td></tr>
+      <tr><td>1回の判断に 70〜500ミリ秒（0.07〜0.5秒）</td><td>Jev が答えを返すまでの時間を示す。</td><td>Jev の答えが正しいかどうかは示さない。</td><td><span class="badge fact">[事実: TypeSafe blog（自社公表値）]</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <p>3つの数値は、どれも料金か速さを示しており、答えの正しさを示すものはない。そのため、この反対の仮説のうち「料金が安く、速い」という部分には証拠があるが、「LLM と同じくらい正しい」という部分には、まだ証拠がない。<span class="badge hyp">[仮説: 第8章の検証1で確かめる]</span></p>
+  <h3>なぜ、Jev には出力の料金がかからないのか</h3>
+  <ol class="chain">
+    <li class="node"><span class="nk">Jev の性質</span><p>Jev は、答えとして文章を作らず、選択肢から答えを選ぶ。</p></li>
+    <li class="link">そのため</li>
+    <li class="node"><span class="nk">起きないこと</span><p>LLM のような「作った文章の量（トークンの数）」が、Jev では生まれない。</p></li>
+    <li class="link">その結果</li>
+    <li class="node goal"><span class="nk">料金への影響</span><p>作った文章の量に応じた料金（出力の料金）が、Jev ではかからない。<span class="badge est">[推定]</span></p></li>
+  </ol>
+  <p>この図のうち、公表された事実は「出力の料金なし」だけである。「文章を作らないので、出力の料金が生まれない」というつながりは、公表された事実から、この分析が推定したものである。</p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>第0章の問い合わせの振り分けでは、LLM は "billing" という答えもトークンを計算して作るので、その分の出力の料金がかかる。Jev は答えの文章を作らないので、この出力の料金がかからない。</p></div>
+
+  <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>同じ判断で、Jev の正解率が LLM より大きく低いとわかった場合、この仮説は「安く速いが、正しさで劣る」という意味にしかならず、Jev は LLM の代わりにならない（第8章の検証1）。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、この仮説にもとづいて、TypeSafe AI が何を置き換え、何を置き換えないと決めたかを示す。</p>
+</section>
+
+<!-- ===== 第5章 ===== -->
+<section id="c5">
+  <div class="sec-head"><span class="sec-no">第5章</span><h2>Jev は何を置き換え、何を置き換えないのか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P4 敵の定義（Enemy）</p>
+  <div class="gist"><span class="k">結論</span><p>TypeSafe AI が置き換えようとしているのは、LLM そのものではない。TypeSafe AI は、「文章が要らない判断にまで、文章を作る AI を使う設計」だけを置き換え、文章が必要な場所では引き続き LLM を使う立場を取った。</p></div>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">敵</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>製品が、顧客と一緒に置き換えようとする「古いやり方」。競合する企業のことではない。</dd>
+      <dt>例</dt><dd>「文章が要らない判断にまで、文章を作る AI を使う設計」。</dd>
+    </dl>
+  </div>
+
+  <div class="cards">
+    <div class="card" style="--c:var(--crit)"><span class="ck">置き換えるもの（敵）</span><p>文章が要らない場所にまで、文章を作る AI を使っている、今の AI の設計。</p></div>
+    <div class="card" style="--c:var(--est)"><span class="ck">置き換えないもの（組み合わせる相手）</span><p>Claude や GPT などの LLM そのもの。文章が必要な場所では、開発者は引き続き LLM を使う。</p></div>
+  </div>
+
+  <p>2枚のカードの違いは、置き換える範囲にある。TypeSafe AI は、LLM 全体ではなく、LLM の使い方の一部だけを置き換える対象にした。そのため、TypeSafe AI は、LLM を提供する企業や、LLM を使っている開発者を、敵に回さずに済む。<span class="badge est">[推定]</span></p>
+  <h3>Jev が入る位置</h3>
+  <p>Jev は、Agent の判断の流れの中で、「LLM を呼ぶ必要があるか」を先に決める段階に入る。</p>
+  <div class="branch">
+    <div class="cond"><span class="small">Jev が判断すること</span><p>Agent から判断を求められた Jev が、選択肢から答えを選ぶ。その判断の1つとして、「この場面で LLM を呼ぶ必要があるか」も Jev が決める。</p></div>
+    <div class="outs n2">
+      <div class="out" style="--c:var(--est)"><span class="bk">文章が要らない場合</span><p>Jev の答えで判断が終わる。Agent は LLM を呼ばない。</p></div>
+      <div class="out" style="--c:var(--accent)"><span class="bk">文章が必要な場合</span><p>Agent が LLM を呼び、LLM が文章を作る（例: 顧客への返信文）。</p></div>
+    </div>
+  </div>
+
+  <h3>なぜ、LLM の利用が増えると、Jev の利用も増えるのか</h3>
+  <ol class="chain">
+    <li class="node"><p>LLM を使って Agent を作る会社が増える。</p></li>
+    <li class="link">その結果</li>
+    <li class="node"><p>Agent の中で、「LLM を呼ぶか」「どの選択肢を選ぶか」を決める判断の回数が増える。</p></li>
+    <li class="link">その結果</li>
+    <li class="node goal"><p>増えた判断が、Jev が使われる場面になる。<span class="badge est">[推定]</span></p></li>
+  </ol>
+  <p>この図のつながりは、Jev が LLM を置き換えずに、LLM を呼ぶ前の段階に入ったから成り立つ。もし Jev が LLM を置き換える製品なら、LLM の利用が増えることは、Jev の利用が減ることを意味する。<span class="badge est">[推定]</span></p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>問い合わせ対応の Agent は、まず Jev に「この問い合わせに、文章での返信が必要か」を判断させる。Agent は、返信が必要なときだけ、LLM に返信文を書かせる。</p></div>
+
+  <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>LLM の提供企業が、同じ判断の機能を、LLM の機能として安く提供した場合、この位置の価値は小さくなる（第7章のリスク）。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、この位置で戦うために、TypeSafe AI がどの市場の名前で Jev を売ることにしたかを示す。</p>
+</section>
+
+<!-- ===== 第6章 ===== -->
+<section id="c6">
+  <div class="sec-head"><span class="sec-no">第6章</span><h2>Jev は、どの市場として戦うことにしたか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P6 市場定義の判定（Category Decision。判定のみ）</p>
+  <div class="gist"><span class="k">結論</span><p>TypeSafe AI は、Jev を既存の「分類器」や「小型の LLM」の一種として売らず、System One Model という新しい市場の名前を作った（新カテゴリー）。既存の枠で比べられると、第1章で残った違いが見えなくなるためである。<span class="badge est">[推定]</span></p></div>
+
+  <div class="box premise"><span class="k">前提</span><p>市場カテゴリーは、買い手が製品を比べるときに使う、分類の名前である。買い手は、同じカテゴリーの製品どうしを、そのカテゴリーで当たり前になっている基準で比べる。例えば、「分類器」というカテゴリーでは、買い手は正解率と料金で比べる。</p></div>
+
+  <h3>3つの選び方と、Jev の判定</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>選び方</th><th>意味</th><th>Jev の判定</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr class="pick"><td>A. 新カテゴリー</td><td>新しい市場の名前を作り、その名前で比べてもらう。</td><td>TypeSafe AI は、この選び方を取り、System One Model という名前を作った。<span class="badge fact">[事実: TypeSafe]</span></td><td>既存の枠では、第1章で残った違いが見えないためである。<span class="badge est">[推定]</span></td></tr>
+      <tr><td>B. サブカテゴリー</td><td>既存の市場の中を、「○○向けの△△」のように区切る。</td><td>TypeSafe AI は、この選び方を取らなかった。</td><td>「軽量の LLM」「汎用の分類器」の一種として名乗ると、比べる基準が、既存の正解率と料金に戻るためである。<span class="badge est">[推定]</span></td></tr>
+      <tr><td>C. 再ポジショニング</td><td>既存の市場の名前のまま、比べる基準の重みを変える。</td><td>TypeSafe AI は、この選び方を取らなかった。</td><td>既存の基準で Jev が勝てるかが、まだ確かめられていないためである。<span class="badge est">[推定]</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <p>3つの選び方の違いは、買い手が Jev を何と比べるかにある。A では、買い手は Jev を LLM と比べる。B と C では、買い手は Jev を既存の分類器や軽量の LLM と、正解率と料金で比べる。TypeSafe AI は、Jev の違いが見える比べ方になる A を選んだ。<span class="badge est">[推定]</span></p>
+  <h3>なぜ A（新カテゴリー）なのか</h3>
+  <ol class="chain">
+    <li class="node"><p>買い手が、Jev を「分類器」の一種として見る。</p></li>
+    <li class="link">その結果</li>
+    <li class="node"><p>買い手は、既存の分類器と同じ基準（正解率と料金）で Jev を比べる。</p></li>
+    <li class="link">そのとき</li>
+    <li class="node"><p>分類器も文章を作らないので、「文章を作らない」ことは、Jev の違いにならない。</p></li>
+    <li class="link">そのため、違いとして残るのは</li>
+    <li class="node"><p>長い入力について、LLM と同じくらい正しく判断できることだけである。<span class="badge hyp">[仮説]</span></p></li>
+    <li class="link">しかし</li>
+    <li class="node"><p>この違いは、正解率と料金を並べた比較表では見えにくい。<span class="badge est">[推定]</span></p></li>
+    <li class="link">その結果</li>
+    <li class="node goal"><p>TypeSafe AI は新しい市場の名前を作り、Jev を分類器ではなく LLM と対比させて、比べてもらう形にした。<span class="badge est">[推定]</span></p></li>
+  </ol>
+  <p>この図の中で、確かめられていないのは「長い入力について、LLM と同じくらい正しく判断できる」という段である。この段が間違っていれば、Jev に残る違いがなくなり、新しい市場の名前を作る理由もなくなる。</p>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">System One Model</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>TypeSafe AI が作った、新しい市場の名前。認知科学では、人が深く考えずに素早く下す判断を「System 1」、時間をかけて考える働きを「System 2」と呼ぶ。この名前は、Jev を System 1（素早い判断）に、LLM を System 2（時間をかけて文章を作る）に見立てて、両者の違いを示す。名前の意図は、この分析の解釈である。<span class="badge est">[推定]</span></dd>
+      <dt>例</dt><dd>下の具体例を参照。</dd>
+    </dl>
+  </div>
+
+  <div class="box example"><span class="k">例（仮の場面）</span><p>開発者が「分類器」として Jev を紹介されると、手元の分類器と正解率と料金を並べて比べる。開発者が「System One Model」として Jev を紹介されると、LLM を呼んでいる判断のうち、どれを Jev に任せられるかという基準で考える。</p></div>
+
+  <div class="box falsify"><span class="k">この結論が間違いだとわかる条件</span><p>第8章の検証1で、Jev が既存の基準（正解率と料金）でも勝てるとわかった場合は、C（名前を変えずに売る）のほうが、新しい名前を市場に広める費用が小さい可能性がある。<span class="badge est">[推定]</span></p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、ここまでの結論を否定する事実を探し、弱いところを示す。</p>
+</section>
+
+<!-- ===== 第7章 ===== -->
+<section id="risk">
+  <div class="sec-head"><span class="sec-no">第7章</span><h2>弱いところはどこか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P31 反証とリスクの確認（Reality Check）</p>
+  <div class="gist"><span class="k">結論</span><p>公開情報の範囲では、戦略の前提が崩れるほどの問題は見つからなかった。ただし、Jev の答えの正しさを示す証拠がなく、「ただの分類器だ」という批判が定着するおそれがある。</p></div>
+
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">反証パス</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>分析の結論が間違っているとしたら、どんな事実があるはずかを考え、その事実をあえて探す作業。結論を支える情報ばかりを集めてしまうことを防ぐために行う。</dd>
+      <dt>例</dt><dd>下の表の1行目。「判断に文章は要らない」が間違いなら、「既存の分類器で同じことができる」という事実があるはずなので、その事実を探した。</dd>
+    </dl>
+  </div>
+
+  <h3>結論を否定する事実を探した結果</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>分析の主張</th><th>主張が間違いなら、存在するはずの事実</th><th>調べたこと</th><th>見つかったこと</th><th>扱い</th></tr></thead>
+    <tbody>
+      <tr><td>判断に、文章を作ることは要らない。</td><td>既存の分類器で、同じ判断が、同じ正しさと料金でできる。</td><td>コミュニティでの比較の議論を調べた。</td><td>「ただの classifier（分類器）」「昔からある」という指摘があった。<span class="badge fact">[事実: OpenChamber]</span></td><td>分析は、主張の範囲を「長くて整理されていない入力の判断」に狭めた。正しさの比較は、第8章の検証1で行う。</td></tr>
+      <tr><td>新しい市場として成り立つ。</td><td>大手が、同じ機能を既存の製品の一部として出す。</td><td>この分析では、大手の直近の発表を調べていない。</td><td>調べていないので、分からない。</td><td>まだ確かめていない（第9章）。</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>1行目では、反証（「ただの分類器だ」という指摘）が見つかったので、分析は主張の範囲を狭めた。2行目は調べていないので、「反証がない」とは言えない。分析は、調べていないことを「問題なし」と扱わないために、2行目を第9章の未検証の一覧に入れている。</p>
+  <h3>リスクの深刻さ</h3>
+  <div class="levels">
+    <div class="lv crit"><span class="lk">致命的（戦略の前提が崩れる問題）</span>
+      <p>該当する問題は見つからなかった。公開情報の範囲では、Jev は技術として動いており、公開から24時間以内に Vercel の有料チームの約13%が Jev を試した。<span class="badge fact">[事実: Vercel]</span></p>
+    </div>
+    <div class="lv major"><span class="lk">重大（対策が必要な問題）</span>
+      <ol>
+        <li>Jev の宣伝の言葉「Zero Hallucinations（幻覚ゼロ）」は、誤解されるおそれがある。Hallucination（幻覚）とは、AI が事実と違う答えや、ありえない答えを作ることを指す。Jev は選択肢の外の答えを返さないので、その意味では宣伝は正しい。しかし、Jev が選択肢の中で間違ったものを選ぶことは、防げない。<span class="badge est">[推定]</span></li>
+        <li>Jev には、「ただの classifier」「really smart switch statement（よくできた条件分岐にすぎない）」という批判がある。<span class="badge fact">[事実: OpenChamber]</span> 今は、この議論が Jev の知名度を広げている。しかし、実際の業務での正しさを示す証拠がないと、この批判が Jev の評価として定着するおそれがある。<span class="badge est">[推定]</span></li>
+      </ol>
+    </div>
+    <div class="lv watch"><span class="lk">注意（見張る必要がある点）</span>
+      <ol>
+        <li>使い続けている割合と、有料に切り替えた割合は、調べた公開情報（TypeSafe AI の公式ブログとサイト、Vercel、DCVC の発表）の中には見つからなかった。利用者が Jev を使い続けるかは、まだ確かめられていない。<span class="badge hyp">[仮説]</span></li>
+        <li>大手が同じ機能を出した場合、Jev を守るものは、Vercel と LangChain への組み込みと、開発者の使い慣れに頼っている。Vercel の AI Gateway は、開発者が複数の LLM を1つの窓口から呼ぶためのサービスである。LangChain は、LLM を使うアプリを作るための部品の集まりである。<span class="badge est">[推定]</span></li>
+      </ol>
+    </div>
+  </div>
+  <p>3つの段のうち、対策が必要なのは「重大」の2つである。2つの問題は、どちらも Jev の答えの正しさが示されていないことから生まれている。そのため、第8章の検証1（正しさの測定）の結果が、2つの重大な問題にまとめて答えることになる。<span class="badge est">[推定]</span></p>
+  <div class="box example"><span class="k">例（仮の場面）</span><p>正解が billing の問い合わせで、Jev が technical を選ぶ。technical は選択肢の中にあるので「幻覚」ではないが、答えとしては間違いである。「Zero Hallucinations」という言葉は、この種の間違いを防ぐとは言っていない。</p></div>
+
+  <div class="box falsify"><span class="k">まだ確かめていないこと</span><p>大手（OpenAI、Anthropic、Google など）の直近の発表に、同じ機能が含まれていないかを、この分析では調べていない（第9章）。</p></div>
+
+  <p class="next"><b>次の章へ →</b> 次の章では、ここで見つかった弱いところのうち、何から確かめるかを決める。</p>
+</section>
+
+<!-- ===== 第8章 ===== -->
+<section id="next">
+  <div class="sec-head"><span class="sec-no">第8章</span><h2>次に何を確かめるか</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: P32 次の検証（Next Experiments）</p>
+  <div class="gist"><span class="k">結論</span><p>最初に、実際の業務の判断で、Jev が LLM と同じくらい正しく答えられるかを確かめる。この結果が、第1章の「残る違い」、第3章の「本当の問題」、第4章の「反対の仮説」のすべてを左右するためである。</p></div>
+
+  <p>分析は、外れたときに崩れる範囲が大きく、まだ確かめられていないものから順に、3つの検証を並べた。各検証では、結果が出る前に、成功した場合と失敗した場合に何をするかを決めてある。</p>
+
+  <h3>検証1: 実際の業務で、LLM と同じくらい正しく答えられるか（優先度: 高）</h3>
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">ベンチマーク</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>同じ課題とデータを使って、複数のモデルの結果を並べて比べる測定。</dd>
+      <dt>例</dt><dd>同じ1,000件の問い合わせを、Jev と大型の LLM の両方に振り分けさせ、正解の数を比べる（件数は説明のための仮置き）。</dd>
+    </dl>
+  </div>
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">確信度の較正（calibration）</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>モデルが示す「この答えが正しい確率」が、実際に正しい割合と一致しているかどうか。</dd>
+      <dt>例</dt><dd>モデルが「90%の確率で正しい」と示した答えを集めたとき、実際に約90%が正しければ、較正がとれている。</dd>
+    </dl>
+  </div>
+  <div class="branch">
+    <div class="cond"><span class="small">確かめること</span>
+      <p><b>仮説:</b> 実際の業務の判断で、Jev は LLM と同じくらい正しく答えられる。</p>
+      <p><b>方法:</b> 公開されているデータと顧客の実データで、最新の大型の LLM と Jev の正解率と料金を比べるベンチマークを作り、公開する。</p>
+      <p><b>見る数値:</b> 正解率と、確信度の較正。<b>成功の基準:</b> 主な3つの用途で、LLM との正解率の差が数ポイント以内。<b>期間:</b> 2〜4週間。</p>
+    </div>
+    <div class="outs n2">
+      <div class="out ok"><span class="bk">成功なら</span><p>TypeSafe AI は、ベンチマークの結果を公開し、「ただの分類器」という批判への答えにする。</p></div>
+      <div class="out ng"><span class="bk">失敗なら</span><p>TypeSafe AI は、LLM との差が大きい用途を、Jev が得意だと主張する範囲から外し、伝え方と、議論を呼ぶ主張を直す。</p></div>
+    </div>
+  </div>
+
+  <p>この検証は、第1章の「残る違い」、第3章の「本当の問題」、第4章と第6章の仮説を、まとめて確かめる。TypeSafe AI が、成功と失敗のどちらの場合に何をするかを結果が出る前に決めてあるので、結果を都合よく解釈することを防げる。</p>
+  <h3>検証2: 試したチームが、使い続けるか（優先度: 高）</h3>
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">コホート分析</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>利用者を、使い始めた時期ごとのグループに分け、グループごとに、使い続けている割合を追う方法。</dd>
+      <dt>例</dt><dd>9月第1週に使い始めたチームのうち、30日後にも使っているチームの割合を見る。</dd>
+    </dl>
+  </div>
+  <div class="branch">
+    <div class="cond"><span class="small">確かめること</span>
+      <p><b>仮説:</b> Jev を試したチームが、Jev を使い続ける。</p>
+      <p><b>方法:</b> Vercel 経由で使い始めたチームを、コホート分析で追う。</p>
+      <p><b>見る数値:</b> 使い始めてから30日後に使い続けている割合（D30）と、利用量の推移。<b>成功の基準:</b> 試したチームの40%以上が、30日後も使い続けている（40%は仮置きの基準）。<b>期間:</b> データが手に入り次第。</p>
+    </div>
+    <div class="outs n2">
+      <div class="out ok"><span class="bk">成功なら</span><p>TypeSafe AI は、組織向けのプランの営業を始める。</p></div>
+      <div class="out ng"><span class="bk">失敗なら</span><p>TypeSafe AI は、使い続けなかったチームのうち10チームに理由を聞き、最初に売り込む顧客の条件（ICP）と、利用者が最初に価値を感じる瞬間の定義を見直す。</p></div>
+    </div>
+  </div>
+
+  <p>この検証は、Jev が一度試されたあとに、使い続けられるかを確かめる。公開から24時間以内に試した割合（約13%）は分かっているが、使い続ける割合は公開情報にない。Jev が事業として続くかを判断するには、この割合が必要である。</p>
+  <h3>検証3: 他の会社も、Jev の「判断 API」の形式を採用するか（優先度: 中）</h3>
+  <div class="box term"><span class="k">用語</span>
+    <p class="name">API</p>
+    <dl>
+      <dt>この文脈での意味</dt><dd>プログラムから Jev を呼び出すための、決まった窓口と、やり取りの形式。</dd>
+      <dt>例</dt><dd>「入力の文章と選択肢を渡すと、選ばれた選択肢が返る」という形式。</dd>
+    </dl>
+  </div>
+  <div class="branch">
+    <div class="cond"><span class="small">確かめること</span>
+      <p><b>仮説:</b> 他の会社も、Jev の判断 API の形式を採用する。</p>
+      <p><b>方法:</b> TypeSafe AI が API の仕様と評価の方法を公開し、フレームワーク（Agent を作るための部品の集まり）の開発者に、採用を働きかける。</p>
+      <p><b>見る数値:</b> 形式を採用したフレームワークの数。<b>成功の基準:</b> 6か月で、主要なフレームワーク3つが採用する。<b>期間:</b> 3〜6か月。</p>
+    </div>
+    <div class="outs n2">
+      <div class="out ok"><span class="bk">成功なら</span><p>TypeSafe AI は、評価の方法を管理し、この市場の標準として打ち出す。</p></div>
+      <div class="out ng"><span class="bk">失敗なら</span><p>TypeSafe AI は、独自の形式のまま、開発者が Jev を組み込むための部品（SDK）の改善に力を入れる。</p></div>
+    </div>
+  </div>
+
+  <p>この検証は、Jev の API の形式が、他の会社にとっても標準になるかを確かめる。形式が標準になると、開発者はその形式を前提にコードを書くので、Jev から乗り換えにくくなる。<span class="badge est">[推定]</span> 優先度が中なのは、この検証が外れても第1章から第6章の結論は崩れず、Jev を守る手段の1つが減るだけだからである。<span class="badge est">[推定]</span></p>
+  <p class="next"><b>次の章へ →</b> 次の章では、この分析でまだ確かめられていないことと、確かめるために必要な情報をまとめる。</p>
+</section>
+
+<!-- ===== 第9章 ===== -->
+<section id="unknown">
+  <div class="sec-head"><span class="sec-no">第9章</span><h2>まだ分かっていないこと</h2><span class="grain">粒度 1（標準）</span></div>
+  <p class="phase-tag">分析の該当箇所: Coverage Matrix、Full Strategy に進む場合に必要な追加情報</p>
+  <div class="gist"><span class="k">結論</span><p>この分析で扱った9つの段階のうち、4つはまだ確かめられていない。確かめるには、TypeSafe AI の内部の数値と、先行事例の公式の資料が必要である。</p></div>
+
+  <div class="scroll"><table>
+    <thead><tr><th>分析の段階</th><th>状態</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>情報の確認（P0 Intake）</td><td><span class="st ok">確認済み</span></td><td>分析は、公開情報だけを使うことと、内部の数値がないことを、仮定として明記した。</td></tr>
+      <tr><td>先行事例の確認（P0.5）</td><td><span class="st todo">未検証</span></td><td>分析は、主に二次資料で確認した。各製品の公式の説明書での確認と、調査の記録が残っている。</td></tr>
+      <tr><td>市場の当たり前（P1）</td><td><span class="st todo">未検証</span></td><td>分析は、前提を公開情報から推定した。開発者の実際の作業の流れと、判断にかかっている今の費用は、公開情報からは得られない。</td></tr>
+      <tr><td>本当の問題（P2）</td><td><span class="st todo">未検証</span></td><td>原因のたどり方は推定である。問題の中心（長い入力で LLM と同じくらい正しいか）は仮説であり、検証1で確かめる。<span class="badge hyp">[仮説]</span></td></tr>
+      <tr><td>反対の仮説（P3）</td><td><span class="st todo">未検証</span></td><td>料金と速さの証拠は、TypeSafe AI 自身の公表値である。正しさが LLM と同じかは仮説であり、検証1で確かめる。<span class="badge hyp">[仮説]</span></td></tr>
+      <tr><td>置き換えるもの（P4）</td><td><span class="st ok">確認済み</span></td><td>TypeSafe AI が LLM そのものを置き換えず、組み合わせる相手にしていることを確認した。</td></tr>
+      <tr><td>戦う市場（P6 判定のみ）</td><td><span class="st ok">確認済み</span></td><td>判定を出した。判定の理由は、公開情報からの推定である。</td></tr>
+      <tr><td>弱いところ（P31）</td><td><span class="st ok">確認済み</span></td><td>分析は、結論を否定する事実を探した。大手の直近の発表は、まだ調べていない。</td></tr>
+      <tr><td>次に確かめること（P32）</td><td><span class="st ok">確認済み</span></td><td>分析は、優先度の高い順に3つの検証を決めた。</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>4つの未検証のうち、「本当の問題」と「反対の仮説」の2つは、第8章の検証1で確かめられる。「先行事例の確認」は各製品の公式の説明書を読むことで、「市場の当たり前」は開発者の作業の流れと費用のデータを集めることで確かめる。</p>
+  <h3>確かめるために必要な情報</h3>
+  <ul class="sentences">
+    <li>TypeSafe AI の、有料に切り替えた割合、使い続けている割合、利用量の推移が必要である。</li>
+    <li>Jev を使っている顧客の種類（ICP）と、その内訳が必要である。</li>
+    <li>開発者の今の作業の流れと、判断にかかっている今の費用が必要である。</li>
+    <li>TypeSafe AI が Jev を提供する費用と、売上に占める利益の割合（粗利率）が必要である。</li>
+    <li>構造化出力、zero-shot 分類器、小型の LLM について、公式の説明書での確認と、調査の記録（調べた日、期間、検索語）が必要である。</li>
+    <li>OpenAI、Anthropic、Google などの直近の発表に、同じ機能が含まれていないかの確認が必要である。</li>
+  </ul>
+</section>
+
+<!-- ===== 付録 ===== -->
+<section id="appendix">
+  <div class="sec-head"><span class="sec-no">APPENDIX</span><h2>付録</h2></div>
+
+  <h3>付録A: 分析の範囲外で確認できた、Jev の売り出し方の工夫</h3>
+  <p>この分析は事後分析なので、全体の見立て（Quick Diagnosis）の範囲外の段階についても、公開情報から確認できたことを参考として載せる。</p>
+  <div class="scroll"><table>
+    <thead><tr><th>工夫の種類（分析の段階）</th><th>TypeSafe AI が行ったこと</th><th>ラベル</th></tr></thead>
+    <tbody>
+      <tr><td>数値の見せ方（P11）</td><td>TypeSafe AI は、料金を「100万トークンあたり0.042ドル」ではなく「10億トークンあたり42ドル」と表示し、数字の桁の印象を変えた。</td><td><span class="badge fact">[事実: TypeSafe]</span></td></tr>
+      <tr><td>数値の条件の注記（P11）</td><td>TypeSafe AI は、「193.6倍」「444.6倍」という速さの数値が、特定の作業の流れで出た上限側の結果であることを、自分で注記した。</td><td><span class="badge fact">[事実: TypeSafe blog]</span></td></tr>
+      <tr><td>デモの分け方（P13）</td><td>TypeSafe AI は、SNS で広めるためのデモ（Doom というゲームの操作や、Wikipedia のリンクをたどって目的の記事に早く着く遊び Wikiracing）と、購入を決めてもらうためのデモ（業務の作業の流れ）を分けた。</td><td><span class="badge fact">[事実: TypeSafe blog]</span></td></tr>
+      <tr><td>創業者の物語（P14）</td><td>TypeSafe AI は、「OpenAI で会話型の AI の手法を作っていた人物が、その逆の方向の AI を作った」という物語を示した。</td><td><span class="badge fact">[事実: TypeSafe blog]</span></td></tr>
+      <tr><td>ローンチの束ね方（P20）</td><td>TypeSafe AI は、新しい市場の名前、4,000万ドルの資金調達（Seed）、創業者の物語、100倍級の数値を、同じ時期に発表した。</td><td><span class="badge fact">[事実: DCVC]</span></td></tr>
+      <tr><td>届け方（P21）</td><td>Jev は、公開から数日以内に、Vercel の AI Gateway と LangChain に組み込まれた。</td><td><span class="badge fact">[事実: Vercel, LangChain]</span></td></tr>
+      <tr><td>試した人の割合（P26）</td><td>公開から24時間以内に、Vercel 上の有料チームの約13%が Jev を使った。</td><td><span class="badge fact">[事実: Vercel]</span></td></tr>
+      <tr><td>利用者による用途の発明（P23・P24）</td><td>開発者が、振り分け（routing）、安全の判定（safety）、コードの変更の確認（PR review）、ドローンの制御などの用途を自分で考え、SNS で広めた。</td><td><span class="badge fact">[事実: OpenChamber（第三者の収集分析）]</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>付録B: このレポートの章と、分析の段階の対応</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>このレポートの章</th><th>分析の段階（Phase）</th><th>分析の出力の該当箇所</th></tr></thead>
+    <tbody>
+      <tr><td>第0章 前提</td><td>P0 Intake</td><td>冒頭の前提・仮定、先行事例の確認、証拠ラベル、差し戻し</td></tr>
+      <tr><td>全体像</td><td>全体</td><td>1. 結論</td></tr>
+      <tr><td>第1章 すでに解かれている部分</td><td>P0.5 Prior Art Sweep</td><td>2. 先行事例</td></tr>
+      <tr><td>第2章 市場の当たり前</td><td>P1 Existing World</td><td>4. 根拠（既存の前提）</td></tr>
+      <tr><td>第3章 本当の問題</td><td>P2 Problem Discovery</td><td>3. 再定義された問題</td></tr>
+      <tr><td>第4章 反対の仮説</td><td>P3 Contrarian Thesis</td><td>4. 根拠（反対仮説）</td></tr>
+      <tr><td>第5章 置き換えるもの</td><td>P4 Enemy</td><td>4. 根拠（敵）、1. 結論（最大の勝ち筋）</td></tr>
+      <tr><td>第6章 戦う市場</td><td>P6 Category Decision（判定のみ）</td><td>4. 根拠（市場定義の判定）</td></tr>
+      <tr><td>第7章 弱いところ</td><td>P31 Reality Check</td><td>5. Reality Check</td></tr>
+      <tr><td>第8章 次に確かめること</td><td>P32 Next Experiments</td><td>6. 次にやるべき検証</td></tr>
+      <tr><td>第9章 まだ分かっていないこと</td><td>Coverage Matrix</td><td>7. Full Strategy に進む場合に必要な追加情報、8. Coverage Matrix</td></tr>
+      <tr><td>付録A</td><td>範囲外の参考</td><td>4. 根拠（その他の強み（参考））</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>このレポートは、category-creation-growth-marketing スキル（v4）のレポート生成の完成例である。元の分析は、同じスキルの Jev の分析例（Quick Diagnosis）である。</footer>
+</div>
+</body>
+</html>

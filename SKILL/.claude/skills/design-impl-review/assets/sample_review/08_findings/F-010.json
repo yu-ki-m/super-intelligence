@@ -1,0 +1,54 @@
+{
+  "id": "F-010",
+  "req": "REQ-037",
+  "judgment": "設計未定義",
+  "name": "失敗したら止めるか続けるかが、設計書とコードで食い違っている",
+  "event": "設計書を読んだ人は、失敗したら止まると考えるが、実際は残りの件も更新される。",
+  "cause": "設計書は「失敗した時点で止める」と定め、コードは失敗を記録して残りの件を続ける。要件はどちらとも決めていない。",
+  "cause_at": [
+    {
+      "where": "docs/design/ticket-update.md:78",
+      "note": "「5.2 処理と失敗時」"
+    },
+    {
+      "where": "src/ticket/BulkUpdateJob.ts:31",
+      "note": "continue"
+    },
+    {
+      "where": "src/ticket/BulkUpdateJob.ts:36",
+      "note": "continue"
+    }
+  ],
+  "fix": {
+    "label": "確認したいこと",
+    "text": "止めるか続けるかを決めてほしい。続けるなら設計書を、止めるならコードの `continue`（2か所）を直す。"
+  },
+  "repro": [
+    "300件の一括更新の途中で、1件の更新を失敗させる。",
+    "結果：残りの件も更新される。期待：要件の判断による。"
+  ],
+  "basis": [
+    {
+      "label": "設計書",
+      "text": "「1件ずつ順に更新し、失敗した時点で止める」",
+      "where": [
+        "docs/design/ticket-update.md:78-80"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "失敗を記録し、`continue` で残りの件を続ける。",
+      "where": [
+        "src/ticket/BulkUpdateJob.ts:31",
+        "src/ticket/BulkUpdateJob.ts:36"
+      ]
+    },
+    {
+      "label": "要求",
+      "text": "止めるか続けるかは決めていない（要求一覧の全体を確かめた）。",
+      "where": [
+        "docs/requirements/ticket-requirements.md"
+      ]
+    }
+  ]
+}

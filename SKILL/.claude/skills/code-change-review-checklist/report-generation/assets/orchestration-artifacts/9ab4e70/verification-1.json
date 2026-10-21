@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "role": "verifier",
+  "taskId": "/report/verify-9ab4e70-1",
+  "commitHash": "9ab4e70",
+  "sourceKind": "commit",
+  "targetRef": "9ab4e70000000000000000000000000000000000",
+  "comparisonBase": "4e91c2a000000000000000000000000000000000",
+  "status": "passed",
+  "freshContext": true,
+  "issueCount": 0,
+  "issues": [],
+  "verifiedReviewUnitSha256": "afc9533aeb942987e8eba51b7999e677461e439434140c66740dde45f4bc35a6"
+}

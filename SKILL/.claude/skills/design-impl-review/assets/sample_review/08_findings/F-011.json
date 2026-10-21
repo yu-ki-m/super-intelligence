@@ -1,0 +1,54 @@
+{
+  "id": "F-011",
+  "req": "REQ-021",
+  "judgment": "実装の誤り",
+  "name": "更新APIで担当者に null を送っても、担当者を外せない",
+  "event": "担当者が外れないまま、成功が返る。外したつもりの利用者や連携システムは、外れていないことに気付けない。",
+  "cause": "コードが `if (body.assigneeId)` と書いているため、null を未指定と同じに扱う（実装の誤り）。",
+  "cause_at": [
+    {
+      "where": "src/ticket/TicketUpdateService.ts:68-70",
+      "note": "update() の項目の反映"
+    }
+  ],
+  "fix": {
+    "label": "直した後の動き",
+    "text": "null なら項目を消し、未指定なら変えない。",
+    "diffs": [
+      {
+        "where": "src/ticket/TicketUpdateService.ts:68-70",
+        "note": "update()",
+        "code": "-    if (body.title) ticket.title = body.title;\n-    if (body.priority) ticket.priority = body.priority;\n-    if (body.assigneeId) ticket.assigneeId = body.assigneeId;\n+    if (body.title !== undefined) ticket.title = body.title;\n+    if (body.priority !== undefined) ticket.priority = body.priority;\n+    if (body.assigneeId !== undefined) ticket.assigneeId = body.assigneeId;"
+      }
+    ],
+    "note": "件名と優先度は必須のため、null が入力の検証でエラーになることも確かめる。"
+  },
+  "repro": [
+    "担当者がいるチケットを1件用意する。",
+    "`PATCH /tickets/{id}` に `{\"assigneeId\": null}` を送る。",
+    "結果：成功が返り、担当者は変わらない。期待：担当者が外れる。"
+  ],
+  "basis": [
+    {
+      "label": "設計書",
+      "text": "「PATCH /tickets/{id}。部分更新。項目の扱いは共通仕様の入力の規則に従う」",
+      "where": [
+        "docs/design/ticket-update.md:40-43"
+      ]
+    },
+    {
+      "label": "共通仕様",
+      "text": "「未指定は変更なし、null は項目の消去」。",
+      "where": [
+        "docs/common/api-common.md:46"
+      ]
+    },
+    {
+      "label": "コード",
+      "text": "`if (body.assigneeId)` のため、null を未指定と同じに扱う。",
+      "where": [
+        "src/ticket/TicketUpdateService.ts:70"
+      ]
+    }
+  ]
+}
