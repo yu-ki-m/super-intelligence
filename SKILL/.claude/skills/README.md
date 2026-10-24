@@ -1,6 +1,6 @@
 # スキル一覧
 
-このディレクトリに収録している19種類のスキルについて、用途・主な成果物・依頼例をまとめています。詳細な実行手順、入力条件、検証方法は、各リンク先の `SKILL.md` を参照してください。
+このディレクトリに収録している20種類のスキルについて、用途・主な成果物・依頼例をまとめています。詳細な実行手順、入力条件、検証方法は、各リンク先の `SKILL.md` を参照してください。
 
 ## 一覧
 
@@ -19,6 +19,7 @@
 | 画面モックアップ | [capture-screen-mockup](capture-screen-mockup/SKILL.md) | 操作中の既存Web画面を単一HTMLへ保存し、UI変更や注釈を加えた画面案を作る | 原本・画面案・注釈付きのHTML／PNG、変更記録JSON |
 | コード閲覧・読解 | [codebase-guide](codebase-guide/SKILL.md) | リポジトリをHTML化し、必要に応じて読む順番や処理フローの解説を付ける | コード閲覧HTML、定義リンク、読解・レビューガイド |
 | コード閲覧 | [repository-html-browser](repository-html-browser/SKILL.md) | リポジトリをディレクトリ構造ごと静的HTMLへ変換する | フォルダーツリーと各ファイルの閲覧HTML |
+| シーケンス図 | [sequence-diagram](sequence-diagram/SKILL.md) | ソースコード・設計書・処理仕様から、メソッド単位のライフラインで処理を追跡したシーケンス図を作る。条件分岐・繰り返し・例外・トランザクション・排他ロック・非同期・DBアクセスを表し、根拠のソース行を付けて確認済みと推定を区別する | クリックで引数・戻り値・SQL・根拠を確認できる単一ファイルのHTMLビューア、処理モデルJSON、検証レポート |
 | 変更影響分析 | [diff-decision-trees](diff-decision-trees/SKILL.md) | Git差分から変更前後の条件と最終結果を調べ、判定決定木にする | 日本語HTML、調査モデル、テストケース |
 | 設計・実装レビュー | [design-impl-review](design-impl-review/SKILL.md) | 設計書と実装コードを突き合わせ、要求違反・設計の矛盾・未定義の振る舞い・影響漏れ・実装の誤りを根拠付きで洗い出す。中断しても途中から再開できる | 要件一覧・要件ごとの指摘のHTML（事象・原因・修正案・再現手順・根拠） |
 | コードレビュー | [code-change-review-checklist](code-change-review-checklist/SKILL.md) | コード変更フローを重要度順に確認し、レビューの進捗を記録する | フローレポート、確認済みチェック・重要度付きHTML |

@@ -1,0 +1,2941 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "注文登録処理（POST /api/orders）",
+    "system": "受注管理システム（サンプル）",
+    "entryPoint": "POST /api/orders → OrderController.createOrder",
+    "description": "注文登録APIの処理を、入力検証・顧客確認・与信照会と見積計算（並列）・在庫引当（排他ロック）・注文保存・決済承認・コミット後の非同期通知・例外応答まで追跡した。在庫引当・決済承認・コミット後通知は詳細図に分割している。",
+    "sourceRoot": ".",
+    "language": "Java 17 以上（推定：record・Stream.toList・RestClient を使用。ビルド定義は未提供）",
+    "frameworks": [
+      "Spring Boot 3（Spring MVC / Spring Data JPA / Spring Kafka）",
+      "MyBatis"
+    ],
+    "inputs": [
+      {
+        "kind": "ソースコード",
+        "path": "src/main/java/com/example/order/",
+        "note": "Controller・Service・Repository・Domain・Infra・Event"
+      },
+      {
+        "kind": "SQLマッピング",
+        "path": "src/main/resources/mapper/StockMapper.xml"
+      }
+    ],
+    "analyzedAt": "2026-10-24",
+    "analyzer": "Claude Code（sequence-diagram skill）",
+    "defaultEvidenceStatus": "unverified",
+    "assumptions": [
+      "JPA の実装は Hibernate とし、IDENTITY 採番のエンティティは persist 時に INSERT されると仮定した",
+      "Spring MVC は @ExceptionHandler の照合で原因例外（cause）も対象にする（Spring Framework 5.3 以降の既定動作）と仮定した",
+      "DataSource は 1 つで、JpaTransactionManager のトランザクションに MyBatis（StockMapper）の SQL も参加すると仮定した（TransactionManager・DataSource の Bean 定義は未提供）"
+    ],
+    "unresolved": [
+      "与信照会API・決済APIの通信エラー（5xx・タイムアウト）は捕捉されておらず、GlobalExceptionHandler にも該当ハンドラがないため 500 応答になると推定。RestClient の Bean 定義（タイムアウト等）はソースに含まれず未確認",
+      "stocks の行ロック待ちのタイムアウトは DB 設定に依存し、コード上では確認できない",
+      "Kafka への送信結果（KafkaTemplate.send の CompletableFuture）は待っておらず、送信失敗は検知されない",
+      "在庫の行ロック（SELECT … FOR UPDATE）を保持したまま決済 API を呼ぶため、外部 API の待ち時間だけロックが続く。また明細の順にロックするため、商品の並びが逆の注文が同時に来るとデッドロック（DB エラー → 500）になる可能性がある",
+      "audit_logs.order_id に orders への外部キーがある場合、REQUIRES_NEW の監査ログ INSERT が未コミットの注文行を参照して失敗・待機する可能性がある（DDL 未提供）",
+      "finally の監査ログ記録で例外が起きると、Java の仕様により元の PaymentDeclinedException が置き換わる",
+      "MailSender は宛先（setTo）・送信元（setFrom）を設定していない。Bean 定義で補っていなければメール送信は失敗し、その後の Kafka 送信も行われない"
+    ],
+    "omissions": [
+      "DTO・値オブジェクトの生成/変換（CreateOrderRequest.toCommand、OrderResponse.from、OrderResult.from、PaymentRequest.of、Payment.authorized、ErrorResponse.of、OrderEventMessage.from）は呼び出し先ライフラインを作らず自己メッセージに集約した",
+      "エンティティの単純な判定・ゲッター（Customer.isSuspended、getId など）は自己メッセージに集約した",
+      "ログ出力（log.warn）は補助的な自己メッセージ（minor）として記載した（表示設定で非表示にできる）",
+      "標準ライブラリの単純な操作（stream().map、Collectors.toMap、BigDecimal の演算）は自己メッセージや戻り値の説明に集約した",
+      "フレームワークの中間処理（@Transactional の TransactionInterceptor、@Async の AsyncExecutionInterceptor、トランザクション同期の afterCommit）はライフラインにせず、via・note に記載した"
+    ],
+    "excluded": [
+      {
+        "target": "Spring Security などのサーブレットフィルタ",
+        "reason": "提供されたソースに存在しないため対象外"
+      },
+      {
+        "target": "RestClient / KafkaTemplate / JavaMailSender の Bean 定義",
+        "reason": "ソースに含まれていないため接続先・タイムアウトは未確認"
+      }
+    ]
+  },
+  "layers": [
+    {
+      "id": "springEvent",
+      "label": "イベント配信（Spring）",
+      "color": "#c026d3",
+      "before": "repository"
+    }
+  ],
+  "lifelines": [
+    {
+      "id": "client",
+      "type": "actor",
+      "name": "クライアント",
+      "description": "注文画面（ブラウザ）または外部システム"
+    },
+    {
+      "id": "fw_dispatcher",
+      "type": "framework",
+      "kind": "Framework",
+      "class": "DispatcherServlet",
+      "method": "doDispatch",
+      "description": "Spring MVC のフロントコントローラ。JSON の変換、@Valid による入力検証、コントローラの呼び出し、@ExceptionHandler の選択を行う。",
+      "evidence": {
+        "status": "inferred",
+        "note": "フレームワーク内部の処理（リポジトリ外）。@RestController・@Valid・@RestControllerAdvice の利用から Spring MVC の標準動作として記載した。"
+      }
+    },
+    {
+      "id": "ctl_create",
+      "kind": "Controller",
+      "class": "OrderController",
+      "method": "createOrder",
+      "signature": "createOrder(CreateOrderRequest)",
+      "annotations": [
+        "@PostMapping（/api/orders）",
+        "@Valid @RequestBody"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/api/OrderController.java:31-38"
+        ]
+      }
+    },
+    {
+      "id": "h_notfound",
+      "kind": "ExceptionHandler",
+      "class": "GlobalExceptionHandler",
+      "method": "handleNotFound",
+      "annotations": [
+        "@ExceptionHandler(ResourceNotFoundException.class)"
+      ],
+      "description": "404 Not Found を返す",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/api/GlobalExceptionHandler.java:16-20"
+        ]
+      }
+    },
+    {
+      "id": "h_payment",
+      "kind": "ExceptionHandler",
+      "class": "GlobalExceptionHandler",
+      "method": "handlePaymentDeclined",
+      "annotations": [
+        "@ExceptionHandler(PaymentDeclinedException.class)"
+      ],
+      "description": "402 Payment Required を返す",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/api/GlobalExceptionHandler.java:22-26"
+        ]
+      }
+    },
+    {
+      "id": "h_business",
+      "kind": "ExceptionHandler",
+      "class": "GlobalExceptionHandler",
+      "method": "handleBusiness",
+      "annotations": [
+        "@ExceptionHandler(BusinessException.class)"
+      ],
+      "description": "409 Conflict を返す",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/api/GlobalExceptionHandler.java:28-32"
+        ]
+      }
+    },
+    {
+      "id": "svc_register",
+      "kind": "Service",
+      "class": "OrderServiceImpl",
+      "method": "registerOrder",
+      "signature": "registerOrder(CreateOrderCommand)",
+      "annotations": [
+        "@Transactional"
+      ],
+      "implementation": "OrderService インターフェースの唯一の実装（コンストラクタインジェクション）",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/service/OrderServiceImpl.java:47-85"
+        ]
+      }
+    },
+    {
+      "id": "repo_customer_find",
+      "kind": "Repository",
+      "class": "CustomerRepository",
+      "method": "findById",
+      "description": "Spring Data JPA の標準メソッド（JpaRepository から継承）",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/repository/CustomerRepository.java",
+            "line": 7,
+            "symbol": "JpaRepository#findById（継承）"
+          }
+        ]
+      }
+    },
+    {
+      "id": "db_customers",
+      "type": "db",
+      "name": "customers",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "name",
+        "status"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Customer.java:8-15"
+        ]
+      }
+    },
+    {
+      "id": "int_credit",
+      "kind": "Client",
+      "class": "CreditCheckClient",
+      "method": "check",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/CreditCheckClient.java:16-21"
+        ]
+      }
+    },
+    {
+      "id": "ext_credit",
+      "type": "external",
+      "class": "CreditBureauAPI",
+      "method": "getCredit",
+      "description": "外部の与信照会サービス（GET /v2/customers/{id}/credit）",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/CreditCheckClient.java:17-20"
+        ],
+        "note": "操作名 getCredit は図のための便宜上の名前（ソースにはパス /v2/customers/{id}/credit のみ）"
+      }
+    },
+    {
+      "id": "svc_pricing",
+      "kind": "Service",
+      "class": "PricingService",
+      "method": "quote",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/service/PricingService.java:26-41"
+        ]
+      }
+    },
+    {
+      "id": "repo_product_findall",
+      "kind": "Repository",
+      "class": "ProductRepository",
+      "method": "findAllById",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/repository/ProductRepository.java",
+            "line": 7,
+            "symbol": "JpaRepository#findAllById（継承）"
+          }
+        ]
+      }
+    },
+    {
+      "id": "db_products",
+      "type": "db",
+      "name": "products",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "name",
+        "unit_price"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Product.java:10-16"
+        ]
+      }
+    },
+    {
+      "id": "svc_inventory",
+      "kind": "Service",
+      "class": "InventoryService",
+      "method": "allocate",
+      "annotations": [
+        "@Transactional(propagation = MANDATORY)"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/service/InventoryService.java:22-37"
+        ]
+      }
+    },
+    {
+      "id": "repo_stock_select",
+      "kind": "Mapper",
+      "class": "StockMapper",
+      "method": "selectForUpdate",
+      "description": "MyBatis Mapper。SQL は StockMapper.xml#selectForUpdate",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/repository/StockMapper.java:11"
+        ]
+      }
+    },
+    {
+      "id": "repo_stock_decrease",
+      "kind": "Mapper",
+      "class": "StockMapper",
+      "method": "decreaseAvailable",
+      "description": "MyBatis Mapper。SQL は StockMapper.xml#decreaseAvailable",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/repository/StockMapper.java:13-14"
+        ]
+      }
+    },
+    {
+      "id": "repo_stock_movement",
+      "kind": "Mapper",
+      "class": "StockMapper",
+      "method": "insertMovement",
+      "description": "MyBatis Mapper。SQL は StockMapper.xml#insertMovement",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/repository/StockMapper.java:16-17"
+        ]
+      }
+    },
+    {
+      "id": "db_stocks",
+      "type": "db",
+      "name": "stocks",
+      "primaryKey": "product_id",
+      "columns": [
+        "product_id",
+        "available",
+        "version",
+        "updated_at"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/resources/mapper/StockMapper.xml:5-19"
+        ]
+      }
+    },
+    {
+      "id": "db_stock_movements",
+      "type": "db",
+      "name": "stock_movements",
+      "columns": [
+        "product_id",
+        "delta",
+        "reason",
+        "created_at"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/resources/mapper/StockMapper.xml:21-24"
+        ]
+      }
+    },
+    {
+      "id": "dom_order_create",
+      "kind": "Domain",
+      "class": "Order",
+      "method": "create",
+      "description": "注文エンティティの static ファクトリメソッド",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Order.java:39-48"
+        ]
+      }
+    },
+    {
+      "id": "repo_order_save",
+      "kind": "Repository",
+      "class": "OrderRepository",
+      "method": "save",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/repository/OrderRepository.java",
+            "line": 7,
+            "symbol": "JpaRepository#save（継承）"
+          }
+        ]
+      }
+    },
+    {
+      "id": "repo_order_find",
+      "kind": "Repository",
+      "class": "OrderRepository",
+      "method": "findById",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/repository/OrderRepository.java",
+            "line": 7,
+            "symbol": "JpaRepository#findById（継承）"
+          }
+        ]
+      }
+    },
+    {
+      "id": "db_orders",
+      "type": "db",
+      "name": "orders",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "customer_id",
+        "total_amount",
+        "status",
+        "payment_transaction_id",
+        "payment_failure_reason"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Order.java:19-31"
+        ]
+      }
+    },
+    {
+      "id": "db_order_lines",
+      "type": "db",
+      "name": "order_lines",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "order_id",
+        "product_id",
+        "quantity"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/OrderLine.java:12-21"
+        ]
+      }
+    },
+    {
+      "id": "svc_payment",
+      "kind": "Service",
+      "class": "PaymentService",
+      "method": "authorize",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/service/PaymentService.java:32-45"
+        ]
+      }
+    },
+    {
+      "id": "int_payment",
+      "kind": "Client",
+      "class": "PaymentGatewayClient",
+      "method": "authorize",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:18-27"
+        ]
+      }
+    },
+    {
+      "id": "ext_payment",
+      "type": "external",
+      "class": "PaymentGatewayAPI",
+      "method": "authorize",
+      "description": "決済代行サービス（POST /v1/authorizations）。拒否時は HTTP 402 と X-Decline-Reason ヘッダー",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:19-25"
+        ],
+        "note": "操作名 authorize は図のための便宜上の名前（ソースにはパス /v1/authorizations のみ）"
+      }
+    },
+    {
+      "id": "dom_order_paid",
+      "kind": "Domain",
+      "class": "Order",
+      "method": "markPaid",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Order.java:50-53"
+        ]
+      }
+    },
+    {
+      "id": "dom_order_failed",
+      "kind": "Domain",
+      "class": "Order",
+      "method": "markPaymentFailed",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Order.java:55-58"
+        ]
+      }
+    },
+    {
+      "id": "repo_payment_save",
+      "kind": "Repository",
+      "class": "PaymentRepository",
+      "method": "save",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/repository/PaymentRepository.java",
+            "line": 7,
+            "symbol": "JpaRepository#save（継承）"
+          }
+        ]
+      }
+    },
+    {
+      "id": "db_payments",
+      "type": "db",
+      "name": "payments",
+      "primaryKey": "id",
+      "columns": [
+        "id",
+        "order_id",
+        "transaction_id",
+        "amount",
+        "status"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/domain/Payment.java:13-22"
+        ]
+      }
+    },
+    {
+      "id": "infra_audit",
+      "kind": "Infra",
+      "class": "AuditLogger",
+      "method": "record",
+      "layer": "repository",
+      "annotations": [
+        "@Transactional(propagation = REQUIRES_NEW)"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/AuditLogger.java:18-23"
+        ]
+      }
+    },
+    {
+      "id": "db_audit_logs",
+      "type": "db",
+      "name": "audit_logs",
+      "columns": [
+        "action",
+        "order_id",
+        "created_at"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/AuditLogger.java:21"
+        ]
+      }
+    },
+    {
+      "id": "fw_events",
+      "type": "framework",
+      "kind": "Framework",
+      "class": "ApplicationEventPublisher",
+      "method": "publishEvent",
+      "layer": "springEvent",
+      "description": "Spring のイベント配信。@TransactionalEventListener のリスナーはトランザクション同期に登録され、コミット後に呼ばれる。",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/service/OrderServiceImpl.java",
+            "line": 83,
+            "symbol": "eventPublisher.publishEvent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lst_notify",
+      "kind": "Listener",
+      "class": "OrderNotificationListener",
+      "method": "onOrderPlaced",
+      "annotations": [
+        "@Async(\"notificationExecutor\")",
+        "@TransactionalEventListener(phase = AFTER_COMMIT)"
+      ],
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/event/OrderNotificationListener.java:27-33"
+        ]
+      }
+    },
+    {
+      "id": "infra_mail",
+      "kind": "Infra",
+      "class": "MailSender",
+      "method": "sendOrderConfirmation",
+      "layer": "integration",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/infra/MailSender.java:18-23"
+        ]
+      }
+    },
+    {
+      "id": "ext_smtp",
+      "type": "external",
+      "class": "SMTPServer",
+      "method": "send",
+      "description": "メールサーバー（JavaMailSender 経由）",
+      "evidence": {
+        "refs": [
+          {
+            "file": "src/main/java/com/example/order/infra/MailSender.java",
+            "line": 22,
+            "symbol": "javaMailSender.send"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mq_order_events",
+      "type": "queue",
+      "kind": "Kafka",
+      "name": "order-events",
+      "description": "注文イベントのトピック（キー = 注文ID）",
+      "evidence": {
+        "refs": [
+          "src/main/java/com/example/order/event/OrderNotificationListener.java:32"
+        ]
+      }
+    },
+    {
+      "id": "fw_async",
+      "type": "framework",
+      "kind": "Framework",
+      "class": "AsyncUncaughtExceptionHandler",
+      "method": "handleUncaughtException",
+      "description": "@Async の void メソッドから送出された例外を受け取る。AsyncConfig は AsyncConfigurer を実装していないため既定の SimpleAsyncUncaughtExceptionHandler（エラーログ出力のみ）が使われる。",
+      "evidence": {
+        "status": "inferred",
+        "note": "フレームワーク内部（リポジトリ外）。AsyncConfig が AsyncConfigurer を実装していないことから既定のハンドラと推定",
+        "refs": [
+          "src/main/java/com/example/order/config/AsyncConfig.java:9-11"
+        ]
+      }
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "main",
+      "title": "注文登録（全体）",
+      "description": "POST /api/orders を受けてから応答を返すまでの全体の流れ。在庫引当・決済承認・コミット後の通知は詳細図に分割している（「詳細参照」をクリック）。",
+      "entry": "client",
+      "steps": [
+        {
+          "id": "m-req",
+          "type": "call",
+          "from": "client",
+          "to": "fw_dispatcher",
+          "label": "POST /api/orders（注文登録）",
+          "args": [
+            {
+              "name": "body",
+              "jpName": "リクエストボディ",
+              "type": "JSON（CreateOrderRequest）",
+              "description": "customerId（顧客ID）と lines（商品ID・数量の配列）"
+            }
+          ],
+          "returns": {
+            "name": "response",
+            "jpName": "HTTPレスポンス",
+            "type": "201 / 4xx / 500",
+            "description": "成功時は注文結果（OrderResponse）、業務エラーは ErrorResponse（404 / 402 / 409）、ハンドラの無い例外は Spring Boot 既定のエラー応答（500）"
+          },
+          "purpose": "注文を登録する",
+          "evidence": {
+            "refs": [
+              "src/main/java/com/example/order/api/OrderController.java:17-18",
+              "src/main/java/com/example/order/api/OrderController.java:31"
+            ]
+          },
+          "steps": [
+            {
+              "id": "m-bind",
+              "type": "self",
+              "label": "JSON を変換し入力値を検証（@Valid）",
+              "category": "validate",
+              "detail": "リクエストボディを CreateOrderRequest に変換し、Bean Validation（customerId @NotNull、lines @NotEmpty、productId @NotBlank、quantity @Min(1)）を実行する。",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/api/OrderController.java:32",
+                  "src/main/java/com/example/order/api/dto/CreateOrderRequest.java:13-17"
+                ],
+                "status": "inferred",
+                "note": "アノテーションから Spring MVC の標準動作として記載（処理そのものはフレームワーク内部）"
+              }
+            },
+            {
+              "id": "m-valid",
+              "type": "alt",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/api/OrderController.java:32"
+                ],
+                "status": "inferred",
+                "note": "アノテーションから Spring MVC の標準動作として記載（処理そのものはフレームワーク内部）"
+              },
+              "branches": [
+                {
+                  "condition": "JSON が不正、または入力値が不正",
+                  "expr": "HttpMessageNotReadableException / MethodArgumentNotValidException",
+                  "steps": [
+                    {
+                      "id": "m-400",
+                      "type": "return",
+                      "label": "400 Bad Request（入力エラー）",
+                      "detail": "GlobalExceptionHandler に MethodArgumentNotValidException のハンドラがないため、Spring MVC の既定処理で 400 を返す。",
+                      "evidence": {
+                        "status": "inferred",
+                        "note": "フレームワークの既定動作。応答ボディの形式は設定に依存し、コードからは確認できない。"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "condition": "入力値が妥当",
+                  "else": true,
+                  "steps": [
+                    {
+                      "id": "m-try",
+                      "type": "try",
+                      "label": "コントローラ実行",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/api/GlobalExceptionHandler.java:13-14"
+                        ],
+                        "note": "例外ハンドラの選択は Spring MVC の仕様。捕捉対象は @ExceptionHandler の宣言で確認。",
+                        "status": "inferred"
+                      },
+                      "steps": [
+                        {
+                          "id": "m-ctl",
+                          "type": "call",
+                          "to": "ctl_create",
+                          "label": "注文登録APIを呼び出す",
+                          "args": [
+                            {
+                              "name": "request",
+                              "jpName": "注文登録リクエスト",
+                              "type": "CreateOrderRequest",
+                              "description": "検証済みの入力（顧客ID・注文明細）"
+                            }
+                          ],
+                          "returns": {
+                            "name": "response",
+                            "jpName": "注文登録レスポンス",
+                            "type": "ResponseEntity<OrderResponse>",
+                            "description": "201 Created。Location ヘッダーに /api/orders/{注文ID}"
+                          },
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/api/OrderController.java:31-32"
+                            ]
+                          },
+                          "steps": [
+                            {
+                              "id": "m-cmd",
+                              "type": "self",
+                              "label": "リクエストを注文登録コマンドに変換",
+                              "category": "convert",
+                              "code": "CreateOrderCommand command = request.toCommand();",
+                              "detail": "CreateOrderRequest.toCommand() で CreateOrderCommand（顧客ID・明細コマンド一覧）を生成する（DTO 変換のため自己メッセージに集約）。",
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/OrderController.java:33",
+                                  "src/main/java/com/example/order/api/dto/CreateOrderRequest.java:20-23"
+                                ]
+                              }
+                            },
+                            {
+                              "id": "m-svc",
+                              "type": "call",
+                              "to": "svc_register",
+                              "label": "注文を登録する",
+                              "args": [
+                                {
+                                  "name": "command",
+                                  "jpName": "注文登録コマンド",
+                                  "type": "CreateOrderCommand",
+                                  "description": "customerId（顧客ID）、lines（商品ID・数量の一覧）"
+                                }
+                              ],
+                              "returns": {
+                                "name": "result",
+                                "jpName": "注文登録結果",
+                                "type": "OrderResult",
+                                "description": "注文ID・税込合計・状態",
+                                "usage": "レスポンス（Location・本文）の生成に使用"
+                              },
+                              "purpose": "顧客・与信・在庫・決済を確認して注文を確定する",
+                              "via": "OrderService インターフェース経由で DI された OrderServiceImpl（実装は 1 つ）。@Transactional のため AOP プロキシを経由する。",
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/OrderController.java:34",
+                                  "src/main/java/com/example/order/service/OrderService.java:4-7"
+                                ]
+                              },
+                              "steps": [
+                                {
+                                  "id": "m-tx",
+                                  "type": "transaction",
+                                  "label": "注文登録トランザクション",
+                                  "propagation": "REQUIRED",
+                                  "manager": "Spring @Transactional（AOP プロキシ）",
+                                  "rollbackFor": [
+                                    "RuntimeException（既定）"
+                                  ],
+                                  "detail": "RuntimeException が送出されるとロールバックする。InventoryService.allocate（MANDATORY）はこのトランザクションに参加する。CompletableFuture の別スレッド処理は参加しない。",
+                                  "evidence": {
+                                    "refs": [
+                                      "src/main/java/com/example/order/service/OrderServiceImpl.java:48"
+                                    ]
+                                  },
+                                  "steps": [
+                                    {
+                                      "id": "m-cust",
+                                      "type": "call",
+                                      "to": "repo_customer_find",
+                                      "label": "顧客を取得",
+                                      "args": [
+                                        {
+                                          "name": "id",
+                                          "jpName": "顧客ID",
+                                          "type": "Long",
+                                          "value": "command.customerId()"
+                                        }
+                                      ],
+                                      "returns": {
+                                        "name": "customer",
+                                        "jpName": "顧客",
+                                        "type": "Optional<Customer>",
+                                        "usage": "利用状態の判定と与信照会に使用"
+                                      },
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:51"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-cust-sql",
+                                          "type": "db",
+                                          "table": "customers",
+                                          "op": "SELECT",
+                                          "label": "顧客を主キーで取得",
+                                          "columns": [
+                                            "id",
+                                            "name",
+                                            "status"
+                                          ],
+                                          "where": "id = :customerId",
+                                          "limit": "0..1 件（主キー検索）",
+                                          "via": "Spring Data JPA（SimpleJpaRepository.findById → EntityManager.find）",
+                                          "result": {
+                                            "name": "customer",
+                                            "jpName": "顧客",
+                                            "type": "Customer",
+                                            "rows": "0..1"
+                                          },
+                                          "evidence": {
+                                            "status": "inferred",
+                                            "note": "SQL は JPA が生成するためコード上に存在しない。テーブル・カラムは @Table とフィールド定義から確認。",
+                                            "refs": [
+                                              {
+                                                "file": "src/main/java/com/example/order/domain/Customer.java",
+                                                "line": 9,
+                                                "endLine": 15,
+                                                "symbol": "@Table(name = \"customers\")"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-cust-nf",
+                                      "type": "break",
+                                      "condition": "顧客が存在しない",
+                                      "expr": "orElseThrow(() -> new CustomerNotFoundException(...))",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:52"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-cust-nf-throw",
+                                          "type": "throw",
+                                          "exception": "CustomerNotFoundException",
+                                          "label": "顧客が存在しません",
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/OrderServiceImpl.java:52"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-susp-check",
+                                      "type": "self",
+                                      "label": "顧客の利用状態を判定",
+                                      "category": "condition",
+                                      "code": "customer.isSuspended()  // status が \"SUSPENDED\" か",
+                                      "detail": "Customer.isSuspended() は status が 'SUSPENDED' かを返す単純な判定のため、自己メッセージに集約した。",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:53",
+                                          "src/main/java/com/example/order/domain/Customer.java:17-19"
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "id": "m-susp",
+                                      "type": "break",
+                                      "condition": "顧客が利用停止中",
+                                      "expr": "customer.isSuspended()",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:53"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-susp-throw",
+                                          "type": "throw",
+                                          "exception": "CustomerSuspendedException",
+                                          "label": "利用停止中の顧客",
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/OrderServiceImpl.java:54"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-par",
+                                      "type": "par",
+                                      "mechanism": "CompletableFuture.supplyAsync(..., orderExecutor) で 2 つの処理を別スレッドに投入して並列に実行する。別スレッドのため注文登録トランザクションには参加しない。",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:58-61",
+                                          "src/main/java/com/example/order/config/AsyncConfig.java:14-21"
+                                        ]
+                                      },
+                                      "branches": [
+                                        {
+                                          "label": "与信照会（orderExecutor スレッド）",
+                                          "steps": [
+                                            {
+                                              "id": "m-credit",
+                                              "type": "call",
+                                              "to": "int_credit",
+                                              "mode": "async",
+                                              "label": "与信を照会",
+                                              "args": [
+                                                {
+                                                  "name": "customerId",
+                                                  "jpName": "顧客ID",
+                                                  "type": "Long"
+                                                }
+                                              ],
+                                              "returns": {
+                                                "name": "credit",
+                                                "jpName": "与信状況",
+                                                "type": "CreditStatus",
+                                                "description": "availableLimit（利用可能な与信残高）・rating",
+                                                "usage": "見積合計との比較に使用"
+                                              },
+                                              "via": "CompletableFuture.supplyAsync（orderExecutor）",
+                                              "evidence": {
+                                                "refs": [
+                                                  "src/main/java/com/example/order/service/OrderServiceImpl.java:58-59"
+                                                ]
+                                              },
+                                              "steps": [
+                                                {
+                                                  "id": "m-credit-api",
+                                                  "type": "call",
+                                                  "to": "ext_credit",
+                                                  "label": "GET /v2/customers/{id}/credit",
+                                                  "args": [
+                                                    {
+                                                      "name": "id",
+                                                      "jpName": "顧客ID",
+                                                      "type": "Long（パスパラメータ）"
+                                                    }
+                                                  ],
+                                                  "returns": {
+                                                    "name": "body",
+                                                    "jpName": "与信照会結果",
+                                                    "type": "CreditStatus（JSON）"
+                                                  },
+                                                  "via": "RestClient（creditRestClient）",
+                                                  "evidence": {
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/infra/CreditCheckClient.java:17-20"
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "id": "m-credit-err",
+                                                  "type": "break",
+                                                  "condition": "与信照会 API が 4xx / 5xx・通信エラー",
+                                                  "evidence": {
+                                                    "status": "inferred",
+                                                    "note": "retrieve() に onStatus が無いため、RestClient の既定の処理でエラー応答は例外になる",
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/infra/CreditCheckClient.java:17-20"
+                                                    ]
+                                                  },
+                                                  "steps": [
+                                                    {
+                                                      "id": "m-credit-err-throw",
+                                                      "type": "throw",
+                                                      "exception": "RestClientException",
+                                                      "label": "例外で完了（join 時に CompletionException として送出）",
+                                                      "propagateTo": "svc_register",
+                                                      "evidence": {
+                                                        "status": "inferred",
+                                                        "note": "RestClient の仕様",
+                                                        "refs": [
+                                                          {
+                                                            "file": "src/main/java/com/example/order/infra/CreditCheckClient.java",
+                                                            "line": 19,
+                                                            "symbol": "retrieve()"
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "label": "見積計算（orderExecutor スレッド）",
+                                          "steps": [
+                                            {
+                                              "id": "m-quote",
+                                              "type": "call",
+                                              "to": "svc_pricing",
+                                              "mode": "async",
+                                              "label": "見積を計算",
+                                              "args": [
+                                                {
+                                                  "name": "lines",
+                                                  "jpName": "注文明細",
+                                                  "type": "List<OrderLineCommand>"
+                                                }
+                                              ],
+                                              "returns": {
+                                                "name": "quote",
+                                                "jpName": "見積",
+                                                "type": "PriceQuote",
+                                                "description": "税抜小計・消費税・税込合計",
+                                                "usage": "与信判定と注文金額の設定に使用"
+                                              },
+                                              "via": "CompletableFuture.supplyAsync（orderExecutor）",
+                                              "evidence": {
+                                                "refs": [
+                                                  "src/main/java/com/example/order/service/OrderServiceImpl.java:60-61"
+                                                ]
+                                              },
+                                              "steps": [
+                                                {
+                                                  "id": "m-quote-ids",
+                                                  "type": "self",
+                                                  "label": "明細から商品IDの一覧を作成",
+                                                  "category": "convert",
+                                                  "evidence": {
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/service/PricingService.java:27"
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "id": "m-quote-find",
+                                                  "type": "call",
+                                                  "to": "repo_product_findall",
+                                                  "label": "商品をまとめて取得",
+                                                  "args": [
+                                                    {
+                                                      "name": "ids",
+                                                      "jpName": "商品IDの一覧",
+                                                      "type": "List<String>"
+                                                    }
+                                                  ],
+                                                  "returns": {
+                                                    "name": "products",
+                                                    "jpName": "商品一覧",
+                                                    "type": "List<Product>",
+                                                    "usage": "商品IDをキーにした Map に変換して単価を参照"
+                                                  },
+                                                  "evidence": {
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/service/PricingService.java:28-29"
+                                                    ]
+                                                  },
+                                                  "steps": [
+                                                    {
+                                                      "id": "m-quote-sql",
+                                                      "type": "db",
+                                                      "table": "products",
+                                                      "op": "SELECT",
+                                                      "label": "商品の単価を取得",
+                                                      "columns": [
+                                                        "id",
+                                                        "name",
+                                                        "unit_price"
+                                                      ],
+                                                      "where": "id IN (:ids)",
+                                                      "limit": "最大で明細の商品数",
+                                                      "via": "Spring Data JPA（findAllById）。別スレッドのため注文登録トランザクションではなく、SimpleJpaRepository の読み取り専用トランザクション（呼び出しごと）で実行（推定）",
+                                                      "result": {
+                                                        "name": "products",
+                                                        "jpName": "商品",
+                                                        "type": "List<Product>",
+                                                        "rows": "0..n"
+                                                      },
+                                                      "evidence": {
+                                                        "status": "inferred",
+                                                        "note": "SQL は JPA が生成。カラム名 unit_price は命名規約（unitPrice → unit_price）による推定。",
+                                                        "refs": [
+                                                          {
+                                                            "file": "src/main/java/com/example/order/domain/Product.java",
+                                                            "line": 10,
+                                                            "endLine": 16,
+                                                            "symbol": "@Table(name = \"products\")"
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "m-quote-loop",
+                                                  "type": "loop",
+                                                  "condition": "注文明細ごと",
+                                                  "expr": "for (OrderLineCommand line : lines)",
+                                                  "evidence": {
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/service/PricingService.java:32"
+                                                    ]
+                                                  },
+                                                  "steps": [
+                                                    {
+                                                      "id": "m-quote-nf",
+                                                      "type": "break",
+                                                      "condition": "商品が存在しない",
+                                                      "expr": "product == null",
+                                                      "evidence": {
+                                                        "refs": [
+                                                          "src/main/java/com/example/order/service/PricingService.java:34"
+                                                        ]
+                                                      },
+                                                      "steps": [
+                                                        {
+                                                          "id": "m-quote-nf-throw",
+                                                          "type": "throw",
+                                                          "exception": "ProductNotFoundException",
+                                                          "label": "例外で完了（join 時に CompletionException として送出）",
+                                                          "detail": "別スレッドで送出されるため CompletableFuture が例外完了し、呼び出し元では join() 時に CompletionException として送出される。",
+                                                          "propagateTo": "svc_register",
+                                                          "evidence": {
+                                                            "refs": [
+                                                              "src/main/java/com/example/order/service/PricingService.java:35"
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "id": "m-quote-add",
+                                                      "type": "self",
+                                                      "label": "小計に加算（単価 × 数量）",
+                                                      "category": "calc",
+                                                      "code": "subtotal = subtotal.add(product.getUnitPrice().multiply(BigDecimal.valueOf(line.quantity())));",
+                                                      "evidence": {
+                                                        "refs": [
+                                                          "src/main/java/com/example/order/service/PricingService.java:37"
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "m-quote-tax",
+                                                  "type": "self",
+                                                  "label": "消費税（10%・切り捨て）と税込合計を計算",
+                                                  "category": "calc",
+                                                  "code": "tax = subtotal × 0.10（setScale(0, DOWN)）、total = subtotal + tax",
+                                                  "evidence": {
+                                                    "refs": [
+                                                      "src/main/java/com/example/order/service/PricingService.java:39-40"
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-join",
+                                      "type": "await",
+                                      "target": [
+                                        "m-credit",
+                                        "m-quote"
+                                      ],
+                                      "label": "与信照会と見積計算の両方の完了を待機",
+                                      "mechanism": "CompletableFuture.allOf(creditFuture, quoteFuture).join() の後、各 future を join() して結果を取得する",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:62-64"
+                                        ]
+                                      },
+                                      "resultLabels": {
+                                        "m-credit": "与信状況（CreditStatus）または例外",
+                                        "m-quote": "見積（PriceQuote）または例外"
+                                      }
+                                    },
+                                    {
+                                      "id": "m-join-err",
+                                      "type": "break",
+                                      "condition": "並列処理のいずれかが例外で終了",
+                                      "expr": "join() が CompletionException を送出",
+                                      "evidence": {
+                                        "status": "inferred",
+                                        "note": "CompletableFuture の仕様。例：見積計算の ProductNotFoundException、与信照会APIの通信エラー。",
+                                        "refs": [
+                                          {
+                                            "file": "src/main/java/com/example/order/service/OrderServiceImpl.java",
+                                            "line": 62,
+                                            "symbol": "CompletableFuture.join()"
+                                          }
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-join-throw",
+                                          "type": "throw",
+                                          "exception": "CompletionException",
+                                          "label": "原因例外を内包",
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "evidence": {
+                                            "status": "inferred",
+                                            "refs": [
+                                              {
+                                                "file": "src/main/java/com/example/order/service/OrderServiceImpl.java",
+                                                "line": 62,
+                                                "symbol": "CompletableFuture.join()"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-limit",
+                                      "type": "break",
+                                      "condition": "見積の税込合計が与信残高を超える",
+                                      "expr": "quote.totalAmount().compareTo(credit.availableLimit()) > 0",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:66"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-limit-throw",
+                                          "type": "throw",
+                                          "exception": "CreditLimitExceededException",
+                                          "label": "与信限度額超過",
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/OrderServiceImpl.java:67"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-alloc-loop",
+                                      "type": "loop",
+                                      "condition": "注文明細ごと",
+                                      "expr": "for (OrderLineCommand line : command.lines())",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:71"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-alloc",
+                                          "type": "call",
+                                          "to": "svc_inventory",
+                                          "label": "在庫を引き当てる",
+                                          "args": [
+                                            {
+                                              "name": "productId",
+                                              "jpName": "商品ID",
+                                              "type": "String",
+                                              "value": "line.productId()"
+                                            },
+                                            {
+                                              "name": "quantity",
+                                              "jpName": "数量",
+                                              "type": "int",
+                                              "value": "line.quantity()"
+                                            }
+                                          ],
+                                          "returns": {
+                                            "type": "void"
+                                          },
+                                          "ref": "stock",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/OrderServiceImpl.java:72"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "id": "m-alloc-err",
+                                          "type": "break",
+                                          "condition": "在庫引当で例外（在庫不足・更新競合・商品なし）",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/InventoryService.java:26-35"
+                                            ]
+                                          },
+                                          "steps": [
+                                            {
+                                              "id": "m-alloc-throw",
+                                              "type": "throw",
+                                              "exception": "OutOfStockException ほか",
+                                              "label": "在庫引当処理から伝播",
+                                              "propagated": true,
+                                              "propagateTo": "fw_dispatcher",
+                                              "rollbackAt": "svc_register",
+                                              "detail": "OutOfStockException・ConcurrentUpdateException（BusinessException）、ProductNotFoundException（ResourceNotFoundException）。",
+                                              "evidence": {
+                                                "refs": [
+                                                  "src/main/java/com/example/order/service/InventoryService.java:27-34"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-lock-note",
+                                      "type": "note",
+                                      "text": "ここから COMMIT / ROLLBACK まで stocks の行ロックを保持する（決済 API の呼び出し中も含む）"
+                                    },
+                                    {
+                                      "id": "m-create",
+                                      "type": "call",
+                                      "to": "dom_order_create",
+                                      "label": "注文を生成",
+                                      "args": [
+                                        {
+                                          "name": "customerId",
+                                          "jpName": "顧客ID",
+                                          "type": "Long"
+                                        },
+                                        {
+                                          "name": "lineCommands",
+                                          "jpName": "注文明細",
+                                          "type": "List<OrderLineCommand>"
+                                        },
+                                        {
+                                          "name": "quote",
+                                          "jpName": "見積",
+                                          "type": "PriceQuote"
+                                        }
+                                      ],
+                                      "returns": {
+                                        "name": "order",
+                                        "jpName": "注文",
+                                        "type": "Order",
+                                        "description": "未保存の注文エンティティ（状態 PENDING_PAYMENT）",
+                                        "usage": "保存・決済・イベント発行に使用"
+                                      },
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:76"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-create-new",
+                                          "type": "self",
+                                          "label": "注文を生成（状態 = PENDING_PAYMENT）",
+                                          "category": "create",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/domain/Order.java:40-42"
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "id": "m-create-lines",
+                                          "type": "loop",
+                                          "condition": "注文明細ごと",
+                                          "expr": "for (OrderLineCommand c : lineCommands)",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/domain/Order.java:43"
+                                            ]
+                                          },
+                                          "steps": [
+                                            {
+                                              "id": "m-create-line",
+                                              "type": "self",
+                                              "label": "注文明細（OrderLine）を追加",
+                                              "category": "create",
+                                              "evidence": {
+                                                "refs": [
+                                                  "src/main/java/com/example/order/domain/Order.java:44"
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "m-create-total",
+                                          "type": "self",
+                                          "label": "税込合計を設定（見積の totalAmount）",
+                                          "category": "state",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/domain/Order.java:46"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-save",
+                                      "type": "call",
+                                      "to": "repo_order_save",
+                                      "label": "注文を保存",
+                                      "args": [
+                                        {
+                                          "name": "order",
+                                          "jpName": "注文",
+                                          "type": "Order"
+                                        }
+                                      ],
+                                      "purpose": "注文と明細を永続化し、注文IDを採番する（戻り値は使用せず、引数の order に ID が設定される）",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:77"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-save-order",
+                                          "type": "db",
+                                          "table": "orders",
+                                          "op": "INSERT",
+                                          "label": "注文を登録（ID 採番）",
+                                          "columns": [
+                                            "customer_id",
+                                            "total_amount",
+                                            "status"
+                                          ],
+                                          "values": "status = 'PENDING_PAYMENT'",
+                                          "via": "JPA persist（IDENTITY 採番のため即時 INSERT）",
+                                          "stateChange": {
+                                            "after": "orders に状態 PENDING_PAYMENT の注文が 1 件追加される"
+                                          },
+                                          "evidence": {
+                                            "status": "inferred",
+                                            "note": "新規エンティティのため persist → INSERT。IDENTITY 採番により save 時点で発行される（Hibernate の動作）。",
+                                            "refs": [
+                                              {
+                                                "file": "src/main/java/com/example/order/domain/Order.java",
+                                                "line": 19,
+                                                "endLine": 31,
+                                                "symbol": "@Table(name = \"orders\")"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        {
+                                          "id": "m-save-lines",
+                                          "type": "loop",
+                                          "condition": "注文明細ごと（カスケード保存）",
+                                          "expr": "@OneToMany(cascade = CascadeType.ALL)",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/domain/Order.java:33"
+                                            ],
+                                            "status": "inferred",
+                                            "note": "JPA のカスケード保存（CascadeType.ALL）の動作"
+                                          },
+                                          "steps": [
+                                            {
+                                              "id": "m-save-line",
+                                              "type": "db",
+                                              "table": "order_lines",
+                                              "op": "INSERT",
+                                              "label": "注文明細を登録",
+                                              "columns": [
+                                                "order_id",
+                                                "product_id",
+                                                "quantity"
+                                              ],
+                                              "via": "JPA カスケード保存",
+                                              "evidence": {
+                                                "status": "inferred",
+                                                "note": "発行タイミングは persist 時または flush 時（JPA 実装に依存）。",
+                                                "refs": [
+                                                  {
+                                                    "file": "src/main/java/com/example/order/domain/OrderLine.java",
+                                                    "line": 12,
+                                                    "endLine": 21,
+                                                    "symbol": "@Table(name = \"order_lines\")"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-pay",
+                                      "type": "call",
+                                      "to": "svc_payment",
+                                      "label": "決済を承認",
+                                      "args": [
+                                        {
+                                          "name": "order",
+                                          "jpName": "注文",
+                                          "type": "Order",
+                                          "description": "保存済み（注文ID 採番済み）の注文"
+                                        }
+                                      ],
+                                      "returns": {
+                                        "type": "void"
+                                      },
+                                      "ref": "payment",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:80"
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "id": "m-pay-err",
+                                      "type": "break",
+                                      "condition": "決済が拒否された",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/PaymentService.java:38-41"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-pay-throw",
+                                          "type": "throw",
+                                          "exception": "PaymentDeclinedException",
+                                          "label": "決済処理から伝播",
+                                          "propagated": true,
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "rollbackLabel": "注文・明細・在庫引当・決済失敗の状態をすべて取り消す（監査ログは別トランザクションのため残る）",
+                                          "evidence": {
+                                            "refs": [
+                                              "src/main/java/com/example/order/service/PaymentService.java:41"
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-pay-err2",
+                                      "type": "break",
+                                      "condition": "決済 API が 402 以外のエラー・通信エラー",
+                                      "evidence": {
+                                        "status": "inferred",
+                                        "note": "PaymentGatewayClient は 402 だけを PaymentDeclinedException に変換し、それ以外は RestClient の既定の例外になる",
+                                        "refs": [
+                                          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:22-23"
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-pay-throw2",
+                                          "type": "throw",
+                                          "exception": "RestClientException",
+                                          "label": "決済処理から伝播（監査ログの後）",
+                                          "propagated": true,
+                                          "propagateTo": "fw_dispatcher",
+                                          "rollbackAt": "svc_register",
+                                          "evidence": {
+                                            "status": "inferred",
+                                            "note": "RestClient の仕様",
+                                            "refs": [
+                                              {
+                                                "file": "src/main/java/com/example/order/infra/PaymentGatewayClient.java",
+                                                "line": 22,
+                                                "symbol": "retrieve()"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "m-event",
+                                      "type": "call",
+                                      "to": "fw_events",
+                                      "label": "注文確定イベントを発行",
+                                      "args": [
+                                        {
+                                          "name": "event",
+                                          "jpName": "注文確定イベント",
+                                          "type": "OrderPlacedEvent",
+                                          "value": "new OrderPlacedEvent(order.getId())"
+                                        }
+                                      ],
+                                      "purpose": "コミット後の通知処理（メール・Kafka）を起動する",
+                                      "evidence": {
+                                        "refs": [
+                                          {
+                                            "file": "src/main/java/com/example/order/service/OrderServiceImpl.java",
+                                            "line": 83,
+                                            "symbol": "eventPublisher.publishEvent"
+                                          }
+                                        ]
+                                      },
+                                      "steps": [
+                                        {
+                                          "id": "m-event-reg",
+                                          "type": "note",
+                                          "text": "リスナーは @TransactionalEventListener(AFTER_COMMIT) のため、ここでは実行されずコミット後に呼ばれる"
+                                        }
+                                      ],
+                                      "mode": "event"
+                                    },
+                                    {
+                                      "id": "m-result",
+                                      "type": "self",
+                                      "label": "注文登録結果を生成（OrderResult.from）",
+                                      "category": "convert",
+                                      "evidence": {
+                                        "refs": [
+                                          "src/main/java/com/example/order/service/OrderServiceImpl.java:84"
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "id": "m-flush",
+                                      "type": "db",
+                                      "table": "orders",
+                                      "op": "UPDATE",
+                                      "label": "COMMIT 時の flush で決済結果を反映",
+                                      "set": "status = 'CONFIRMED', payment_transaction_id = :transactionId",
+                                      "where": "id = :orderId",
+                                      "via": "JPA の変更検知（dirty checking）による COMMIT 直前の flush",
+                                      "stateChange": {
+                                        "before": "status = PENDING_PAYMENT",
+                                        "after": "status = CONFIRMED（取引IDを設定）"
+                                      },
+                                      "evidence": {
+                                        "status": "inferred",
+                                        "note": "決済承認処理の Order.markPaid で管理状態のエンティティを変更しているため、COMMIT 時に UPDATE が発行される（JPA の仕様）。SQL はコード上に存在しない。",
+                                        "refs": [
+                                          {
+                                            "file": "src/main/java/com/example/order/domain/Order.java",
+                                            "line": 50,
+                                            "endLine": 53,
+                                            "symbol": "markPaid"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "m-listener",
+                                  "type": "call",
+                                  "from": "fw_events",
+                                  "to": "lst_notify",
+                                  "mode": "async",
+                                  "label": "コミット後に通知処理を起動",
+                                  "args": [
+                                    {
+                                      "name": "event",
+                                      "jpName": "注文確定イベント",
+                                      "type": "OrderPlacedEvent"
+                                    }
+                                  ],
+                                  "via": "@TransactionalEventListener(AFTER_COMMIT) + @Async(\"notificationExecutor\")",
+                                  "ref": "notify",
+                                  "evidence": {
+                                    "refs": [
+                                      "src/main/java/com/example/order/event/OrderNotificationListener.java:27-29"
+                                    ],
+                                    "status": "inferred",
+                                    "note": "トランザクション同期（afterCommit）によるフレームワークの呼び出し。アノテーションから記載"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "id": "m-resp",
+                              "type": "self",
+                              "label": "201 Created を生成（Location: /api/orders/{注文ID}）",
+                              "category": "create",
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/OrderController.java:35-37"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ],
+                      "catches": [
+                        {
+                          "exception": "ResourceNotFoundException",
+                          "label": "顧客・商品が存在しない",
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/api/GlobalExceptionHandler.java:16"
+                            ]
+                          },
+                          "steps": [
+                            {
+                              "id": "m-h-nf",
+                              "type": "call",
+                              "to": "h_notfound",
+                              "label": "404 Not Found を生成",
+                              "args": [
+                                {
+                                  "name": "e",
+                                  "jpName": "例外",
+                                  "type": "ResourceNotFoundException"
+                                }
+                              ],
+                              "returns": {
+                                "name": "response",
+                                "jpName": "エラーレスポンス",
+                                "type": "ResponseEntity<ErrorResponse>",
+                                "description": "404。code = CUSTOMER_NOT_FOUND / PRODUCT_NOT_FOUND"
+                              },
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/GlobalExceptionHandler.java:16-20"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "exception": "PaymentDeclinedException",
+                          "label": "決済が拒否された",
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/api/GlobalExceptionHandler.java:22"
+                            ]
+                          },
+                          "steps": [
+                            {
+                              "id": "m-h-pay",
+                              "type": "call",
+                              "to": "h_payment",
+                              "label": "402 Payment Required を生成",
+                              "args": [
+                                {
+                                  "name": "e",
+                                  "jpName": "例外",
+                                  "type": "PaymentDeclinedException"
+                                }
+                              ],
+                              "returns": {
+                                "name": "response",
+                                "jpName": "エラーレスポンス",
+                                "type": "ResponseEntity<ErrorResponse>",
+                                "description": "402。message に拒否理由コード"
+                              },
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/GlobalExceptionHandler.java:22-26"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "exception": "BusinessException",
+                          "label": "在庫不足・与信超過・利用停止・更新競合",
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/api/GlobalExceptionHandler.java:28"
+                            ]
+                          },
+                          "steps": [
+                            {
+                              "id": "m-h-biz",
+                              "type": "call",
+                              "to": "h_business",
+                              "label": "409 Conflict を生成",
+                              "args": [
+                                {
+                                  "name": "e",
+                                  "jpName": "例外",
+                                  "type": "BusinessException"
+                                }
+                              ],
+                              "returns": {
+                                "name": "response",
+                                "jpName": "エラーレスポンス",
+                                "type": "ResponseEntity<ErrorResponse>",
+                                "description": "409。code = OUT_OF_STOCK / CREDIT_LIMIT_EXCEEDED / CUSTOMER_SUSPENDED / CONCURRENT_UPDATE"
+                              },
+                              "evidence": {
+                                "refs": [
+                                  "src/main/java/com/example/order/api/GlobalExceptionHandler.java:28-32"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "exception": "CompletionException",
+                          "label": "並列処理の例外（原因例外で照合）",
+                          "evidence": {
+                            "status": "inferred",
+                            "note": "Spring MVC は @ExceptionHandler の照合で原因例外も対象にする。原因が ProductNotFoundException なら 404、ハンドラのない通信エラー等は 500 になると推定。"
+                          },
+                          "steps": [
+                            {
+                              "id": "m-h-cause-alt",
+                              "type": "alt",
+                              "evidence": {
+                                "status": "inferred",
+                                "note": "Spring MVC は @ExceptionHandler の照合で原因例外（cause）も対象にする。",
+                                "refs": [
+                                  "src/main/java/com/example/order/api/GlobalExceptionHandler.java:16-32"
+                                ]
+                              },
+                              "branches": [
+                                {
+                                  "condition": "原因が ResourceNotFoundException（見積計算で商品なし）",
+                                  "steps": [
+                                    {
+                                      "id": "m-h-cause",
+                                      "type": "call",
+                                      "to": "h_notfound",
+                                      "label": "原因例外のハンドラで 404 を生成",
+                                      "args": [
+                                        {
+                                          "name": "e",
+                                          "jpName": "原因例外",
+                                          "type": "ProductNotFoundException（CompletionException の cause）"
+                                        }
+                                      ],
+                                      "returns": {
+                                        "name": "response",
+                                        "jpName": "エラーレスポンス",
+                                        "type": "ResponseEntity<ErrorResponse>"
+                                      },
+                                      "evidence": {
+                                        "status": "inferred",
+                                        "note": "原因例外での照合はフレームワークの仕様に基づく推定。"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "condition": "それ以外の原因（与信照会 API のエラー等）",
+                                  "else": true,
+                                  "steps": [
+                                    {
+                                      "id": "m-h-cause-500",
+                                      "type": "self",
+                                      "label": "既定のエラー処理で 500 Internal Server Error を生成",
+                                      "category": "create",
+                                      "evidence": {
+                                        "status": "inferred",
+                                        "note": "原因例外に対応する @ExceptionHandler が無いため、Spring Boot の既定のエラー処理（BasicErrorController）で 500 になると推定",
+                                        "refs": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "exception": "Exception（上記以外）",
+                          "label": "ハンドラなし（通信エラー・DB エラー等）",
+                          "evidence": {
+                            "status": "inferred",
+                            "note": "GlobalExceptionHandler に RuntimeException / Exception のハンドラが無い。",
+                            "refs": [
+                              "src/main/java/com/example/order/api/GlobalExceptionHandler.java:13-33"
+                            ]
+                          },
+                          "steps": [
+                            {
+                              "id": "m-h-500",
+                              "type": "self",
+                              "label": "既定のエラー処理で 500 Internal Server Error を生成",
+                              "category": "create",
+                              "evidence": {
+                                "status": "inferred",
+                                "note": "Spring Boot の既定のエラー処理（BasicErrorController）による",
+                                "refs": []
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stock",
+      "title": "在庫引当処理",
+      "description": "InventoryService.allocate の内部処理。注文登録トランザクションの中で在庫行を悲観ロックし、在庫数の減算と移動履歴の登録を行う。",
+      "entry": "svc_register",
+      "steps": [
+        {
+          "id": "s-alloc",
+          "type": "call",
+          "from": "svc_register",
+          "to": "svc_inventory",
+          "label": "在庫を引き当てる",
+          "args": [
+            {
+              "name": "productId",
+              "jpName": "商品ID",
+              "type": "String"
+            },
+            {
+              "name": "quantity",
+              "jpName": "数量",
+              "type": "int"
+            }
+          ],
+          "returns": {
+            "type": "void"
+          },
+          "evidence": {
+            "refs": [
+              "src/main/java/com/example/order/service/OrderServiceImpl.java:72"
+            ]
+          },
+          "steps": [
+            {
+              "id": "s-mandatory",
+              "type": "note",
+              "text": "Propagation.MANDATORY：呼び出し元（注文登録）のトランザクションに参加する。トランザクションがない場合は例外"
+            },
+            {
+              "id": "s-critical",
+              "type": "critical",
+              "label": "在庫行の排他ロック区間",
+              "lock": {
+                "resource": "stocks（product_id の行）",
+                "mechanism": "SELECT … FOR UPDATE（悲観ロック）",
+                "acquire": "selectForUpdate の実行時",
+                "release": "注文登録トランザクションの COMMIT / ROLLBACK 時",
+                "timeout": "DB のロック待ち設定に依存（コード上の指定なし）"
+              },
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/service/InventoryService.java:24-25",
+                  "src/main/resources/mapper/StockMapper.xml:5-10"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "s-select",
+                  "type": "call",
+                  "to": "repo_stock_select",
+                  "label": "在庫行をロックして取得",
+                  "args": [
+                    {
+                      "name": "productId",
+                      "jpName": "商品ID",
+                      "type": "String"
+                    }
+                  ],
+                  "returns": {
+                    "name": "stock",
+                    "jpName": "在庫",
+                    "type": "Stock",
+                    "description": "有効在庫数（available）とバージョン（version）。該当なしは null",
+                    "usage": "在庫判定とバージョン照合付き更新に使用"
+                  },
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:25"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-select-sql",
+                      "type": "db",
+                      "table": "stocks",
+                      "op": "SELECT",
+                      "label": "在庫を取得",
+                      "lock": "FOR UPDATE",
+                      "columns": [
+                        "product_id",
+                        "available",
+                        "version"
+                      ],
+                      "where": "product_id = #{productId}",
+                      "limit": "0..1 件（主キー）",
+                      "sql": "SELECT product_id, available, version\n  FROM stocks\n WHERE product_id = #{productId}\n   FOR UPDATE",
+                      "via": "MyBatis（StockMapper.xml#selectForUpdate）",
+                      "result": {
+                        "name": "stock",
+                        "jpName": "在庫",
+                        "type": "Stock",
+                        "rows": "0..1"
+                      },
+                      "evidence": {
+                        "refs": [
+                          "src/main/resources/mapper/StockMapper.xml:5-10"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "s-nf",
+                  "type": "break",
+                  "condition": "在庫データが存在しない",
+                  "expr": "stock == null",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:26"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-nf-throw",
+                      "type": "throw",
+                      "exception": "ProductNotFoundException",
+                      "label": "商品が存在しません",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/InventoryService.java:27"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "s-short",
+                  "type": "break",
+                  "condition": "有効在庫が注文数量より少ない",
+                  "expr": "stock.getAvailable() < quantity",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:29"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-short-throw",
+                      "type": "throw",
+                      "exception": "OutOfStockException",
+                      "label": "在庫不足",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/InventoryService.java:30"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "s-dec",
+                  "type": "call",
+                  "to": "repo_stock_decrease",
+                  "label": "在庫数を減算（バージョン照合付き）",
+                  "args": [
+                    {
+                      "name": "productId",
+                      "jpName": "商品ID",
+                      "type": "String"
+                    },
+                    {
+                      "name": "quantity",
+                      "jpName": "数量",
+                      "type": "int"
+                    },
+                    {
+                      "name": "version",
+                      "jpName": "バージョン",
+                      "type": "long",
+                      "value": "stock.getVersion()"
+                    }
+                  ],
+                  "returns": {
+                    "name": "updated",
+                    "jpName": "更新件数",
+                    "type": "int",
+                    "usage": "1 件でなければ更新競合として例外"
+                  },
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:32"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-dec-sql",
+                      "type": "db",
+                      "table": "stocks",
+                      "op": "UPDATE",
+                      "label": "有効在庫を減算",
+                      "columns": [
+                        "available",
+                        "version",
+                        "updated_at"
+                      ],
+                      "set": "available = available - #{quantity}, version = version + 1, updated_at = CURRENT_TIMESTAMP",
+                      "where": "product_id = #{productId} AND version = #{version}",
+                      "stateChange": {
+                        "before": "available = n, version = v",
+                        "after": "available = n − 数量, version = v + 1"
+                      },
+                      "sql": "UPDATE stocks\n   SET available = available - #{quantity},\n       version = version + 1,\n       updated_at = CURRENT_TIMESTAMP\n WHERE product_id = #{productId}\n   AND version = #{version}",
+                      "via": "MyBatis（StockMapper.xml#decreaseAvailable）",
+                      "result": {
+                        "name": "updated",
+                        "jpName": "更新件数",
+                        "type": "int",
+                        "rows": "0 または 1"
+                      },
+                      "evidence": {
+                        "refs": [
+                          "src/main/resources/mapper/StockMapper.xml:12-19"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "s-conflict",
+                  "type": "break",
+                  "condition": "更新件数が 1 件でない（他の処理と競合）",
+                  "expr": "updated != 1",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:33"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-conflict-throw",
+                      "type": "throw",
+                      "exception": "ConcurrentUpdateException",
+                      "label": "更新競合",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/InventoryService.java:34"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "s-move",
+                  "type": "call",
+                  "to": "repo_stock_movement",
+                  "label": "在庫移動履歴を登録",
+                  "args": [
+                    {
+                      "name": "productId",
+                      "jpName": "商品ID",
+                      "type": "String"
+                    },
+                    {
+                      "name": "delta",
+                      "jpName": "増減数",
+                      "type": "int",
+                      "value": "-quantity"
+                    },
+                    {
+                      "name": "reason",
+                      "jpName": "理由",
+                      "type": "String",
+                      "value": "\"ALLOCATE\""
+                    }
+                  ],
+                  "returns": {
+                    "name": "count",
+                    "jpName": "登録件数",
+                    "type": "int",
+                    "description": "呼び出し元では使用しない"
+                  },
+                  "returnArrow": "never",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/InventoryService.java:36"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "s-move-sql",
+                      "type": "db",
+                      "table": "stock_movements",
+                      "op": "INSERT",
+                      "label": "引当の履歴を登録",
+                      "columns": [
+                        "product_id",
+                        "delta",
+                        "reason",
+                        "created_at"
+                      ],
+                      "values": "(#{productId}, #{delta}, #{reason}, CURRENT_TIMESTAMP)",
+                      "sql": "INSERT INTO stock_movements (product_id, delta, reason, created_at)\nVALUES (#{productId}, #{delta}, #{reason}, CURRENT_TIMESTAMP)",
+                      "via": "MyBatis（StockMapper.xml#insertMovement）",
+                      "evidence": {
+                        "refs": [
+                          "src/main/resources/mapper/StockMapper.xml:21-24"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "s-lock-note",
+              "type": "note",
+              "text": "stocks の行ロックは、注文登録トランザクションの COMMIT / ROLLBACK まで保持される"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payment",
+      "title": "決済承認処理",
+      "description": "PaymentService.authorize の内部処理。決済代行サービスへ承認を依頼して結果を記録する。finally で監査ログを独立したトランザクションに記録する。",
+      "entry": "svc_register",
+      "steps": [
+        {
+          "id": "p-auth",
+          "type": "call",
+          "from": "svc_register",
+          "to": "svc_payment",
+          "label": "決済を承認",
+          "args": [
+            {
+              "name": "order",
+              "jpName": "注文",
+              "type": "Order"
+            }
+          ],
+          "returns": {
+            "type": "void"
+          },
+          "evidence": {
+            "refs": [
+              "src/main/java/com/example/order/service/OrderServiceImpl.java:80"
+            ]
+          },
+          "steps": [
+            {
+              "id": "p-req",
+              "type": "self",
+              "label": "決済依頼を作成（注文ID・税込合計・顧客ID）",
+              "category": "create",
+              "code": "PaymentRequest.of(order.getId(), order.getTotalAmount(), order.getCustomerId())",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/service/PaymentService.java:33"
+                ]
+              }
+            },
+            {
+              "id": "p-try",
+              "type": "try",
+              "label": "決済承認",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/service/PaymentService.java:34"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "p-gw",
+                  "type": "call",
+                  "to": "int_payment",
+                  "label": "決済承認を依頼",
+                  "args": [
+                    {
+                      "name": "request",
+                      "jpName": "決済依頼",
+                      "type": "PaymentRequest"
+                    }
+                  ],
+                  "returns": {
+                    "name": "result",
+                    "jpName": "決済結果",
+                    "type": "PaymentResult",
+                    "description": "取引ID（transactionId）と金額",
+                    "usage": "注文の更新と決済記録に使用"
+                  },
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/PaymentService.java:35"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "p-api",
+                      "type": "call",
+                      "to": "ext_payment",
+                      "label": "POST /v1/authorizations",
+                      "args": [
+                        {
+                          "name": "body",
+                          "jpName": "決済依頼",
+                          "type": "PaymentRequest（JSON）"
+                        }
+                      ],
+                      "returns": {
+                        "name": "body",
+                        "jpName": "承認結果",
+                        "type": "PaymentResult（JSON）／HTTP 402"
+                      },
+                      "via": "RestClient（paymentRestClient）",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:19-22"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "p-402",
+                      "type": "break",
+                      "condition": "HTTP 402（承認拒否）が返った",
+                      "expr": "onStatus(status == 402)",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:23"
+                        ]
+                      },
+                      "steps": [
+                        {
+                          "id": "p-402-throw",
+                          "type": "throw",
+                          "exception": "PaymentDeclinedException",
+                          "label": "承認拒否（理由は X-Decline-Reason ヘッダー）",
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/infra/PaymentGatewayClient.java:24"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "p-other",
+                      "type": "break",
+                      "condition": "402 以外の 4xx / 5xx・通信エラー",
+                      "evidence": {
+                        "status": "inferred",
+                        "note": "onStatus は 402 だけを扱い、それ以外は RestClient の既定の処理で例外になる",
+                        "refs": [
+                          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:22-23"
+                        ]
+                      },
+                      "steps": [
+                        {
+                          "id": "p-other-throw",
+                          "type": "throw",
+                          "exception": "RestClientException",
+                          "label": "catch されずに finally（監査ログ）を経て伝播",
+                          "propagateTo": "svc_register",
+                          "evidence": {
+                            "status": "inferred",
+                            "note": "RestClient の仕様。PaymentService の catch は PaymentDeclinedException のみ",
+                            "refs": [
+                              {
+                                "file": "src/main/java/com/example/order/service/PaymentService.java",
+                                "line": 38,
+                                "symbol": "catch (PaymentDeclinedException e)"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "p-gw-ret",
+                      "type": "return",
+                      "label": "決済結果（PaymentResult）",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/infra/PaymentGatewayClient.java:26"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "p-paid",
+                  "type": "call",
+                  "to": "dom_order_paid",
+                  "label": "注文を決済済みにする",
+                  "args": [
+                    {
+                      "name": "transactionId",
+                      "jpName": "取引ID",
+                      "type": "String"
+                    }
+                  ],
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/PaymentService.java:36"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "p-paid-state",
+                      "type": "self",
+                      "label": "取引IDを設定し状態を CONFIRMED に変更",
+                      "category": "state",
+                      "stateChange": {
+                        "before": "PENDING_PAYMENT",
+                        "after": "CONFIRMED"
+                      },
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/domain/Order.java:51-52"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "p-save",
+                  "type": "call",
+                  "to": "repo_payment_save",
+                  "label": "決済記録を保存",
+                  "args": [
+                    {
+                      "name": "payment",
+                      "jpName": "決済記録",
+                      "type": "Payment",
+                      "value": "Payment.authorized(order.getId(), result)（状態 AUTHORIZED）"
+                    }
+                  ],
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/PaymentService.java:37"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "p-save-sql",
+                      "type": "db",
+                      "table": "payments",
+                      "op": "INSERT",
+                      "label": "承認済みの決済記録を登録",
+                      "columns": [
+                        "order_id",
+                        "transaction_id",
+                        "amount",
+                        "status"
+                      ],
+                      "values": "status = 'AUTHORIZED'",
+                      "via": "JPA persist（IDENTITY 採番）",
+                      "evidence": {
+                        "status": "inferred",
+                        "note": "SQL は JPA が生成する。",
+                        "refs": [
+                          {
+                            "file": "src/main/java/com/example/order/domain/Payment.java",
+                            "line": 13,
+                            "endLine": 22,
+                            "symbol": "@Table(name = \"payments\")"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "catches": [
+                {
+                  "exception": "PaymentDeclinedException",
+                  "label": "決済が拒否された",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/service/PaymentService.java:38"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "p-warn",
+                      "type": "self",
+                      "label": "警告ログを出力",
+                      "category": "log",
+                      "minor": true,
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/PaymentService.java:39"
+                        ]
+                      }
+                    },
+                    {
+                      "id": "p-failed",
+                      "type": "call",
+                      "to": "dom_order_failed",
+                      "label": "注文を決済失敗にする",
+                      "args": [
+                        {
+                          "name": "reasonCode",
+                          "jpName": "拒否理由コード",
+                          "type": "String"
+                        }
+                      ],
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/PaymentService.java:40"
+                        ]
+                      },
+                      "steps": [
+                        {
+                          "id": "p-failed-state",
+                          "type": "self",
+                          "label": "拒否理由を設定し状態を PAYMENT_FAILED に変更",
+                          "category": "state",
+                          "stateChange": {
+                            "before": "PENDING_PAYMENT",
+                            "after": "PAYMENT_FAILED"
+                          },
+                          "evidence": {
+                            "refs": [
+                              "src/main/java/com/example/order/domain/Order.java:56-57"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "p-failed-note",
+                      "type": "note",
+                      "text": "再送出により注文登録トランザクションがロールバックされるため、PAYMENT_FAILED の状態は保存されない"
+                    },
+                    {
+                      "id": "p-rethrow",
+                      "type": "throw",
+                      "exception": "PaymentDeclinedException",
+                      "label": "再送出",
+                      "evidence": {
+                        "refs": [
+                          "src/main/java/com/example/order/service/PaymentService.java:41"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "finally": {
+                "steps": [
+                  {
+                    "id": "p-audit",
+                    "type": "call",
+                    "to": "infra_audit",
+                    "label": "監査ログを記録",
+                    "args": [
+                      {
+                        "name": "action",
+                        "jpName": "操作",
+                        "type": "String",
+                        "value": "\"PAYMENT_AUTHORIZE\""
+                      },
+                      {
+                        "name": "orderId",
+                        "jpName": "注文ID",
+                        "type": "Long"
+                      }
+                    ],
+                    "evidence": {
+                      "refs": [
+                        "src/main/java/com/example/order/service/PaymentService.java:43"
+                      ]
+                    },
+                    "steps": [
+                      {
+                        "id": "p-audit-tx",
+                        "type": "transaction",
+                        "label": "監査ログ用の新しいトランザクション",
+                        "propagation": "REQUIRES_NEW",
+                        "manager": "Spring @Transactional（AOP プロキシ）",
+                        "detail": "呼び出し元のトランザクションを一時停止して独立にコミットするため、注文登録がロールバックされても監査ログは残る。",
+                        "evidence": {
+                          "refs": [
+                            "src/main/java/com/example/order/infra/AuditLogger.java:18"
+                          ]
+                        },
+                        "steps": [
+                          {
+                            "id": "p-audit-sql",
+                            "type": "db",
+                            "table": "audit_logs",
+                            "op": "INSERT",
+                            "label": "監査ログを登録",
+                            "columns": [
+                              "action",
+                              "order_id",
+                              "created_at"
+                            ],
+                            "sql": "INSERT INTO audit_logs (action, order_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                            "via": "JdbcTemplate.update",
+                            "evidence": {
+                              "refs": [
+                                "src/main/java/com/example/order/infra/AuditLogger.java:20-22"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notify",
+      "title": "コミット後の通知（非同期）",
+      "description": "注文登録トランザクションのコミット後に、通知用スレッドで注文確認メールの送信と Kafka へのイベント送信を行う。ロールバックした場合は実行されない。",
+      "entry": "fw_events",
+      "steps": [
+        {
+          "id": "n-start",
+          "type": "call",
+          "from": "fw_events",
+          "to": "lst_notify",
+          "mode": "async",
+          "label": "コミット後に通知処理を起動",
+          "args": [
+            {
+              "name": "event",
+              "jpName": "注文確定イベント",
+              "type": "OrderPlacedEvent",
+              "description": "orderId（注文ID）"
+            }
+          ],
+          "via": "@TransactionalEventListener(AFTER_COMMIT) → @Async(\"notificationExecutor\") により別スレッドで実行",
+          "evidence": {
+            "refs": [
+              "src/main/java/com/example/order/event/OrderNotificationListener.java:27-29"
+            ],
+            "status": "inferred",
+            "note": "トランザクション同期（afterCommit）と @Async によるフレームワークの呼び出し。アノテーションから記載"
+          },
+          "steps": [
+            {
+              "id": "n-thread",
+              "type": "note",
+              "text": "notificationExecutor のスレッドで実行（トランザクション外）。呼び出し元は完了を待たない"
+            },
+            {
+              "id": "n-find",
+              "type": "call",
+              "to": "repo_order_find",
+              "label": "注文を取得",
+              "args": [
+                {
+                  "name": "id",
+                  "jpName": "注文ID",
+                  "type": "Long",
+                  "value": "event.orderId()"
+                }
+              ],
+              "returns": {
+                "name": "order",
+                "jpName": "注文",
+                "type": "Optional<Order>",
+                "usage": "メール本文とイベントメッセージの作成に使用"
+              },
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/event/OrderNotificationListener.java:30"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "n-find-sql",
+                  "type": "db",
+                  "table": "orders",
+                  "op": "SELECT",
+                  "label": "注文を主キーで取得",
+                  "columns": [
+                    "id",
+                    "customer_id",
+                    "total_amount",
+                    "status"
+                  ],
+                  "where": "id = :orderId",
+                  "limit": "0..1 件（主キー）",
+                  "via": "Spring Data JPA（findById）。SimpleJpaRepository の読み取り専用トランザクション（呼び出しごと）で実行（推定）",
+                  "result": {
+                    "name": "order",
+                    "jpName": "注文",
+                    "type": "Order",
+                    "rows": "0..1"
+                  },
+                  "evidence": {
+                    "status": "inferred",
+                    "note": "SQL は JPA が生成する。",
+                    "refs": [
+                      {
+                        "file": "src/main/java/com/example/order/domain/Order.java",
+                        "line": 19,
+                        "endLine": 31,
+                        "symbol": "@Table(name = \"orders\")"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "n-nf",
+              "type": "break",
+              "condition": "注文が存在しない",
+              "expr": "orElseThrow()",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/event/OrderNotificationListener.java:30"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "n-nf-throw",
+                  "type": "throw",
+                  "exception": "NoSuchElementException",
+                  "label": "ログ出力のみ（呼び出し元には戻らない）",
+                  "detail": "Spring の AsyncUncaughtExceptionHandler（既定はログ出力）で処理されると推定。",
+                  "evidence": {
+                    "status": "inferred",
+                    "refs": [
+                      {
+                        "file": "src/main/java/com/example/order/event/OrderNotificationListener.java",
+                        "line": 30,
+                        "symbol": "orElseThrow()"
+                      }
+                    ]
+                  },
+                  "to": "fw_async"
+                },
+                {
+                  "id": "n-nf-note",
+                  "type": "note",
+                  "over": [
+                    "fw_async"
+                  ],
+                  "text": "既定の SimpleAsyncUncaughtExceptionHandler がエラーログを出力するだけ"
+                }
+              ]
+            },
+            {
+              "id": "n-mail",
+              "type": "call",
+              "to": "infra_mail",
+              "label": "注文確認メールを送信",
+              "args": [
+                {
+                  "name": "order",
+                  "jpName": "注文",
+                  "type": "Order"
+                }
+              ],
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/event/OrderNotificationListener.java:31"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "n-mail-body",
+                  "type": "self",
+                  "label": "件名・本文を作成（注文番号・支払金額）",
+                  "category": "create",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/infra/MailSender.java:19-21"
+                    ]
+                  }
+                },
+                {
+                  "id": "n-smtp",
+                  "type": "call",
+                  "to": "ext_smtp",
+                  "label": "メールを送信（SMTP）",
+                  "args": [
+                    {
+                      "name": "message",
+                      "jpName": "メール",
+                      "type": "SimpleMailMessage"
+                    }
+                  ],
+                  "via": "JavaMailSender.send",
+                  "evidence": {
+                    "refs": [
+                      "src/main/java/com/example/order/infra/MailSender.java:22"
+                    ]
+                  }
+                },
+                {
+                  "id": "n-mail-err",
+                  "type": "break",
+                  "condition": "送信に失敗（宛先未設定・SMTP エラー等）",
+                  "evidence": {
+                    "status": "inferred",
+                    "note": "MailSender は setTo / setFrom を設定していないため、Bean 定義で補っていなければ送信時に MailSendException になる",
+                    "refs": [
+                      "src/main/java/com/example/order/infra/MailSender.java:19-22"
+                    ]
+                  },
+                  "steps": [
+                    {
+                      "id": "n-mail-err-throw",
+                      "type": "throw",
+                      "exception": "MailSendException",
+                      "label": "メール送信の失敗",
+                      "evidence": {
+                        "status": "inferred",
+                        "note": "JavaMailSender の仕様",
+                        "refs": [
+                          {
+                            "file": "src/main/java/com/example/order/infra/MailSender.java",
+                            "line": 22,
+                            "symbol": "javaMailSender.send"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "n-mail-fail",
+              "type": "break",
+              "condition": "メール送信で例外が発生",
+              "evidence": {
+                "status": "inferred",
+                "note": "メール送信の例外は捕捉されないため onOrderPlaced を抜ける",
+                "refs": [
+                  "src/main/java/com/example/order/event/OrderNotificationListener.java:31-32"
+                ]
+              },
+              "steps": [
+                {
+                  "id": "n-mail-fail-throw",
+                  "type": "throw",
+                  "exception": "MailSendException",
+                  "label": "ログ出力のみ（Kafka 送信は行われない）",
+                  "propagated": true,
+                  "to": "fw_async",
+                  "evidence": {
+                    "status": "inferred",
+                    "note": "@Async の void メソッドの例外は AsyncUncaughtExceptionHandler に渡る",
+                    "refs": [
+                      {
+                        "file": "src/main/java/com/example/order/event/OrderNotificationListener.java",
+                        "line": 27,
+                        "symbol": "@Async"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "n-kafka",
+              "type": "call",
+              "to": "mq_order_events",
+              "mode": "message",
+              "label": "注文イベントを送信（key = 注文ID）",
+              "args": [
+                {
+                  "name": "topic",
+                  "jpName": "トピック",
+                  "type": "String",
+                  "value": "\"order-events\""
+                },
+                {
+                  "name": "key",
+                  "jpName": "キー",
+                  "type": "String",
+                  "value": "注文ID"
+                },
+                {
+                  "name": "value",
+                  "jpName": "注文イベント",
+                  "type": "OrderEventMessage",
+                  "description": "注文ID・顧客ID・税込合計・状態"
+                }
+              ],
+              "via": "KafkaTemplate.send（戻り値の CompletableFuture は待たない＝送信結果を確認しない）",
+              "evidence": {
+                "refs": [
+                  "src/main/java/com/example/order/event/OrderNotificationListener.java:32"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

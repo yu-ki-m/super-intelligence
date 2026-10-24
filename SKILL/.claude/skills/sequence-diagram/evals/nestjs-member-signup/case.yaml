@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: nestjs-member-signup
+expected_outcome: |
+  会員登録API（ValidationPipe → MembersController.signup → MembersService.signup → MembersRepository → DB members / member_profiles）の処理を、メソッド単位のライフラインで正確に表したシーケンス図の HTML。重複メールの 409、トランザクション（insertMember・insertProfile）、bcrypt によるハッシュ化、BullMQ への非同期投入（失敗しても登録は成功）と、ワーカー（MailProcessor.process）側の処理が別の図などで確認できる。
+context:
+  scaffold_script: place-files.sh

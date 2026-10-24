@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="sequence-diagram skill /*@@CORE_VERSION@@*/ (Mermaid /*@@MERMAID_VERSION@@*/)">
+<title>/*@@TITLE@@*/</title>
+<link rel="icon" href="data:,">
+<style>
+/*@@VIEWER_CSS@@*/
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <header class="hdr">
+    <div class="hdr-main">
+      <button class="icon-btn" id="btnNav" type="button" title="図一覧・アウトラインの表示切替 (Alt+1)" aria-label="ナビゲーションの表示切替">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+      </button>
+      <div class="hdr-title">
+        <h1 id="docTitle">シーケンス図</h1>
+        <div class="hdr-sub" id="docSub"></div>
+      </div>
+      <nav class="crumbs" id="crumbs" aria-label="図の階層"></nav>
+      <div class="hdr-right">
+        <button class="chip" id="chipVerify" type="button" title="検証結果を表示">検証中…</button>
+        <button class="icon-btn" id="btnTheme" type="button" title="ライト/ダーク切替" aria-label="テーマ切替">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3a7 7 0 1 0 7 7 5.5 5.5 0 0 1-7-7z"/></svg>
+        </button>
+        <button class="icon-btn" id="btnPanel" type="button" title="詳細パネルの表示切替 (Alt+2)" aria-label="詳細パネルの表示切替">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M12 4v12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="toolbar" role="toolbar" aria-label="図の操作">
+      <div class="tb-group search-group">
+        <div class="search">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4"/></svg>
+          <input id="searchInput" type="search" placeholder="メソッド名・処理名・テーブル名・条件で検索 ( / )" autocomplete="off" aria-label="検索">
+          <span class="search-count" id="searchCount"></span>
+          <button class="mini-btn" id="searchPrev" type="button" title="前の検索結果 (Shift+Enter)" aria-label="前へ">↑</button>
+          <button class="mini-btn" id="searchNext" type="button" title="次の検索結果 (Enter)" aria-label="次へ">↓</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox" hidden></div>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="zoomOut" type="button" title="縮小 (-)">−</button>
+        <button class="tb-btn zoom-val" id="zoomReset" type="button" title="100%に戻す (0)">100%</button>
+        <button class="tb-btn" id="zoomIn" type="button" title="拡大 (+)">＋</button>
+        <button class="tb-btn" id="zoomFit" type="button" title="全体表示 (F)">全体表示</button>
+        <button class="tb-btn" id="zoomWidth" type="button" title="幅に合わせる (W)">幅合わせ</button>
+      </div>
+      <div class="tb-group">
+        <div class="dropdown">
+          <button class="tb-btn" id="btnView" type="button" aria-haspopup="true">表示設定 ▾</button>
+          <div class="menu" id="menuView" hidden>
+            <label><input type="checkbox" id="optReturns" checked> 戻り値の矢印を表示</label>
+            <label><input type="checkbox" id="optArgs"> 矢印に引数名を表示</label>
+            <label><input type="checkbox" id="optExpr"> 分岐条件にコード上の条件式を併記</label>
+            <label><input type="checkbox" id="optMinor"> 補助的な自己メッセージを隠す</label>
+            <label><input type="checkbox" id="optClass"> ライフラインをクラス単位に集約</label>
+            <label><input type="checkbox" id="optBoxes" checked> レイヤーごとに囲む</label>
+            <label><input type="checkbox" id="optMinimap" checked> ミニマップを表示（大きな図のみ）</label>
+            <hr>
+            <button class="menu-btn" id="btnExpandAll" type="button">グループをすべて展開</button>
+            <button class="menu-btn" id="btnCollapseAll" type="button">グループをすべて折りたたむ</button>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button class="tb-btn" id="btnExport" type="button" aria-haspopup="true">保存 ▾</button>
+          <div class="menu" id="menuExport" hidden>
+            <button class="menu-btn" id="expSvg" type="button">SVG形式で保存</button>
+            <button class="menu-btn" id="expPng" type="button">PNG形式で保存</button>
+            <button class="menu-btn" id="expMmd" type="button">Mermaidコード(.mmd)を保存</button>
+            <button class="menu-btn" id="expMmdCopy" type="button">Mermaidコードをコピー</button>
+            <button class="menu-btn" id="expModel" type="button">処理モデル(JSON)を保存</button>
+          </div>
+        </div>
+        <button class="tb-btn" id="btnLegend" type="button" title="凡例">凡例</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="nav" id="nav" aria-label="ナビゲーション">
+      <section class="nav-sec">
+        <h2>図一覧</h2>
+        <div id="diagramTree" class="tree"></div>
+      </section>
+      <div class="nav-resizer" id="navResizer" title="ドラッグで幅を変更"></div>
+      <section class="nav-sec nav-outline">
+        <h2>アウトライン <span class="muted" id="outlineCount"></span></h2>
+        <div id="outline" class="outline"></div>
+      </section>
+    </aside>
+
+    <main class="stage" id="stage">
+      <div class="canvas" id="canvas" tabindex="0" aria-label="シーケンス図">
+        <div class="canvas-inner" id="canvasInner">
+          <div class="sticky-heads is-hidden" id="stickyHeads" aria-hidden="true"></div>
+          <div class="diagram-host" id="diagramHost"></div>
+        </div>
+      </div>
+      <div class="render-overlay" id="renderOverlay" hidden><div class="spinner"></div><span>描画中…</span></div>
+      <div class="legend" id="legend" hidden></div>
+      <div class="minimap" id="minimapBox" hidden><canvas id="minimap" title="クリック・ドラッグで表示位置を移動"></canvas><button class="mini-btn minimap-close" id="minimapClose" type="button" title="ミニマップを閉じる">✕</button></div>
+      <div class="statusbar" id="statusbar"></div>
+    </main>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" title="ドラッグでパネル幅を変更"></div>
+    <aside class="panel" id="panel" aria-label="詳細パネル">
+      <div class="panel-tabs" role="tablist">
+        <button class="ptab is-active" data-tab="detail" role="tab" type="button">詳細</button>
+        <button class="ptab" data-tab="overview" role="tab" type="button">概要</button>
+        <button class="ptab" data-tab="verify" role="tab" type="button">検証</button>
+        <button class="ptab" data-tab="source" role="tab" type="button">Mermaid</button>
+      </div>
+      <div class="panel-body" id="panelBody"></div>
+    </aside>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script id="seqdiag-model" type="application/json">/*@@MODEL_JSON@@*/</script>
+<script id="seqdiag-build" type="application/json">/*@@BUILD_JSON@@*/</script>
+/*@@MERMAID_SCRIPT@@*/
+<script>
+/*@@CORE_JS@@*/
+</script>
+<script>
+/*@@VIEWER_JS@@*/
+</script>
+</body>
+</html>

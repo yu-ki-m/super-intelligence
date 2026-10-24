@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: fastapi-refund-flow
+expected_outcome: |
+  返金API の処理（create_refund → request_refund → order_repo.get_for_update（SELECT … FOR UPDATE）→ calc_refund_amount → refund_repo.create（INSERT refunds）→ payment_client.refund（外部API）→ 例外時の RefundFailed と finally の監査ログ → asyncio.gather による在庫戻しとポイント取消の並列実行 → コミット）を正確に表したシーケンス図の HTML。行ロックが排他処理として、gather が並列処理として、例外ハンドラ（404 / 409 / 502）が区別されている。
+context:
+  scaffold_script: place-files.sh

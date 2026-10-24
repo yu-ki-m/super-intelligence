@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: spec-doc-shipping-batch
+expected_outcome: |
+  仕様書に書かれた出荷指示バッチ（スケジューラ起動 → orders の抽出を 500 件ずつ繰り返し → 受注ごとに WMS 在庫照会 → 在庫不足なら BACKORDER 更新と mail_queue 登録、足りれば WMS 出荷指示・shipments 登録・SHIPPING 更新 → 受注ごとのコミット → WMS 異常時の再試行とロールバック・batch_errors 登録 → Slack 通知）を表したシーケンス図の HTML。仕様書に無いクラス名などを確定事項として扱わず、推定・未確認や未決事項（排他制御）を区別している。
+context:
+  scaffold_script: place-files.sh

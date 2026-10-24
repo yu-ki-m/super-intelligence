@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.order.repository.StockMapper">
+
+  <select id="selectForUpdate" resultType="com.example.order.domain.Stock">
+    SELECT product_id, available, version
+      FROM stocks
+     WHERE product_id = #{productId}
+       FOR UPDATE
+  </select>
+
+  <update id="decreaseAvailable">
+    UPDATE stocks
+       SET available = available - #{quantity},
+           version = version + 1,
+           updated_at = CURRENT_TIMESTAMP
+     WHERE product_id = #{productId}
+       AND version = #{version}
+  </update>
+
+  <insert id="insertMovement">
+    INSERT INTO stock_movements (product_id, delta, reason, created_at)
+    VALUES (#{productId}, #{delta}, #{reason}, CURRENT_TIMESTAMP)
+  </insert>
+</mapper>
