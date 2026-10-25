@@ -1,0 +1,122 @@
+<section data-sec="exceptions">
+<h3>1.4 例外発生時の処理</h3>
+
+<section data-path="E1">
+<h4>E1：No.01 でボディの JSON を読み取れなかった場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E1-01</td><td><span class="k">応答</span>NestJS の既定の例外処理で、ステータス 400、ボディ <code>{"statusCode":400,"message": 構文誤りの内容,"error":"Bad Request"}</code> で応答する<span class="inf">〔推定〕</span>。DB 未アクセス。400 応答で<span class="end">終了</span></td><td>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E2">
+<h4>E2：No.10 で入力検証の違反があった場合（<code>BadRequestException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E2-01</td><td><span class="k">応答</span><code>ValidationPipe</code> が送出した <code>BadRequestException</code> を NestJS の既定の例外フィルターが変換し、ステータス 400、ボディ <code>{"statusCode":400,"message":[違反ごとのメッセージ],"error":"Bad Request"}</code> で応答する（例 <code>"message":["password must be longer than or equal to 8 characters"]</code>。文言は class-validator の既定<span class="inf">〔推定〕</span>）。DB 未アクセス。400 応答で<span class="end">終了</span></td><td>main.ts:7-8<br>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E3">
+<h4>E3：No.15 でメールアドレスが登録済みだった場合（<code>ConflictException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E3-01</td><td><span class="k">応答</span>既定の例外フィルターが <code>HttpException</code> として変換し、ステータス 409、ボディ <code>{"statusCode":409,"message":"このメールアドレスは既に登録されています","error":"Conflict"}</code> で応答する<span class="inf">〔推定〕</span>。トランザクションは未開始、DB の変更なし。409 応答で<span class="end">終了</span></td><td>members.service.ts:29<br>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E4">
+<h4>E4：No.13 の DB アクセス、または No.16 のハッシュ化で例外が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E4-01</td><td>例外は <code>signup</code> の中で捕捉されず、そのまま送出される（トランザクションは未開始。No.13 は参照のみのため DB の変更なし）。</td><td>members.service.ts:27, 32</td></tr>
+<tr><td>E4-02</td><td><span class="k">応答</span><code>HttpException</code> ではないため、既定の例外フィルターがステータス 500、ボディ <code>{"statusCode":500,"message":"Internal server error"}</code> で応答する<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E5">
+<h4>E5：No.18・19・21（トランザクションの中、または COMMIT）で DB の例外が発生した場合</h4>
+<p class="note">例：同じメールアドレスの登録が同時に行われ、No.13 では両方とも 0 件だったが、後から INSERT した側が <code>members.email</code> の一意制約に違反する（<code>QueryFailedError</code>）。この場合の応答は 409 ではなく 500 になる。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E5-01</td><td><span class="k">TX</span>コールバックから例外が出たため ROLLBACK し、例外をそのまま送出する。No.19 で失敗した場合は No.18 の <code>members</code> の INSERT も取り消される。確定済みのデータは無い。キューへの登録（No.23）は行われない。</td><td>members.service.ts:34-46<br>FW 仕様</td></tr>
+<tr><td>E5-02</td><td><span class="k">応答</span>既定の例外フィルターがステータス 500、ボディ <code>{"statusCode":500,"message":"Internal server error"}</code> で応答する<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td>FW 仕様</td></tr>
+</tbody></table>
+</section>
+</section>
+
+<section data-sec="async">
+<h3>1.5 非同期の処理</h3>
+<section data-path="A1">
+<h4>A1：キュー <code>mail</code> のジョブ <code>welcome</code> を処理するワーカー（No.23 で登録したジョブを、API とは別のプロセスで処理する）</h4>
+<p class="note">起動条件：ワーカーがキューからジョブを取り出したとき（No.25 の応答と前後関係は無い）。別プロセスで動く点はコードのコメントによる<span class="uv">〔未確認: U4〕</span>。ジョブが例外で終わると、最大 3 回まで実行される（A1-08）。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>A1-01</td><td><span class="k">分岐</span>ジョブ名 <code>job.name</code> が <code>'welcome'</code> でないか判定する。</td><td>mail.processor.ts:20-21</td></tr>
+<tr class="arm"><td></td><td class="i1">ジョブ名が <code>'welcome'</code> でないとき<span class="of">（No.A1-01 が成立）</span></td><td></td></tr>
+<tr><td>A1-02</td><td class="i2">何もせずに return する（ジョブは成功として完了する）。<span class="end">終了</span></td><td>mail.processor.ts:22</td></tr>
+<tr class="arm"><td></td><td class="i1">ジョブ名が <code>'welcome'</code> のとき<span class="of">（No.A1-01 が不成立）</span> → A1-03</td><td></td></tr>
+<tr><td>A1-03</td><td><span class="k">SQL</span><code>members</code> から <code>id</code> が <code>job.data.memberId</code> の会員を 1 件取得し、<code>member</code> に格納する（無ければ null。<code>findOne</code>。トランザクション外）。DB の例外 → A1-08
+<ol class="db">
+<li><pre class="sql" data-kind="ref" data-src="members.repository.ts:25 findOne({ where: { id } })">SELECT Member.id, Member.email, Member.password_hash, Member.status,
+       Member.welcome_sent_at, Member.created_at
+  FROM members Member
+ WHERE Member.id = :id
+ LIMIT 1</pre></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:id</code></td><td><code>job.data.memberId</code></td><td>1001</td></tr>
+</tbody></table></li>
+<li><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>1001</td><td><code>member.id</code></td><td>No.A1-06.2 のメールの <code>context</code>、No.A1-07.2 の UPDATE 条件</td></tr>
+<tr><td>email</td><td>string</td><td>taro.yamada@example.com</td><td><code>member.email</code></td><td>使用なし（宛先はジョブのデータを使う）</td></tr>
+<tr><td>password_hash</td><td>string</td><td>$2b$12$Q9…</td><td><code>member.passwordHash</code></td><td>使用なし</td></tr>
+<tr><td>status</td><td>string</td><td>PENDING</td><td><code>member.status</code></td><td>使用なし</td></tr>
+<tr><td>welcome_sent_at</td><td>timestamp</td><td>NULL</td><td><code>member.welcomeSentAt</code></td><td>使用なし（送信済みかを確認しない）</td></tr>
+<tr><td>created_at</td><td>timestamp</td><td>2026-10-25 10:15:30</td><td><code>member.createdAt</code></td><td>使用なし</td></tr>
+</tbody></table></li>
+<li><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ A1-04 で不成立 → A1-06</td></tr>
+<tr><td>0 件</td><td class="go"><code>member</code> は null → A1-04 で成立 → A1-05</td></tr>
+</tbody></table></li>
+</ol></td><td>mail.processor.ts:24<br>members.repository.ts:24-26</td></tr>
+<tr><td>A1-04</td><td><span class="k">分岐</span><code>member</code> が null（会員が存在しない）か判定する。</td><td>mail.processor.ts:25</td></tr>
+<tr class="arm"><td></td><td class="i1">会員が存在しないとき<span class="of">（No.A1-04 が成立）</span></td><td></td></tr>
+<tr><td>A1-05</td><td class="i2"><span class="k">ログ</span>WARN ログ「member not found: 1001」を出力して return する（ジョブは成功として完了し、再試行しない）。<span class="end">終了</span></td><td>mail.processor.ts:26-27</td></tr>
+<tr class="arm"><td></td><td class="i1">会員が存在するとき<span class="of">（No.A1-04 が不成立）</span> → A1-06</td><td></td></tr>
+<tr><td>A1-06</td><td><span class="k">API</span>ウェルカムメールを送信する（<code>@nestjs-modules/mailer</code> の <code>sendMail</code>。送信設定は<span class="uv">〔未確認: U1〕</span>）。成功 → A1-07 ／ 失敗（例外）→ A1-08
+<ol class="api">
+<li><b>送信</b>：<code>this.mailer.sendMail(…)</code>（同期的に完了を待つ）</li>
+<li><b>送信データ</b>
+<table class="sub req"><thead><tr><th>項目</th><th>値の例</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>to</td><td>taro.yamada@example.com</td><td><code>job.data.email</code></td></tr>
+<tr><td>subject</td><td>ご登録ありがとうございます</td><td>定数</td></tr>
+<tr><td>template</td><td>welcome</td><td>定数（テンプレートの内容は提供されていない）</td></tr>
+<tr><td>context</td><td><code>{memberId: 1001}</code></td><td><code>member.id</code>（No.A1-03.3）</td></tr>
+</tbody></table></li>
+<li><b>結果ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>結果</th><th>処理</th></tr></thead><tbody>
+<tr><td>送信成功</td><td class="go">→ A1-07</td></tr>
+<tr><td>例外</td><td class="go">→ A1-08（BullMQ が再試行する）</td></tr>
+</tbody></table></li>
+</ol></td><td>mail.processor.ts:29-35</td></tr>
+<tr><td>A1-07</td><td><span class="k">SQL</span><code>members</code> の <code>id</code> が <code>member.id</code> の行の <code>welcome_sent_at</code> を現在日時（アプリの <code>new Date()</code>）に更新する（トランザクション外）。正常に終わるとジョブは成功として完了する。<span class="end">終了</span> ／ DB の例外 → A1-08
+<ol class="db">
+<li><pre class="sql" data-kind="ref" data-src="members.repository.ts:29 update({ id }, { welcomeSentAt: new Date() })">UPDATE members
+   SET welcome_sent_at = :welcomeSentAt
+ WHERE id = :id</pre></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:welcomeSentAt</code></td><td>ワーカーの現在日時 <code>new Date()</code></td><td>2026-10-25 10:15:42</td></tr>
+<tr><td><code>:id</code></td><td><code>member.id</code>（No.A1-03.3）</td><td>1001</td></tr>
+</tbody></table></li>
+<li><b>更新内容</b>（1 行）
+<table class="sub upd"><thead><tr><th>更新列</th><th>更新前（例）</th><th>更新後（例）</th><th>値の取得元・計算</th></tr></thead><tbody>
+<tr><td>welcome_sent_at</td><td>NULL</td><td>2026-10-25 10:15:42</td><td><code>:welcomeSentAt</code></td></tr>
+</tbody></table></li>
+<li><b>更新件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>更新件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td>ジョブ完了</td></tr>
+<tr><td>0 件</td><td>件数を確認しないため、そのままジョブ完了（A1-03 の後に会員が削除された場合）</td></tr>
+</tbody></table></li>
+</ol></td><td>mail.processor.ts:36<br>members.repository.ts:28-30</td></tr>
+<tr><td>A1-08</td><td><span class="k x">例外</span>（A1-03・A1-06・A1-07 で例外が出たとき）ジョブは失敗となる。実行回数が 3 回に達していなければ、BullMQ が待ち時間（1 回目の失敗後 5 秒、2 回目の失敗後 10 秒）の後に A1-01 から再実行する<span class="inf">〔推定〕</span>。3 回目も失敗した場合はジョブを失敗のまま残して終わる。A1-06 のメール送信が成功した後に A1-07 で失敗した場合も再実行されるため、<b>同じメールが再度送信される</b>。再実行 → A1-01 ／ 3 回失敗で<span class="end">終了</span></td><td>mail.producer.ts:18<br>mail.processor.ts:29<br>FW 仕様（BullMQ）</td></tr>
+</tbody></table>
+</section>
+</section>

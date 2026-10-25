@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="sequential-design-doc">
+<title>{{TITLE}}</title>
+<style>
+/* sequential-design-doc 標準スタイル。ここを書き換えずに使う（独自の装飾を足さない）。 */
+:root {
+  --fg: #111; --sub: #555; --line: #bcbcbc; --line2: #dadada;
+  --th: #efefef; --code: #f6f6f4; --mark: #b00020; --inf: #7a4b00; --link: #0b57d0;
+  /* 逐次処理の木：深さ k の縦線は x(k) = 6px + (k-1)×1.4em + 0.35em。横の枝（├─ └─）は x(k) から文字の手前まで。 */
+  --gc: #8f8f8f; --gl: linear-gradient(var(--gc), var(--gc));
+  --v1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px 100%;
+  --v2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px 100%;
+  --v3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px 100%;
+  --v4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px 100%;
+  --v5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px 100%;
+  --v6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px 100%;
+  --v7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px 100%;
+  --v8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px 100%;
+  --g1: var(--v1); --g2: var(--g1), var(--v2); --g3: var(--g2), var(--v3); --g4: var(--g3), var(--v4);
+  --g5: var(--g4), var(--v5); --g6: var(--g5), var(--v6); --g7: var(--g6), var(--v7); --g8: var(--g7), var(--v8);
+  --ty: 0.95em; --tw: calc(1.05em - 3px);
+  --t1: var(--gl) no-repeat calc(6px + 0.35em) var(--ty) / var(--tw) 1px;
+  --t2: var(--gl) no-repeat calc(6px + 1.75em) var(--ty) / var(--tw) 1px;
+  --t3: var(--gl) no-repeat calc(6px + 3.15em) var(--ty) / var(--tw) 1px;
+  --t4: var(--gl) no-repeat calc(6px + 4.55em) var(--ty) / var(--tw) 1px;
+  --t5: var(--gl) no-repeat calc(6px + 5.95em) var(--ty) / var(--tw) 1px;
+  --t6: var(--gl) no-repeat calc(6px + 7.35em) var(--ty) / var(--tw) 1px;
+  --t7: var(--gl) no-repeat calc(6px + 8.75em) var(--ty) / var(--tw) 1px;
+  --t8: var(--gl) no-repeat calc(6px + 10.15em) var(--ty) / var(--tw) 1px;
+  --h1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px var(--ty);
+  --h2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px var(--ty);
+  --h3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px var(--ty);
+  --h4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px var(--ty);
+  --h5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px var(--ty);
+  --h6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px var(--ty);
+  --h7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px var(--ty);
+  --h8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px var(--ty);
+  /* 見出しの行（下に字下げした行が続く行）：文の 1 行目の下から縦線を下ろす */
+  --d1: var(--gl) no-repeat calc(6px + 0.35em) calc(2px + 1.5em) / 1px 100%;
+  --d2: var(--gl) no-repeat calc(6px + 1.75em) calc(2px + 1.5em) / 1px 100%;
+  --d3: var(--gl) no-repeat calc(6px + 3.15em) calc(2px + 1.5em) / 1px 100%;
+  --d4: var(--gl) no-repeat calc(6px + 4.55em) calc(2px + 1.5em) / 1px 100%;
+  --d5: var(--gl) no-repeat calc(6px + 5.95em) calc(2px + 1.5em) / 1px 100%;
+  --d6: var(--gl) no-repeat calc(6px + 7.35em) calc(2px + 1.5em) / 1px 100%;
+  --d7: var(--gl) no-repeat calc(6px + 8.75em) calc(2px + 1.5em) / 1px 100%;
+  --d8: var(--gl) no-repeat calc(6px + 10.15em) calc(2px + 1.5em) / 1px 100%;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; padding: 8px 12px 20px; color: var(--fg); background: #fff;
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, "Noto Sans JP", sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+main, header.doc { max-width: 1920px; }
+h1 { font-size: 17px; margin: 0 0 2px; }
+h2 { font-size: 14.5px; margin: 14px 0 4px; padding: 0 0 1px; border-bottom: 2px solid #333; }
+h3 { font-size: 13.5px; margin: 10px 0 3px; }
+h4 { font-size: 13px; margin: 6px 0 2px; }
+p { margin: 2px 0 4px; }
+ul, ol { margin: 2px 0 4px; padding-left: 1.6em; }
+li { margin: 0; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: Consolas, "BIZ UDGothic", "Courier New", monospace; }
+code { font-size: 12px; padding: 0 2px; background: var(--code); border: 1px solid #e8e8e8; border-radius: 2px; }
+pre code { padding: 0; background: none; border: 0; }
+
+/* 表 */
+table { border-collapse: collapse; width: 100%; margin: 0 0 6px; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+th { background: var(--th); font-weight: 600; }
+thead th { white-space: nowrap; }
+table.auto { width: auto; max-width: 100%; }
+table.kv > tbody > tr > th { width: 10em; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+caption { caption-side: top; text-align: left; font-size: 11.5px; font-weight: 600; padding: 0 0 1px; color: #333; }
+
+/* 文書ヘッダー */
+header.doc { border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 4px; }
+.meta { color: var(--sub); font-size: 12px; margin: 0; }
+.legend { font-size: 11.5px; color: var(--sub); margin: 2px 0 0; }
+nav.toc { font-size: 12px; margin: 4px 0; }
+nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; }
+
+/* 逐次処理表（No.・処理内容・根拠の 3 列）
+   - 横の罫線は、ブロック（字下げなしの文と、その内側の行・「〜のとき」行・終端行）の間にだけ、全列を通して引く。
+     ブロックの内側には横の罫線を引かず、処理内容の欄の縦線と枝（├─ └─）で入れ子を見せる。縦の罫線は常に通す。
+   - build が付ける class：td.c＝処理内容の欄、tr.n＝字下げした行、tr.close＝ブロックを閉じる行（繰返終端・待機・try終端）、tr.hd＝見出しの行（次の行が字下げで 1 段深い行）。
+     tr.arm（「〜のとき」行・catch・finally など）は部品に書く。 */
+table.steps { table-layout: fixed; border-bottom: 1px solid var(--line); }
+table.steps > thead > tr > th:nth-child(1) { width: 4.8em; }
+table.steps > thead > tr > th:nth-child(3) { width: 15em; }
+table.steps > tbody > tr > td { overflow-wrap: anywhere; border-top: 1px solid var(--line); border-bottom: 0; }
+table.steps > tbody > tr.n > td, table.steps > tbody > tr.arm > td,
+table.steps > tbody > tr.close > td, table.steps > tbody > tr.dt > td { border-top: 0; }
+table.steps td.no { text-align: right; white-space: nowrap; font-family: Consolas, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.steps td.src { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); }
+table.steps tr.arm .of { color: var(--sub); }
+table.steps .kw { font-family: Consolas, monospace; font-size: 12.5px; font-weight: 700; }
+table.steps td.c.i1 { padding-left: calc(6px + 1.4em); background: var(--g1); }
+table.steps td.c.i2 { padding-left: calc(6px + 2.8em); background: var(--g2); }
+table.steps td.c.i3 { padding-left: calc(6px + 4.2em); background: var(--g3); }
+table.steps td.c.i4 { padding-left: calc(6px + 5.6em); background: var(--g4); }
+table.steps td.c.i5 { padding-left: calc(6px + 7em); background: var(--g5); }
+table.steps td.c.i6 { padding-left: calc(6px + 8.4em); background: var(--g6); }
+table.steps td.c.i7 { padding-left: calc(6px + 9.8em); background: var(--g7); }
+table.steps td.c.i8 { padding-left: calc(6px + 11.2em); background: var(--g8); }
+/* 「〜のとき」行・catch・finally：上位の縦線から横の枝（├─）を出す */
+table.steps tr.arm > td.c.i1 { background: var(--g1), var(--t1); }
+table.steps tr.arm > td.c.i2 { background: var(--g2), var(--t2); }
+table.steps tr.arm > td.c.i3 { background: var(--g3), var(--t3); }
+table.steps tr.arm > td.c.i4 { background: var(--g4), var(--t4); }
+table.steps tr.arm > td.c.i5 { background: var(--g5), var(--t5); }
+table.steps tr.arm > td.c.i6 { background: var(--g6), var(--t6); }
+table.steps tr.arm > td.c.i7 { background: var(--g7), var(--t7); }
+table.steps tr.arm > td.c.i8 { background: var(--g8), var(--t8); }
+/* ブロックを閉じる行（繰返終端・待機・try終端）：縦線をここで止めて枝を出す（└─） */
+table.steps tr.close > td.c.i1 { background: var(--h1), var(--t1); }
+table.steps tr.close > td.c.i2 { background: var(--g1), var(--h2), var(--t2); }
+table.steps tr.close > td.c.i3 { background: var(--g2), var(--h3), var(--t3); }
+table.steps tr.close > td.c.i4 { background: var(--g3), var(--h4), var(--t4); }
+table.steps tr.close > td.c.i5 { background: var(--g4), var(--h5), var(--t5); }
+table.steps tr.close > td.c.i6 { background: var(--g5), var(--h6), var(--t6); }
+table.steps tr.close > td.c.i7 { background: var(--g6), var(--h7), var(--t7); }
+table.steps tr.close > td.c.i8 { background: var(--g7), var(--h8), var(--t8); }
+/* 見出しの行（分岐・try・繰返・「〜のとき」など、下に字下げした行が続く行。build が tr.hd を付ける）：縦線を文の下から下ろす */
+table.steps tr.hd > td.c { background: var(--d1); }
+table.steps tr.hd > td.c.i1 { background: var(--g1), var(--d2); }
+table.steps tr.hd > td.c.i2 { background: var(--g2), var(--d3); }
+table.steps tr.hd > td.c.i3 { background: var(--g3), var(--d4); }
+table.steps tr.hd > td.c.i4 { background: var(--g4), var(--d5); }
+table.steps tr.hd > td.c.i5 { background: var(--g5), var(--d6); }
+table.steps tr.hd > td.c.i6 { background: var(--g6), var(--d7); }
+table.steps tr.hd > td.c.i7 { background: var(--g7), var(--d8); }
+table.steps tr.arm.hd > td.c.i1 { background: var(--g1), var(--t1), var(--d2); }
+table.steps tr.arm.hd > td.c.i2 { background: var(--g2), var(--t2), var(--d3); }
+table.steps tr.arm.hd > td.c.i3 { background: var(--g3), var(--t3), var(--d4); }
+table.steps tr.arm.hd > td.c.i4 { background: var(--g4), var(--t4), var(--d5); }
+table.steps tr.arm.hd > td.c.i5 { background: var(--g5), var(--t5), var(--d6); }
+table.steps tr.arm.hd > td.c.i6 { background: var(--g6), var(--t6), var(--d7); }
+table.steps tr.arm.hd > td.c.i7 { background: var(--g7), var(--t7), var(--d8); }
+/* 見出しの行の文が折り返したとき、2 行目以降を縦線より右から始める（ぶら下げ） */
+table.steps tr.hd > td.c { padding-left: calc(6px + 0.9em); text-indent: -0.9em; }
+table.steps tr.hd > td.c.i1 { padding-left: calc(6px + 1.4em + 0.9em); }
+table.steps tr.hd > td.c.i2 { padding-left: calc(6px + 2.8em + 0.9em); }
+table.steps tr.hd > td.c.i3 { padding-left: calc(6px + 4.2em + 0.9em); }
+table.steps tr.hd > td.c.i4 { padding-left: calc(6px + 5.6em + 0.9em); }
+table.steps tr.hd > td.c.i5 { padding-left: calc(6px + 7em + 0.9em); }
+table.steps tr.hd > td.c.i6 { padding-left: calc(6px + 8.4em + 0.9em); }
+table.steps tr.hd > td.c.i7 { padding-left: calc(6px + 9.8em + 0.9em); }
+table.steps tr.hd > td.c > * { text-indent: 0; }
+/* 処理の中の項目（1. 2. …）：処理の文より一段下げる。No.29.3 のように参照できる */
+table.steps td.c > ol { margin: 2px 0 1px; padding-left: 2.2em; }
+table.steps td.c > ol > li { margin: 0 0 3px; padding-left: 2px; }
+table.steps td.c > ol > li::marker { font-family: Consolas, monospace; font-size: 12px; color: #333; }
+table.steps td.c > ol > li > b:first-child { font-size: 12px; }
+/* 画面では、マウスを置いた行を薄く色付けして、同じ行の No.・処理内容・根拠を追いやすくする（印刷には出ない） */
+@media screen { table.steps > tbody > tr:hover > td { background-color: #eef3fb !important; } }
+/* リンクで移った先の行・項目 */
+@media screen { table.steps > tbody > tr:target > td, td.c li:target { background-color: #fff3c4; } }
+.k { display: inline-block; font-size: 11px; line-height: 1.35; padding: 0 3px; margin-right: 4px; border: 1px solid #888; border-radius: 2px; color: #222; background: #fff; white-space: nowrap; vertical-align: 1px; }
+.k.x { border-color: var(--mark); color: var(--mark); }
+table.steps td.c a, .go a { font-family: Consolas, monospace; }
+.end { color: var(--mark); font-weight: 600; }
+
+/* 推定・未確認 */
+.inf { color: var(--inf); font-weight: 600; }
+.uv { color: var(--mark); font-weight: 600; }
+
+/* 補足の表・SQL */
+table.sub { margin: 2px 0 3px; font-size: 12px; }
+table.sub th, table.sub td { padding: 2px 5px; }
+td table.sub, .db table.sub, .api table.sub, .box table.sub { width: auto; max-width: 100%; }
+.sqlh { font-size: 12px; color: var(--sub); margin: 0 0 1px; }
+.sqlh b { color: var(--fg); }
+pre.sql, pre.txt {
+  margin: 2px 0 3px; padding: 3px 6px; background: var(--code); border: 1px solid var(--line2); border-left: 3px solid #666;
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4;
+}
+pre.sql[data-kind="ref"] { border-left: 3px dashed #999; background: #fff; }
+/* JSON の例（リクエスト・レスポンス・外部 API の送受信）：項目の表の前に置く */
+pre.json {
+  margin: 2px 0 3px; padding: 3px 8px; background: var(--code); border: 1px solid var(--line2); border-left: 3px solid #8a8a8a;
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; width: fit-content; max-width: 100%;
+}
+.jsons { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: flex-start; }  /* 形の違う JSON の例を横に並べる */
+.jsons > div { max-width: 100%; }
+.note { font-size: 12px; color: var(--sub); }
+
+/* 処理ごとのタブ：処理が 2 つ以上あると build が nav.tabs と .panel を作る（JavaScript なし。:target で切り替える） */
+nav.tabs { display: none; }
+body.tabs nav.tabs {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px;
+  position: sticky; top: 0; z-index: 3; background: #fff;
+  margin: 6px 0 8px; padding: 4px 0 0; border-bottom: 1px solid #555;
+}
+nav.tabs .tg { display: flex; flex-direction: column; }
+nav.tabs .tgl { font-size: 11px; color: var(--sub); padding: 0 3px 1px; margin: 0 0 3px; border-bottom: 2px solid #9a9a9a; white-space: nowrap; }
+nav.tabs .tgt { display: flex; }
+nav.tabs a.tab {
+  position: relative; display: block; padding: 2px 10px 3px; margin-right: -1px;
+  border: 1px solid var(--line); border-bottom: 0; background: var(--th); color: var(--fg);
+  font-size: 12.5px; text-decoration: none; white-space: nowrap;
+}
+nav.tabs a.tab:hover { background: #fff; }
+body.tabs .panel { display: none; }
+body.tabs .panel:target, body.tabs .panel:has(:target), body.tabs:not(:has(.panel:target, .panel :target)) .panel.default { display: block; }
+body.tabs .panel, body.tabs .panel [id] { scroll-margin-top: calc(var(--tabs-h, 48px) + 6px); }
+
+/* 検証 */
+.vstatus { font-weight: 600; }
+.vstatus[data-status="open"] { color: var(--mark); }
+
+/* 印刷 */
+@page { size: A4 landscape; margin: 9mm; }
+@media print {
+  body { padding: 0; font-size: 9.5pt; }
+  main, header.doc { max-width: none; }
+  a { color: inherit; }
+  h2, h3, h4 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  tr:has(ol), tr.dt { break-inside: auto; }
+  thead { display: table-header-group; }
+  pre.sql, pre.txt, pre.json { background: #fafafa; }
+  nav.toc, .noprint { display: none; }
+  /* タブのある文書はすべてのパネルを印刷し、処理ごとに改ページする */
+  body.tabs nav.tabs { display: none !important; }
+  body.tabs .panel { display: block !important; }
+  body.tabs section.proc.panel, body.tabs #doc-check { break-before: page; }
+}
+</style>
+</head>
+<body>
+<header class="doc">
+<h1>{{TITLE}}</h1>
+<p class="meta">{{META}}</p>
+<p class="legend">表の見方：No. は実行順。処理内容の「→ 12」は 12 へ進むことを示し、行き先の書かれていない行は次の番号の行へ進む。横の罫線は処理のまとまり（分岐・繰り返し・try などのブロック）の区切り。字下げと縦の線はブロックの内側、「├─ 〜のとき」は分岐の結果ごとの始まり、「└─」はブロックの終わりを示す。No.29.3 は No.29 の中の項目 3。<span class="inf">〔推定〕</span>はコードに直接書かれていない動作（フレームワークの仕様などからの推定）、<span class="uv">〔未確認〕</span>はコードから確定できない事項（「未確認事項」を参照）。{{TABS_NOTE}}「値の例」はすべて説明用の架空の値。</p>
+</header>
+<main>
+{{BODY}}
+</main>
+</body>
+</html>

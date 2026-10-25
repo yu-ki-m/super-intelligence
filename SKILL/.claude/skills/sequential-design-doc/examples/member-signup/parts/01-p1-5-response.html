@@ -1,0 +1,56 @@
+<section data-sec="response">
+<h3>1.6 レスポンス</h3>
+<p>正常時は No.21 で COMMIT した会員の値から No.25 でボディを作る。</p>
+<pre class="json" data-title="正常時のボディ（201 Created。members.service.ts:55 のオブジェクトの順）">{
+  "id": 1001,
+  "email": "taro.yamada@example.com",
+  "status": "PENDING"
+}</pre>
+<table class="sub resp auto"><caption>正常時（201 Created、<code>application/json</code>）</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>1001</td><td><code>member.id</code>（No.18 で採番）</td></tr>
+<tr><td>email</td><td>string</td><td>"taro.yamada@example.com"</td><td><code>member.email</code>（No.12 で正規化した値）</td></tr>
+<tr><td>status</td><td>string</td><td>"PENDING"</td><td><code>member.status</code>（No.18 の定数）</td></tr>
+</tbody></table>
+<div class="jsons">
+<div><pre class="json" data-title="異常時のボディ：入力検証の違反（400。message は違反ごとの文の配列）〔推定〕">{
+  "statusCode": 400,
+  "message": [
+    "password must be longer than or equal to 8 characters"
+  ],
+  "error": "Bad Request"
+}</pre></div>
+<div><pre class="json" data-title="異常時のボディ：ConflictException（409）">{
+  "statusCode": 409,
+  "message": "このメールアドレスは既に登録されています",
+  "error": "Conflict"
+}</pre></div>
+<div><pre class="json" data-title="異常時のボディ：想定外の例外（500）〔推定〕">{
+  "statusCode": 500,
+  "message": "Internal server error"
+}</pre></div>
+</div>
+<p class="note">いずれも NestJS の既定の例外フィルターが作る形（<code>statusCode</code>・<code>message</code>・<code>error</code>）。入力検証の違反の <code>message</code> の文は class-validator の既定の文<span class="inf">〔推定〕</span>。</p>
+<table class="sub errs"><caption>異常時</caption><thead><tr><th>発生条件（No.）</th><th>ステータス</th><th>応答ボディ</th><th>その時点のデータの状態</th></tr></thead><tbody>
+<tr><td>JSON の構文誤り（No.01 → E1）</td><td>400</td><td><code>{"statusCode":400,"message":"…","error":"Bad Request"}</code><span class="inf">〔推定〕</span></td><td>DB 未アクセス</td></tr>
+<tr><td>入力検証の違反（No.10 → E2）</td><td>400</td><td><code>{"statusCode":400,"message":[…],"error":"Bad Request"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td>メールアドレスが登録済み（No.15 → E3）</td><td>409</td><td><code>{"statusCode":409,"message":"このメールアドレスは既に登録されています","error":"Conflict"}</code></td><td>変更なし</td></tr>
+<tr><td>重複確認・ハッシュ化の失敗（No.13・No.16 → E4）</td><td>500</td><td><code>{"statusCode":500,"message":"Internal server error"}</code></td><td>変更なし</td></tr>
+<tr><td>登録・COMMIT の失敗、同時登録による一意制約違反（No.18・No.19・No.21 → E5）</td><td>500</td><td><code>{"statusCode":500,"message":"Internal server error"}</code></td><td>ROLLBACK 済み（変更なし）、キュー未登録</td></tr>
+<tr><td>キューへの登録の失敗（No.23 → No.24）</td><td>201</td><td>正常時と同じ</td><td>会員は登録済み。ウェルカムメールは送信されない（<code>welcome_sent_at</code> は NULL のまま）</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="data">
+<h3>1.7 データ変更とトランザクション</h3>
+<table class="sub"><thead><tr><th>トランザクション</th><th>範囲（No.）</th><th>含まれる操作（No.）</th><th>正常終了時</th><th>例外発生時</th></tr></thead><tbody>
+<tr><td>（なし・自動コミット）</td><td>No.13</td><td>No.13 件数の取得</td><td>—</td><td>—</td></tr>
+<tr><td>TX1（<code>dataSource.transaction</code>）</td><td>No.17〜21</td><td>No.18 <code>members</code> INSERT、No.19 <code>member_profiles</code> INSERT</td><td>No.21 で COMMIT</td><td>E5 で ROLLBACK（両方を取り消し）</td></tr>
+<tr><td>（Redis・トランザクション外）</td><td>No.23</td><td>ジョブの登録</td><td>COMMIT 後に登録するため、登録に失敗しても会員は残る</td><td>—</td></tr>
+<tr><td>（ワーカー・自動コミット）</td><td>A1-03・A1-07</td><td>A1-03 SELECT、A1-07 <code>members</code> UPDATE</td><td>A1-07 は 1 文ごとに確定</td><td>A1-08 で再実行（A1-07 の前の失敗なら更新なし）</td></tr>
+</tbody></table>
+<table class="sub auto"><caption>テーブルごとの操作</caption><thead><tr><th>テーブル</th><th>C</th><th>R</th><th>U</th><th>D</th><th>No.</th></tr></thead><tbody>
+<tr><td><code>members</code></td><td>○</td><td>○</td><td>○（ワーカー）</td><td></td><td>No.13・No.18・A1-03・A1-07</td></tr>
+<tr><td><code>member_profiles</code></td><td>○</td><td></td><td></td><td></td><td>No.19</td></tr>
+</tbody></table>
+</section>
+</section>

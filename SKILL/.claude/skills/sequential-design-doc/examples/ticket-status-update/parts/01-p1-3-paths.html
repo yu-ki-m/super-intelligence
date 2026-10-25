@@ -1,0 +1,68 @@
+<section data-sec="exceptions">
+<h3>1.4 例外発生時の処理</h3>
+
+<section data-path="E1">
+<h4>E1：No.10・11 でフィルター内の想定外の例外（<code>NumberFormatException</code>・<code>NullPointerException</code>）が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E1-01</td><td>例外は No.06 の catch（<code>JwtVerificationException</code> だけを捕捉）に一致しないため、<code>doFilterInternal</code> の外へ送出される。DispatcherServlet より前で発生しているため、<code>GlobalExceptionHandler</code> は使われない<span class="inf">〔推定〕</span>。トランザクションは未開始。</td><td>JwtAuthenticationFilter.java:42-47<br>FW 仕様</td></tr>
+<tr><td>E1-02</td><td><span class="k">応答</span>サーブレットコンテナのエラー処理により、Spring Boot の既定のエラー応答（ステータス 500、ボディ <code>timestamp</code>・<code>status</code>・<code>error</code>・<code>path</code>）を返す<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td>FW 仕様（Spring Boot の <code>/error</code>）</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E2">
+<h4>E2：No.16 でパス変数 <code>ticketId</code> を long に変換できなかった場合（<code>MethodArgumentTypeMismatchException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E2-01</td><td><code>GlobalExceptionHandler</code> のうち、例外の型に一致する <code>handleTypeMismatch</code> が選ばれる。トランザクションは未開始のため DB の変更は無い。</td><td>GlobalExceptionHandler.java:25-26</td></tr>
+<tr><td>E2-02</td><td><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"INVALID_PARAMETER","message":"ticketId"}</code>（message は引数名 <code>e.getName()</code>）で応答する。400 応答で<span class="end">終了</span></td><td>GlobalExceptionHandler.java:27</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E3">
+<h4>E3：No.17 でリクエストボディを読み取れなかった場合（<code>HttpMessageNotReadableException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E3-01</td><td><code>GlobalExceptionHandler</code> にこの例外に一致するハンドラーが無いため、Spring MVC の標準の例外処理がステータス 400 を決める<span class="inf">〔推定〕</span>。トランザクションは未開始。</td><td>GlobalExceptionHandler.java:10-29<br>FW 仕様</td></tr>
+<tr><td>E3-02</td><td><span class="k">応答</span>ステータス 400、ボディは Spring Boot の既定の形式（<code>timestamp</code>・<code>status</code>・<code>error</code>・<code>path</code>）で応答する<span class="inf">〔推定〕</span>。400 応答で<span class="end">終了</span></td><td>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E4">
+<h4>E4：No.20 で入力検証の違反があった場合（<code>MethodArgumentNotValidException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E4-01</td><td><span class="k">分岐</span><code>handleValidation</code> が選ばれ、違反の一覧（<code>getFieldErrors()</code>）が空か判定する。</td><td>GlobalExceptionHandler.java:18-21</td></tr>
+<tr class="arm"><td></td><td class="i1">違反の一覧が空のとき<span class="of">（No.E4-01 が成立）</span>：<code>field</code> を空文字にする → E4-02</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1">違反の一覧が空でないとき<span class="of">（No.E4-01 が不成立）</span>：<code>field</code> を一覧の先頭の違反の項目名（例 "status"）にする。違反が 2 件のときにどちらが先頭になるかは Bean Validation の実装による<span class="inf">〔推定〕</span> → E4-02</td><td></td></tr>
+<tr><td>E4-02</td><td><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"VALIDATION_ERROR","message": field}</code>（例 <code>{"code":"VALIDATION_ERROR","message":"status"}</code>）で応答する。トランザクションは未開始。400 応答で<span class="end">終了</span></td><td>GlobalExceptionHandler.java:22</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E5">
+<h4>E5：No.25・28・32・35・37・41 で業務例外（<code>ApiException</code> の派生）が送出された場合</h4>
+<p class="note">6 か所とも、送出後に実行される処理と、確定済みのデータが無いことが同じため、1 つの経路に合流させる。送出元ごとの値は No.E5-03 の表のとおり。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E5-01</td><td><span class="k">TX</span><code>changeStatus</code> から <code>RuntimeException</code>（<code>ApiException</code> の派生）が出るため、No.22 で開始したトランザクションを ROLLBACK する（Spring の既定のロールバック規則）。取り消されるデータ：No.41 の場合でも No.39 の UPDATE は 0 件のため実質なし。No.26 で行ロックを取得していれば（No.32・35・37・41）解放される。確定済みのデータは無い。</td><td>TicketService.java:33<br>ApiException.java:6<br>FW 仕様</td></tr>
+<tr><td>E5-02</td><td><code>GlobalExceptionHandler</code> のうち、<code>ApiException</code> を受け取る <code>handleApi</code> が選ばれる（派生クラス専用のハンドラーは無い）。</td><td>GlobalExceptionHandler.java:13-14</td></tr>
+<tr><td>E5-03</td><td><span class="k">応答</span>例外が持つステータス（<code>e.getStatus()</code>）と、ボディ <code>{"code": e.getCode(), "message": e.getMessage()}</code> で応答する。400・403・404・409 応答で<span class="end">終了</span>
+<ol>
+<li><b>送出元ごとの応答</b>
+<table class="sub map"><thead><tr><th>送出元</th><th>例外</th><th>ステータス</th><th>code</th><th>message（例）</th></tr></thead><tbody>
+<tr><td>No.25</td><td><code>InvalidStatusException</code></td><td>400</td><td>INVALID_STATUS</td><td>不正なステータスです: in_progres</td></tr>
+<tr><td>No.28</td><td><code>TicketNotFoundException</code></td><td>404</td><td>TICKET_NOT_FOUND</td><td>チケットが存在しません: 5012</td></tr>
+<tr><td>No.32</td><td><code>ForbiddenException</code></td><td>403</td><td>NOT_PROJECT_MEMBER</td><td>このチケットを変更する権限がありません</td></tr>
+<tr><td>No.35</td><td><code>InvalidTransitionException</code></td><td>409</td><td>INVALID_TRANSITION</td><td>CLOSED から IN_PROGRESS へは変更できません</td></tr>
+<tr><td>No.37</td><td><code>CommentRequiredException</code></td><td>400</td><td>COMMENT_REQUIRED</td><td>RESOLVED にするにはコメントが必要です</td></tr>
+<tr><td>No.41</td><td><code>TicketConflictException</code></td><td>409</td><td>TICKET_CONFLICT</td><td>他の更新と競合しました: 5012</td></tr>
+</tbody></table></li>
+</ol></td><td>GlobalExceptionHandler.java:15</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E6">
+<h4>E6：No.26・30・39・42・44 で DB の例外、または No.26 で取得値の変換に失敗した場合</h4>
+<p class="note">DB の例外：接続断、ロック待ちのタイムアウト、制約違反など（Spring の <code>DataAccessException</code>）。変換の失敗：<code>status</code> 列が列挙に無い値・NULL（<code>IllegalArgumentException</code>・<code>NullPointerException</code>）。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E6-01</td><td><span class="k">TX</span>非検査例外のため ROLLBACK する。No.42 で失敗した場合は No.39 の UPDATE も取り消される。No.44 の COMMIT で失敗した場合は、何も確定しない。行ロックは解放される。</td><td>TicketService.java:33<br>FW 仕様</td></tr>
+<tr><td>E6-02</td><td><code>GlobalExceptionHandler</code> に一致するハンドラーが無いため、Spring の標準の例外処理に渡る<span class="inf">〔推定〕</span>。</td><td>GlobalExceptionHandler.java:10-29</td></tr>
+<tr><td>E6-03</td><td><span class="k">応答</span>ステータス 500、ボディは Spring Boot の既定の形式で応答する<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td>FW 仕様</td></tr>
+</tbody></table>
+</section>
+</section>

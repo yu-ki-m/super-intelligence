@@ -1,0 +1,59 @@
+<section data-sec="response">
+<h3>1.5 レスポンス</h3>
+<p>正常時は No.43 で応答の内容を作り、No.44 の COMMIT の後、No.45 で JSON に変換して返す。</p>
+<pre class="json" data-title="正常時のボディ（200 OK。TicketStatusResponse の項目の順）">{
+  "ticketId": 5012,
+  "status": "IN_PROGRESS",
+  "version": 5,
+  "previousStatus": "OPEN"
+}</pre>
+<table class="sub resp auto"><caption>正常時（200 OK、<code>application/json</code>）</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>ticketId</td><td>number</td><td>5012</td><td>パス変数 <code>ticketId</code>（No.16）</td></tr>
+<tr><td>status</td><td>string</td><td>"IN_PROGRESS"</td><td>変更後のステータス <code>newStatus</code>（No.24）</td></tr>
+<tr><td>version</td><td>number</td><td>5</td><td>変更後のバージョン <code>newVersion</code>（No.38）</td></tr>
+<tr><td>previousStatus</td><td>string</td><td>"OPEN"</td><td>変更前のステータス <code>previousStatus</code>（No.33）</td></tr>
+</tbody></table>
+<div class="jsons">
+<div><pre class="json" data-title="異常時のボディ：業務エラー・認証・入力検証（ErrorResponse）">{
+  "code": "INVALID_TRANSITION",
+  "message": "CLOSED から IN_PROGRESS へは変更できません"
+}</pre></div>
+<div><pre class="json" data-title="異常時のボディ：Spring Boot の既定の形式〔推定〕">{
+  "timestamp": "2026-10-25T01:23:45.678+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "path": "/api/tickets/5012"
+}</pre></div>
+</div>
+<p class="note">ErrorResponse は <code>code</code>・<code>message</code> の 2 項目（ErrorResponse.java:3）。入力検証の違反では <code>message</code> に項目名、<code>ticketId</code> の型の誤りでは <code>message</code> にパラメーター名が入る。
+「Spring Boot の既定の形式」は、ハンドラーが無い例外を Spring Boot の <code>/error</code> が返す形：<code>timestamp</code>（発生時刻）・<code>status</code>（ステータスの数値）・<code>error</code>（理由句）・<code>path</code>（リクエストのパス）。<code>message</code> は既定の設定では含まれない（<code>server.error.include-message</code> の既定値）<span class="inf">〔推定〕</span>。</p>
+<table class="sub errs"><caption>異常時</caption><thead><tr><th>発生条件（No.）</th><th>ステータス</th><th>応答ボディ</th><th>その時点のデータの状態</th></tr></thead><tbody>
+<tr><td class="go"><code>Authorization</code> が無い・<code>Bearer </code> で始まらない（No.04）</td><td>401</td><td><code>{"code":"AUTH_REQUIRED","message":"認証に失敗しました"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">トークンの有効期限切れ（No.08 → No.13）</td><td>401</td><td><code>{"code":"TOKEN_EXPIRED","message":"認証に失敗しました"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">トークンの署名・形式・発行者の不正（No.09 → No.13）</td><td>401</td><td><code>{"code":"TOKEN_INVALID","message":"認証に失敗しました"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">クレーム <code>sub</code>・<code>tid</code> の不正（No.10・No.11 → E1）</td><td>500</td><td>Spring Boot の既定の形式<span class="inf">〔推定〕</span></td><td>DB 未アクセス</td></tr>
+<tr><td class="go"><code>ticketId</code> が数値でない（No.16 → E2）</td><td>400</td><td><code>{"code":"INVALID_PARAMETER","message":"ticketId"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">ボディが無い・JSON が不正（No.17 → E3）</td><td>400</td><td>Spring Boot の既定の形式<span class="inf">〔推定〕</span></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">入力検証の違反（No.20 → E4）</td><td>400</td><td><code>{"code":"VALIDATION_ERROR","message":"&lt;項目名&gt;"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td class="go">ステータスの値が不正（No.25 → E5）</td><td>400</td><td><code>{"code":"INVALID_STATUS",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">チケットが無い・他テナント（No.28 → E5）</td><td>404</td><td><code>{"code":"TICKET_NOT_FOUND",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">プロジェクトのメンバーでない（No.32 → E5）</td><td>403</td><td><code>{"code":"NOT_PROJECT_MEMBER",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">許可されない遷移（No.35 → E5）</td><td>409</td><td><code>{"code":"INVALID_TRANSITION",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">RESOLVED でコメントが空（No.37 → E5）</td><td>400</td><td><code>{"code":"COMMENT_REQUIRED",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">更新件数が 1 件でない（No.41 → E5）</td><td>409</td><td><code>{"code":"TICKET_CONFLICT",…}</code></td><td>ROLLBACK 済み（変更なし）</td></tr>
+<tr><td class="go">DB の例外・取得値の変換失敗（No.26・No.30・No.39・No.42・No.44 → E6）</td><td>500</td><td>Spring Boot の既定の形式<span class="inf">〔推定〕</span></td><td>ROLLBACK 済み（変更なし）</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="data">
+<h3>1.6 データ変更とトランザクション</h3>
+<table class="sub"><thead><tr><th>トランザクション</th><th>範囲（No.）</th><th>含まれる操作（No.）</th><th>正常終了時</th><th>例外発生時</th></tr></thead><tbody>
+<tr><td>TX1（<code>@Transactional</code>、REQUIRED）</td><td>No.22〜44</td><td>No.26 行ロック付き SELECT、No.30 SELECT、No.39 UPDATE、No.42 INSERT</td><td>No.44 で COMMIT（No.39・No.42 を確定、行ロック解放）</td><td>E5・E6 で ROLLBACK（No.39・No.42 を取り消し、行ロック解放）</td></tr>
+</tbody></table>
+<table class="sub auto"><caption>テーブルごとの操作</caption><thead><tr><th>テーブル</th><th>C</th><th>R</th><th>U</th><th>D</th><th>No.</th></tr></thead><tbody>
+<tr><td><code>vulnerability_ticket</code></td><td></td><td>○（行ロック）</td><td>○</td><td></td><td>No.26・No.39</td></tr>
+<tr><td><code>project_member</code></td><td></td><td>○</td><td></td><td></td><td>No.30（管理者でない場合のみ）</td></tr>
+<tr><td><code>ticket_status_history</code></td><td>○</td><td></td><td></td><td></td><td>No.42</td></tr>
+</tbody></table>
+</section>
+</section>

@@ -1,0 +1,9 @@
+<section data-sec="unconfirmed">
+<h2>未確認事項</h2>
+<table class="sub uvlist"><thead><tr><th>ID</th><th>内容</th><th>影響する処理（No.）</th><th>確認方法</th></tr></thead><tbody>
+<tr><td>U1</td><td>署名の鍵 <code>security.jwt.secret</code> の値と管理方法（設定ファイルが提供されていない）</td><td>p1 No.07</td><td><code>application.yml</code> と環境変数を確認する</td></tr>
+<tr><td>U2</td><td>DB の種類と、<code>FOR UPDATE</code> のロック待ちのタイムアウト（コードに指定が無い）</td><td>p1 No.26</td><td>データソースの設定と DB のパラメーター（例：<code>lock_timeout</code>・<code>innodb_lock_wait_timeout</code>）を確認する</td></tr>
+<tr><td>U3</td><td>テーブル定義（DDL）が提供されていないため、主キー・NOT NULL 制約・既定値・トリガー・履歴テーブルの ID 列はコードからの推定</td><td>p1 No.26・No.39・No.42</td><td>マイグレーション・DDL を確認する</td></tr>
+<tr><td>U4</td><td><code>JwtAuthenticationFilter</code> 以外のフィルター（Spring Security など）の有無と実行順（設定クラスが提供されていない）</td><td>p1 No.01</td><td><code>@Configuration</code> クラスと依存関係を確認する</td></tr>
+</tbody></table>
+</section>

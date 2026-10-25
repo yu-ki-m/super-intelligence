@@ -1,0 +1,204 @@
+<section data-sec="steps">
+<h3>1.3 逐次処理</h3>
+<p class="note">シナリオ：テナント 3 のユーザー 205（ロール TICKET_MEMBER、プロジェクト 210 のメンバー）が、チケット 5012 を OPEN から IN_PROGRESS に変更する。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>01</td><td><span class="k">分岐</span>HTTP リクエスト <code>PATCH /api/tickets/5012</code> を受け取り、リクエスト URI が <code>/api/</code> で始まるか判定する（<code>JwtAuthenticationFilter</code> の適用対象か。<code>shouldNotFilter</code> が false になるか）。</td><td>JwtAuthenticationFilter.java:27-30</td></tr>
+<tr class="arm"><td></td><td class="i1">URI が <code>/api/</code> で始まるとき<span class="of">（No.01 が成立）</span> → 02</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1">URI が <code>/api/</code> で始まらないとき<span class="of">（No.01 が不成立）</span>：フィルターを通らない（この API の URI では発生しない）</td><td></td></tr>
+<tr><td>02</td><td>ヘッダー <code>Authorization</code> の値を取得し、<code>header</code> に格納する（例 <code>Bearer eyJhbGciOiJIUzI1NiJ9.…</code>。無ければ null）。</td><td>JwtAuthenticationFilter.java:35</td></tr>
+<tr><td>03</td><td><span class="k">分岐</span><code>header</code> が null か、または <code>"Bearer "</code>（末尾に半角空白 1 つ）で始まらないか判定する（<code>header == null || !header.startsWith(PREFIX)</code>。左が成立すると右は評価しない）。</td><td>JwtAuthenticationFilter.java:36</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>header</code> が null、または <code>"Bearer "</code> で始まらないとき<span class="of">（No.03 が成立）</span></td><td></td></tr>
+<tr><td>04</td><td class="i2"><span class="k">応答</span>ステータス 401、<code>Content-Type: application/json</code>、ボディ <code>{"code":"AUTH_REQUIRED","message":"認証に失敗しました"}</code> を書き込み、フィルターから return する。以降のフィルター・コントローラーは実行されない。401 応答で<span class="end">終了</span></td><td>JwtAuthenticationFilter.java:37-38, 52-56</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>header</code> が <code>"Bearer "</code> で始まるとき<span class="of">（No.03 が不成立）</span> → 05</td><td></td></tr>
+<tr><td>05</td><td><code>header</code> の先頭 7 文字（<code>Bearer </code>）を除いた残りを <code>token</code> に格納する（例 <code>eyJhbGciOiJIUzI1NiJ9.…</code>）。</td><td>JwtAuthenticationFilter.java:40</td></tr>
+<tr><td>06</td><td><span class="k">try</span>07〜12 を実行する。<code>JwtVerificationException</code> が送出されたら catch へ進む。それ以外の例外は捕捉せず、フィルターの外へ伝わる（No.10・11 の例外 → E1）。</td><td>JwtAuthenticationFilter.java:42-47</td></tr>
+<tr><td>07</td><td class="i1"><span class="k">分岐</span><code>token</code> を次の 3 点で検証する（auth0 java-jwt の <code>JWTVerifier.verify</code>）。
+<ol>
+<li>署名を HMAC256 で検証する（鍵は設定 <code>security.jwt.secret</code> の値<span class="uv">〔未確認: U1〕</span>）。</li>
+<li>クレーム <code>iss</code> が <code>ticket-auth</code> と一致するか確認する。</li>
+<li><code>exp</code>（有効期限）・<code>nbf</code>・<code>iat</code> が現在時刻に対して有効か確認する<span class="inf">〔推定〕</span>。</li>
+</ol></td><td>JwtVerifier.java:20-21, 26-32<br>FW 仕様（java-jwt）</td></tr>
+<tr class="arm"><td></td><td class="i2">有効期限が切れているとき<span class="of">（No.07.3 が不成立：<code>TokenExpiredException</code>）</span></td><td></td></tr>
+<tr><td>08</td><td class="i3"><span class="k x">例外</span>理由 <code>TOKEN_EXPIRED</code> の <code>JwtVerificationException</code> を送出する。→ 13</td><td>JwtVerifier.java:28-29</td></tr>
+<tr class="arm"><td></td><td class="i2">署名の不一致・形式の不正・発行者の不一致などがあるとき<span class="of">（No.07.1・No.07.2 などが不成立：<code>TokenExpiredException</code> 以外の <code>JWTVerificationException</code>）</span></td><td></td></tr>
+<tr><td>09</td><td class="i3"><span class="k x">例外</span>理由 <code>TOKEN_INVALID</code> の <code>JwtVerificationException</code> を送出する。→ 13</td><td>JwtVerifier.java:30-31</td></tr>
+<tr class="arm"><td></td><td class="i2">3 点ともすべて有効なとき<span class="of">（No.07）</span> → 10</td><td></td></tr>
+<tr><td>10</td><td class="i1">クレーム <code>sub</code> の文字列を long に変換し、<code>userId</code> に格納する（例 205。<code>Long.parseLong</code>）。数字でない・<code>sub</code> が無い場合は <code>NumberFormatException</code> → E1</td><td>JwtVerifier.java:33</td></tr>
+<tr><td>11</td><td class="i1">クレーム <code>tid</code> を long として取り出し、<code>tenantId</code> に格納する（例 3）。<code>tid</code> が無い・数値でない場合は <code>asLong()</code> が null を返し、long への代入で <code>NullPointerException</code> → E1</td><td>JwtVerifier.java:34</td></tr>
+<tr><td>12</td><td class="i1">クレーム <code>roles</code> を文字列のリストとして取り出し（null なら空のリスト）、<code>AuthenticatedUser(userId, tenantId, roles)</code> を作って <code>user</code> に格納する（例 userId=205, tenantId=3, roles=["TICKET_MEMBER"]）。→ 14</td><td>JwtVerifier.java:35-36</td></tr>
+<tr class="arm"><td></td><td class="i1"><span class="kw">catch (JwtVerificationException e)</span><span class="of">（No.06。08・09 で送出されたとき）</span></td><td></td></tr>
+<tr><td>13</td><td class="i2"><span class="k">応答</span>ステータス 401、<code>Content-Type: application/json</code>、ボディ <code>{"code": e.getReason(), "message":"認証に失敗しました"}</code>（code は <code>TOKEN_EXPIRED</code> または <code>TOKEN_INVALID</code>）を書き込み、フィルターから return する。401 応答で<span class="end">終了</span></td><td>JwtAuthenticationFilter.java:44-46, 52-56</td></tr>
+<tr><td>14</td><td><code>user</code> をリクエスト属性 <code>authenticatedUser</code> に設定する。</td><td>JwtAuthenticationFilter.java:48<br>AuthenticatedUser.java:7</td></tr>
+<tr><td>15</td><td>リクエストを次のフィルター・DispatcherServlet へ渡す（<code>chain.doFilter</code>）。<code>PATCH /api/tickets/{ticketId}</code> に対応する <code>TicketController.updateStatus</code> の引数を、宣言順に 16〜21 で準備する<span class="inf">〔推定〕</span>。</td><td>JwtAuthenticationFilter.java:49<br>TicketController.java:24-28</td></tr>
+<tr><td>16</td><td><span class="k">分岐</span>パス変数 <code>ticketId</code> の文字列（例 "5012"）を long に変換できるか判定する。</td><td>TicketController.java:26<br>FW 仕様</td></tr>
+<tr class="arm"><td></td><td class="i1">long に変換できるとき<span class="of">（No.16 が成立）</span>（<code>ticketId</code> = 5012） → 17</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1">変換できないとき<span class="of">（No.16 が不成立：<code>MethodArgumentTypeMismatchException</code>）</span> → E2</td><td></td></tr>
+<tr><td>17</td><td><span class="k">分岐</span>リクエストボディの JSON を <code>UpdateStatusRequest(status, comment)</code> に変換できるか判定する（Jackson）。</td><td>TicketController.java:27<br>UpdateStatusRequest.java:7-9</td></tr>
+<tr class="arm"><td></td><td class="i1">変換できるとき<span class="of">（No.17 が成立）</span>（例 status="in_progress", comment="調査を開始します"） → 18</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1">ボディが無い・JSON の構文誤り・型の不一致のとき<span class="of">（No.17 が不成立：<code>HttpMessageNotReadableException</code>）</span> → E3</td><td></td></tr>
+<tr><td>18</td><td><span class="k">分岐</span>入力検証（<code>@Valid</code>）：<code>status</code> が null・空文字・空白だけのいずれかか判定する（<code>@NotBlank</code>）。</td><td>UpdateStatusRequest.java:8</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>status</code> が null・空文字・空白だけのとき<span class="of">（No.18 が成立）</span>：違反として記録する → 19</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>status</code> に空白以外の文字があるとき<span class="of">（No.18 が不成立）</span> → 19</td><td></td></tr>
+<tr><td>19</td><td><span class="k">分岐</span>入力検証：<code>comment</code> が null でなく、長さが 500 文字を超えるか判定する（<code>@Size(max = 500)</code>。null は違反にしない）。</td><td>UpdateStatusRequest.java:9</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>comment</code> が 500 文字を超えるとき<span class="of">（No.19 が成立）</span>：違反として記録する → 20</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>comment</code> が null、または 500 文字以下のとき<span class="of">（No.19 が不成立）</span> → 20</td><td></td></tr>
+<tr><td>20</td><td><span class="k">分岐</span>18・19 で記録した違反が 1 件以上あるか判定する（違反はすべて検証してからまとめて扱われる）。</td><td>TicketController.java:27<br>FW 仕様</td></tr>
+<tr class="arm"><td></td><td class="i1">違反が 1 件以上あるとき<span class="of">（No.20 が成立：<code>MethodArgumentNotValidException</code>）</span> → E4</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1">違反が無いとき<span class="of">（No.20 が不成立）</span> → 21</td><td></td></tr>
+<tr><td>21</td><td>リクエスト属性 <code>authenticatedUser</code>（No.14 で設定）を取り出し、<code>user</code> とする。</td><td>TicketController.java:28</td></tr>
+<tr><td>22</td><td><span class="k">TX</span>トランザクションを開始する（<code>TicketService.changeStatus</code> の <code>@Transactional</code>、伝播 REQUIRED。既存のトランザクションが無いため新規。分離レベル・タイムアウトの指定なし）。以降 44 まで同じトランザクション。</td><td>TicketService.java:33-35<br>TicketController.java:29</td></tr>
+<tr><td>23</td><td><span class="k">try</span>24 を実行する（<code>TicketStatus.parse</code>）。<code>IllegalArgumentException</code> が送出されたら catch へ進む。</td><td>TicketService.java:36<br>TicketStatus.java:10-16</td></tr>
+<tr><td>24</td><td class="i1">ボディの <code>status</code>（例 "in_progress"）の前後の空白を除き、大文字（<code>Locale.ROOT</code>）にした文字列（例 "IN_PROGRESS"）と同じ名前の <code>TicketStatus</code>（OPEN・IN_PROGRESS・RESOLVED・CLOSED・REJECTED）を、<code>newStatus</code> に格納する（<code>valueOf</code>）。同じ名前が無ければ <code>IllegalArgumentException</code>。→ 26</td><td>TicketStatus.java:7, 12</td></tr>
+<tr class="arm"><td></td><td class="i1"><span class="kw">catch (IllegalArgumentException e)</span><span class="of">（No.23。24 で同じ名前が無かったとき）</span></td><td></td></tr>
+<tr><td>25</td><td class="i2"><span class="k x">例外</span><code>InvalidStatusException</code>（ステータス 400、コード <code>INVALID_STATUS</code>、メッセージ「不正なステータスです: 」＋ボディの <code>status</code> の値）を送出する。→ E5</td><td>TicketStatus.java:13-14<br>InvalidStatusException.java:7-9</td></tr>
+<tr><td>26</td><td><span class="k">SQL</span><code>vulnerability_ticket</code> から、テナントが <code>user.tenantId</code> で ID が <code>ticketId</code> の行を、行ロック付きで取得する。取得した各行の <code>status</code> 列の文字列を <code>TicketStatus</code> に変換し、<code>Ticket</code> のリスト <code>rows</code> に格納する（0 件または 1 件）。<code>status</code> 列が列挙に無い値・NULL なら <code>IllegalArgumentException</code>・<code>NullPointerException</code> → E6 ／ DB の例外 → E6
+<ol class="db">
+<li><pre class="sql" data-kind="exec" data-src="TicketRepository.java:22-28">SELECT id, project_id, status, version
+  FROM vulnerability_ticket
+ WHERE tenant_id = :tenantId
+   AND id = :ticketId
+   FOR UPDATE</pre>
+<p class="note">常に実行する（No.24 で <code>newStatus</code> が決まった後）。取得した行はトランザクションの終了（No.44 の COMMIT、または E5・E6 の ROLLBACK）までロックされる。他のトランザクションが同じ行をロックしている場合は解放まで待つ（待ち時間の上限は DB の設定による<span class="uv">〔未確認: U2〕</span>）。テナント条件があるため、他テナントのチケットは 0 件として扱われる。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:tenantId</code></td><td><code>user.tenantId</code>（No.11 の JWT の <code>tid</code>）</td><td>3</td></tr>
+<tr><td><code>:ticketId</code></td><td>パス変数 <code>ticketId</code>（No.16）</td><td>5012</td></tr>
+</tbody></table></li>
+<li><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>long</td><td>5012</td><td><code>ticket.id</code></td><td>使用なし（以降はパスの <code>ticketId</code> を使う）</td></tr>
+<tr><td>project_id</td><td>long</td><td>210</td><td><code>ticket.projectId</code></td><td>No.30.2 のバインド変数</td></tr>
+<tr><td>status</td><td>文字列 → <code>TicketStatus</code></td><td>OPEN</td><td><code>ticket.status</code></td><td>No.33 で <code>previousStatus</code>、No.34 の判定、No.42.2 の登録</td></tr>
+<tr><td>version</td><td>int</td><td>4</td><td><code>ticket.version</code></td><td>No.38 の計算、No.39.2 の UPDATE 条件</td></tr>
+</tbody></table></li>
+<li><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数・状態</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">先頭の行を <code>ticket</code> とする → 27 で不成立 → 29</td></tr>
+<tr><td>0 件（ID が無い、または他テナント）</td><td class="go">→ 27 で成立 → 28 で <code>TicketNotFoundException</code></td></tr>
+<tr><td>2 件以上</td><td>先頭の 1 行だけを使う（<code>findFirst</code>）。<code>id</code> が主キーなら発生しない<span class="inf">〔推定〕</span><span class="uv">〔未確認: U3〕</span></td></tr>
+<tr><td>列の値が NULL</td><td><code>project_id</code>・<code>version</code> は 0 として読まれる（<code>getLong</code>・<code>getInt</code>）。<code>status</code> は <code>TicketStatus.valueOf(null)</code> で <code>NullPointerException</code> → E6。NOT NULL 制約の有無は<span class="uv">〔未確認: U3〕</span></td></tr>
+</tbody></table></li>
+</ol></td><td>TicketService.java:38<br>TicketRepository.java:21-31</td></tr>
+<tr><td>27</td><td><span class="k">分岐</span><code>rows</code> が空（0 件）か判定する（<code>rows.stream().findFirst()</code> の結果に <code>orElseThrow</code>）。</td><td>TicketService.java:38-39<br>TicketRepository.java:32</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>rows</code> が空のとき（チケットが無い、または他テナントのとき）<span class="of">（No.27 が成立）</span></td><td></td></tr>
+<tr><td>28</td><td class="i2"><span class="k x">例外</span><code>TicketNotFoundException</code>（ステータス 404、コード <code>TICKET_NOT_FOUND</code>、メッセージ「チケットが存在しません: 5012」）を送出する。→ E5</td><td>TicketService.java:39<br>TicketNotFoundException.java:7-9</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>rows</code> に 1 件あるとき<span class="of">（No.27 が不成立）</span>：先頭の行を <code>ticket</code> に格納する → 29</td><td></td></tr>
+<tr><td>29</td><td><span class="k">分岐</span><code>user.roles</code> に <code>"TICKET_ADMIN"</code> が含まれないか判定する（<code>!user.isAdmin()</code>。<code>!user.isAdmin() &amp;&amp; …</code> の左側）。</td><td>TicketService.java:41<br>AuthenticatedUser.java:9-11</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>TICKET_ADMIN</code> が含まれないとき（管理者でないとき）<span class="of">（No.29 が成立）</span></td><td></td></tr>
+<tr><td>30</td><td class="i2"><span class="k">SQL</span><code>project_member</code> から、プロジェクト <code>ticket.projectId</code> にユーザー <code>user.userId</code> が現メンバー（<code>removed_at</code> が NULL）として登録されている行の件数を取得し、<code>count</code> に格納する（例 1）。DB の例外 → E6
+<ol class="db">
+<li><pre class="sql" data-kind="exec" data-src="ProjectMemberRepository.java:18-24">SELECT COUNT(*)
+  FROM project_member
+ WHERE project_id = :projectId
+   AND user_id = :userId
+   AND removed_at IS NULL</pre>
+<p class="note">No.29 が成立したとき（管理者でないとき）だけ実行する。ロックは取らない。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:projectId</code></td><td><code>ticket.projectId</code>（No.26.3）</td><td>210</td></tr>
+<tr><td><code>:userId</code></td><td><code>user.userId</code>（No.10 の JWT の <code>sub</code>）</td><td>205</td></tr>
+</tbody></table></li>
+<li><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>COUNT(*)</td><td>Integer</td><td>1</td><td><code>count</code></td><td>No.31 の判定</td></tr>
+</tbody></table></li>
+<li><b>結果ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>結果</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 以上</td><td class="go">メンバー → 31 で不成立 → 33</td></tr>
+<tr><td>0</td><td class="go">メンバーでない → 31 で成立 → 32</td></tr>
+<tr><td>null</td><td>COUNT は常に 1 行を返すため発生しない<span class="inf">〔推定〕</span>（コードは null もメンバーでないとして扱う）</td></tr>
+</tbody></table></li>
+</ol></td><td>TicketService.java:41<br>ProjectMemberRepository.java:17-25</td></tr>
+<tr><td>31</td><td class="i2"><span class="k">分岐</span>メンバーでないか判定する（<code>count</code>（No.30.3）が null、または 0 以下。<code>!(count != null &amp;&amp; count &gt; 0)</code>）。</td><td>ProjectMemberRepository.java:26<br>TicketService.java:41</td></tr>
+<tr class="arm"><td></td><td class="i3"><code>count</code> が null または 0 以下のとき（メンバーでないとき）<span class="of">（No.31 が成立）</span></td><td></td></tr>
+<tr><td>32</td><td class="i4"><span class="k x">例外</span><code>ForbiddenException</code>（ステータス 403、コード <code>NOT_PROJECT_MEMBER</code>、メッセージ「このチケットを変更する権限がありません」）を送出する。→ E5</td><td>TicketService.java:42<br>ForbiddenException.java:7-9</td></tr>
+<tr class="arm"><td></td><td class="i3"><code>count</code> が 1 以上のとき（メンバーのとき）<span class="of">（No.31 が不成立）</span> → 33</td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>TICKET_ADMIN</code> が含まれるとき（管理者のとき）<span class="of">（No.29 が不成立。メンバー確認の 30・31 は実行しない）</span> → 33</td><td></td></tr>
+<tr><td>33</td><td><code>ticket.status</code> を <code>previousStatus</code> に格納する（例 OPEN）。</td><td>TicketService.java:45</td></tr>
+<tr><td>34</td><td><span class="k">分岐</span><code>previousStatus</code> から <code>newStatus</code> への遷移が許可されていないか、下の判定表で判定する（<code>!StatusTransitions.isAllowed(previousStatus, newStatus)</code>）。
+<ol>
+<li><b>遷移の判定表</b>：原文は <code>ALLOWED.getOrDefault(from, Set.of()).contains(to)</code>。<code>ALLOWED</code> に <code>previousStatus</code> のキーが無い場合（CLOSED・REJECTED）は空の集合となり、常に不許可。同じステータスへの変更（例 OPEN → OPEN）も表に無いため不許可。
+<table class="sub dec"><thead><tr><th>現在の状態（<code>previousStatus</code>）</th><th>要求された状態（<code>newStatus</code>）</th><th>判定</th></tr></thead><tbody>
+<tr><td>OPEN</td><td>IN_PROGRESS、REJECTED</td><td>許可</td></tr>
+<tr><td>IN_PROGRESS</td><td>RESOLVED、OPEN</td><td>許可</td></tr>
+<tr><td>RESOLVED</td><td>CLOSED、IN_PROGRESS</td><td>許可</td></tr>
+<tr><td>CLOSED、REJECTED</td><td>任意</td><td>不許可</td></tr>
+<tr><td>その他（上記以外の組み合わせ）</td><td>—</td><td>不許可</td></tr>
+</tbody></table></li>
+</ol></td><td>TicketService.java:46<br>StatusTransitions.java:10-20</td></tr>
+<tr class="arm"><td></td><td class="i1">許可されていない遷移のとき<span class="of">（No.34 が成立。No.34.1 で不許可）</span></td><td></td></tr>
+<tr><td>35</td><td class="i2"><span class="k x">例外</span><code>InvalidTransitionException</code>（ステータス 409、コード <code>INVALID_TRANSITION</code>、メッセージ「<code>previousStatus</code> から <code>newStatus</code> へは変更できません」）を送出する。→ E5</td><td>TicketService.java:47<br>InvalidTransitionException.java:8-10</td></tr>
+<tr class="arm"><td></td><td class="i1">許可されている遷移のとき<span class="of">（No.34 が不成立。例 OPEN → IN_PROGRESS）</span> → 36</td><td></td></tr>
+<tr><td>36</td><td><span class="k">分岐</span><code>newStatus</code> が RESOLVED で、かつ <code>comment</code> が null または空白だけか判定する（<code>newStatus == RESOLVED &amp;&amp; (comment == null || comment.isBlank())</code>。左が不成立なら右は評価しない）。</td><td>TicketService.java:49</td></tr>
+<tr class="arm"><td></td><td class="i1">RESOLVED にするのに <code>comment</code> が null または空白だけのとき<span class="of">（No.36 が成立）</span></td><td></td></tr>
+<tr><td>37</td><td class="i2"><span class="k x">例外</span><code>CommentRequiredException</code>（ステータス 400、コード <code>COMMENT_REQUIRED</code>、メッセージ「RESOLVED にするにはコメントが必要です」）を送出する。→ E5</td><td>TicketService.java:50<br>CommentRequiredException.java:7-9</td></tr>
+<tr class="arm"><td></td><td class="i1">RESOLVED 以外にするとき、またはコメントがあるとき<span class="of">（No.36 が不成立。例 IN_PROGRESS）</span> → 38</td><td></td></tr>
+<tr><td>38</td><td><code>newVersion</code> = <code>ticket.version</code>（No.26.3）＋ 1 を計算する（例 4 + 1 = 5）。</td><td>TicketService.java:53</td></tr>
+<tr><td>39</td><td><span class="k">SQL</span><code>vulnerability_ticket</code> の対象行（ID・テナントが一致し、<code>version</code> が No.26.3 の値のまま）の <code>status</code>・<code>version</code>・<code>updated_by</code>・<code>updated_at</code> を更新し、更新件数を <code>updated</code> に格納する（例 1）。DB の例外 → E6
+<ol class="db">
+<li><pre class="sql" data-kind="exec" data-src="TicketRepository.java:38-46">UPDATE vulnerability_ticket
+   SET status = :newStatus,
+       version = :newVersion,
+       updated_by = :userId,
+       updated_at = CURRENT_TIMESTAMP
+ WHERE id = :ticketId
+   AND tenant_id = :tenantId
+   AND version = :currentVersion</pre>
+<p class="note">No.24〜37 の判定をすべて通過したとき。更新条件に <code>version</code> を含める楽観ロック（No.26 で行ロックを取得済みのため、同じトランザクション内では通常 1 件になる）。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:newStatus</code></td><td><code>newStatus.name()</code>（No.24）</td><td>IN_PROGRESS</td></tr>
+<tr><td><code>:newVersion</code></td><td><code>newVersion</code>（No.38）</td><td>5</td></tr>
+<tr><td><code>:userId</code></td><td><code>user.userId</code></td><td>205</td></tr>
+<tr><td><code>:ticketId</code></td><td>パス変数 <code>ticketId</code></td><td>5012</td></tr>
+<tr><td><code>:tenantId</code></td><td><code>user.tenantId</code></td><td>3</td></tr>
+<tr><td><code>:currentVersion</code></td><td><code>ticket.version</code>（No.26.3）</td><td>4</td></tr>
+</tbody></table></li>
+<li><b>更新内容</b>（1 行）
+<table class="sub upd"><thead><tr><th>更新列</th><th>更新前（例）</th><th>更新後（例）</th><th>値の取得元・計算</th></tr></thead><tbody>
+<tr><td>status</td><td>OPEN</td><td>IN_PROGRESS</td><td><code>:newStatus</code></td></tr>
+<tr><td>version</td><td>4</td><td>5</td><td><code>:newVersion</code>（更新前 ＋ 1）</td></tr>
+<tr><td>updated_by</td><td>100</td><td>205</td><td><code>:userId</code></td></tr>
+<tr><td>updated_at</td><td>2026-10-20 09:12:00</td><td>2026-10-25 10:15:30</td><td>DB の <code>CURRENT_TIMESTAMP</code></td></tr>
+</tbody></table></li>
+<li><b>更新件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>更新件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ 40 で不成立 → 42</td></tr>
+<tr><td>0 件（<code>version</code> 不一致など）</td><td class="go">→ 40 で成立 → 41</td></tr>
+<tr><td>2 件以上</td><td class="go">→ 40 で成立 → 41（<code>id</code> が主キーなら発生しない<span class="uv">〔未確認: U3〕</span>）</td></tr>
+</tbody></table></li>
+</ol></td><td>TicketService.java:54-55<br>TicketRepository.java:36-49</td></tr>
+<tr><td>40</td><td><span class="k">分岐</span><code>updated</code> が 1 でないか判定する。</td><td>TicketService.java:56</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>updated</code> が 1 でないとき（他の更新と競合したとき）<span class="of">（No.40 が成立）</span></td><td></td></tr>
+<tr><td>41</td><td class="i2"><span class="k x">例外</span><code>TicketConflictException</code>（ステータス 409、コード <code>TICKET_CONFLICT</code>、メッセージ「他の更新と競合しました: 5012」）を送出する。→ E5</td><td>TicketService.java:57<br>TicketConflictException.java:7-9</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>updated</code> が 1 のとき<span class="of">（No.40 が不成立）</span> → 42</td><td></td></tr>
+<tr><td>42</td><td><span class="k">SQL</span><code>ticket_status_history</code> に、変更前後のステータス・変更者・コメントを 1 行登録する。DB の例外（制約違反など）→ E6
+<ol class="db">
+<li><pre class="sql" data-kind="exec" data-src="TicketHistoryRepository.java:19-22">INSERT INTO ticket_status_history
+    (ticket_id, from_status, to_status, changed_by, comment, changed_at)
+VALUES
+    (:ticketId, :fromStatus, :toStatus, :changedBy, :comment, CURRENT_TIMESTAMP)</pre>
+<p class="note">No.39 の更新件数が 1 件のとき。<code>comment</code> は null のまま登録できる（<code>MapSqlParameterSource</code> を使用）。履歴の ID 列の有無・採番方法は<span class="uv">〔未確認: U3〕</span>。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:ticketId</code></td><td>パス変数 <code>ticketId</code></td><td>5012</td></tr>
+<tr><td><code>:fromStatus</code></td><td><code>previousStatus.name()</code>（No.33）</td><td>OPEN</td></tr>
+<tr><td><code>:toStatus</code></td><td><code>newStatus.name()</code>（No.24）</td><td>IN_PROGRESS</td></tr>
+<tr><td><code>:changedBy</code></td><td><code>user.userId</code></td><td>205</td></tr>
+<tr><td><code>:comment</code></td><td>ボディの <code>comment</code>（null 可）</td><td>調査を開始します</td></tr>
+</tbody></table></li>
+<li><b>登録データ</b>（1 行）
+<table class="sub ins"><thead><tr><th>登録列</th><th>登録値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>ticket_id</td><td>5012</td><td><code>:ticketId</code></td></tr>
+<tr><td>from_status</td><td>OPEN</td><td><code>:fromStatus</code></td></tr>
+<tr><td>to_status</td><td>IN_PROGRESS</td><td><code>:toStatus</code></td></tr>
+<tr><td>changed_by</td><td>205</td><td><code>:changedBy</code></td></tr>
+<tr><td>comment</td><td>調査を開始します</td><td><code>:comment</code></td></tr>
+<tr><td>changed_at</td><td>2026-10-25 10:15:30</td><td>DB の <code>CURRENT_TIMESTAMP</code></td></tr>
+</tbody></table></li>
+</ol></td><td>TicketService.java:60<br>TicketHistoryRepository.java:17-29</td></tr>
+<tr><td>43</td><td>応答の内容 <code>TicketStatusResponse(ticketId, newStatus.name(), newVersion, previousStatus.name())</code> を作る（例 ticketId=5012, status="IN_PROGRESS", version=5, previousStatus="OPEN"）。</td><td>TicketService.java:62</td></tr>
+<tr><td>44</td><td><span class="k">TX</span><code>changeStatus</code> が正常に終了したため COMMIT する。No.39 の UPDATE と No.42 の INSERT が確定し、No.26 の行ロックが解放される。COMMIT の失敗 → E6</td><td>TicketService.java:33<br>FW 仕様</td></tr>
+<tr><td>45</td><td><span class="k">応答</span>ステータス 200、<code>Content-Type: application/json</code>、ボディ <code>{"ticketId":5012,"status":"IN_PROGRESS","version":5,"previousStatus":"OPEN"}</code> で応答する（項目は 1.5 の表）。200 応答で<span class="end">終了</span></td><td>TicketController.java:25, 29</td></tr>
+</tbody></table>
+</section>

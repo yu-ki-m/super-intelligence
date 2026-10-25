@@ -1,0 +1,17 @@
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（未確認事項 4 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td><code>check --coverage</code> で根拠から参照されていない注目行が 0 件であることを確認。フィルター・引数の変換・入力検証・トランザクション・例外ハンドラーを含めた</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>フィルター → 引数の準備（宣言順）→ トランザクション開始 → サービスの処理 → COMMIT → 応答 の順。コントローラーの引数の準備順は Spring の仕様による〔推定〕</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>分岐 15 か所（01・03・07・16〜20・27・29・31・34・36・40、E4-01）すべてに結果ごとの「〜のとき」行あり。処理の無い結果には行き先あり。短絡評価（03・29・36）を明記。try 2 か所（06・23）の catch を記載</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>return（04・13）、例外の送出 8 か所（08・09・25・28・32・35・37・41）、暗黙の例外（10・11・26）、正常応答（45）を確認</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>シナリオ値（tenantId 3、userId 205、ticketId 5012、version 4 → 5、OPEN → IN_PROGRESS）がバインド変数・更新前後・登録データ・応答で一致。<code>check --refs</code> で項目の参照（No.26.3 など）と、レスポンス・データ変更・未確認事項の表の No. が参照先と合うことを確認</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>SQL 4 文の全文をソースと照合。バインド変数・取得列・SET 列・INSERT 列が表と一致</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>6 経路（E1〜E6）。ハンドラーの選択（型の一致）、フィルター内の例外がハンドラーを通らないこと、暗黙の例外（NumberFormatException・NullPointerException・取得値の変換失敗）を記載</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>開始 22・COMMIT 44・ROLLBACK E5/E6。フィルターと引数の準備はトランザクション外</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>フィルター・検証・リポジトリの処理を呼び出し位置に展開。ABSTRACT 警告 0 件</td></tr>
+<tr><td>視認性</td><td>OK</td><td><code>render</code>：1280px・1600px・印刷相当で横スクロール・はみ出しなし。スクリーンショットで木の形（縦線・枝）と表の崩れがないことを確認</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1〜U4）</td><td>根拠の行番号を <code>--src-root</code> で照合（範囲外 0 件）。設定・DDL・他のフィルターは提供されていないため未確認</td></tr>
+</tbody></table>
+</section>

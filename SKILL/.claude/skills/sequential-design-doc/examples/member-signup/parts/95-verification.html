@@ -1,0 +1,17 @@
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（未確認事項 4 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td><code>check --coverage</code> の未参照行を確認。入力検証（<code>ValidationPipe</code>）、トランザクション、キュー投入、ワーカー（A1）を含めた</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>検証 → 重複確認（トランザクション外）→ ハッシュ化 → トランザクション → COMMIT → キュー投入 → 応答。ワーカーは応答と独立</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>分岐 13 か所（No.01〜10・No.14、A1-01・A1-04）すべてに結果ごとの「〜のとき」行あり（No.09 は 3 つの結果）。処理の無い結果には行き先あり。キュー投入（try・catch）・メール送信の成否に行き先あり</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>例外の送出（No.15）、捕捉して続行（No.24）、応答（No.25）、ワーカーの return 2 か所と再実行（A1-08）</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>シナリオ値（email の正規化、id 1001、PENDING）が INSERT・ジョブのデータ・応答・ワーカーの UPDATE で一致</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>ORM の操作 5 つをすべて参考SQL として記載し、列はエンティティの定義と照合。実行SQL として断定していない。<code>check --refs</code> で項目の参照（No.13.3・No.A1-03.3 など）が参照先と合うことを確認</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>E1〜E5 と A1-08。同時登録による一意制約違反が 409 ではなく 500 になること、メールの二重送信の可能性を記載</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>No.13 がトランザクション外であること、No.17〜21 の範囲、キュー投入が COMMIT 後であること</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>リポジトリ・プロデューサーの処理を呼び出し位置に展開。ABSTRACT 警告 0 件</td></tr>
+<tr><td>視認性</td><td>OK</td><td><code>render</code>：横スクロール・はみ出しなし。スクリーンショットで木の形（縦線・枝）と項目の字下げを確認</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1〜U4）</td><td>行番号を <code>--src-root</code> で照合。モジュール設定・DDL・起動構成は提供されていない</td></tr>
+</tbody></table>
+</section>

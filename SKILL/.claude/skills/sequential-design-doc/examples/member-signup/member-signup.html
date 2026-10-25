@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="sequential-design-doc">
+<title>詳細設計書：会員登録（POST /members）</title>
+<style>
+/* sequential-design-doc 標準スタイル。ここを書き換えずに使う（独自の装飾を足さない）。 */
+:root {
+  --fg: #111; --sub: #555; --line: #bcbcbc; --line2: #dadada;
+  --th: #efefef; --code: #f6f6f4; --mark: #b00020; --inf: #7a4b00; --link: #0b57d0;
+  /* 逐次処理の木：深さ k の縦線は x(k) = 6px + (k-1)×1.4em + 0.35em。横の枝（├─ └─）は x(k) から文字の手前まで。 */
+  --gc: #8f8f8f; --gl: linear-gradient(var(--gc), var(--gc));
+  --v1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px 100%;
+  --v2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px 100%;
+  --v3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px 100%;
+  --v4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px 100%;
+  --v5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px 100%;
+  --v6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px 100%;
+  --v7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px 100%;
+  --v8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px 100%;
+  --g1: var(--v1); --g2: var(--g1), var(--v2); --g3: var(--g2), var(--v3); --g4: var(--g3), var(--v4);
+  --g5: var(--g4), var(--v5); --g6: var(--g5), var(--v6); --g7: var(--g6), var(--v7); --g8: var(--g7), var(--v8);
+  --ty: 0.95em; --tw: calc(1.05em - 3px);
+  --t1: var(--gl) no-repeat calc(6px + 0.35em) var(--ty) / var(--tw) 1px;
+  --t2: var(--gl) no-repeat calc(6px + 1.75em) var(--ty) / var(--tw) 1px;
+  --t3: var(--gl) no-repeat calc(6px + 3.15em) var(--ty) / var(--tw) 1px;
+  --t4: var(--gl) no-repeat calc(6px + 4.55em) var(--ty) / var(--tw) 1px;
+  --t5: var(--gl) no-repeat calc(6px + 5.95em) var(--ty) / var(--tw) 1px;
+  --t6: var(--gl) no-repeat calc(6px + 7.35em) var(--ty) / var(--tw) 1px;
+  --t7: var(--gl) no-repeat calc(6px + 8.75em) var(--ty) / var(--tw) 1px;
+  --t8: var(--gl) no-repeat calc(6px + 10.15em) var(--ty) / var(--tw) 1px;
+  --h1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px var(--ty);
+  --h2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px var(--ty);
+  --h3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px var(--ty);
+  --h4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px var(--ty);
+  --h5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px var(--ty);
+  --h6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px var(--ty);
+  --h7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px var(--ty);
+  --h8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px var(--ty);
+  /* 見出しの行（下に字下げした行が続く行）：文の 1 行目の下から縦線を下ろす */
+  --d1: var(--gl) no-repeat calc(6px + 0.35em) calc(2px + 1.5em) / 1px 100%;
+  --d2: var(--gl) no-repeat calc(6px + 1.75em) calc(2px + 1.5em) / 1px 100%;
+  --d3: var(--gl) no-repeat calc(6px + 3.15em) calc(2px + 1.5em) / 1px 100%;
+  --d4: var(--gl) no-repeat calc(6px + 4.55em) calc(2px + 1.5em) / 1px 100%;
+  --d5: var(--gl) no-repeat calc(6px + 5.95em) calc(2px + 1.5em) / 1px 100%;
+  --d6: var(--gl) no-repeat calc(6px + 7.35em) calc(2px + 1.5em) / 1px 100%;
+  --d7: var(--gl) no-repeat calc(6px + 8.75em) calc(2px + 1.5em) / 1px 100%;
+  --d8: var(--gl) no-repeat calc(6px + 10.15em) calc(2px + 1.5em) / 1px 100%;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; padding: 8px 12px 20px; color: var(--fg); background: #fff;
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, "Noto Sans JP", sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+main, header.doc { max-width: 1920px; }
+h1 { font-size: 17px; margin: 0 0 2px; }
+h2 { font-size: 14.5px; margin: 14px 0 4px; padding: 0 0 1px; border-bottom: 2px solid #333; }
+h3 { font-size: 13.5px; margin: 10px 0 3px; }
+h4 { font-size: 13px; margin: 6px 0 2px; }
+p { margin: 2px 0 4px; }
+ul, ol { margin: 2px 0 4px; padding-left: 1.6em; }
+li { margin: 0; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: Consolas, "BIZ UDGothic", "Courier New", monospace; }
+code { font-size: 12px; padding: 0 2px; background: var(--code); border: 1px solid #e8e8e8; border-radius: 2px; }
+pre code { padding: 0; background: none; border: 0; }
+
+/* 表 */
+table { border-collapse: collapse; width: 100%; margin: 0 0 6px; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+th { background: var(--th); font-weight: 600; }
+thead th { white-space: nowrap; }
+table.auto { width: auto; max-width: 100%; }
+table.kv > tbody > tr > th { width: 10em; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+caption { caption-side: top; text-align: left; font-size: 11.5px; font-weight: 600; padding: 0 0 1px; color: #333; }
+
+/* 文書ヘッダー */
+header.doc { border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 4px; }
+.meta { color: var(--sub); font-size: 12px; margin: 0; }
+.legend { font-size: 11.5px; color: var(--sub); margin: 2px 0 0; }
+nav.toc { font-size: 12px; margin: 4px 0; }
+nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; }
+
+/* 逐次処理表（No.・処理内容・根拠の 3 列）
+   - 横の罫線は、ブロック（字下げなしの文と、その内側の行・「〜のとき」行・終端行）の間にだけ、全列を通して引く。
+     ブロックの内側には横の罫線を引かず、処理内容の欄の縦線と枝（├─ └─）で入れ子を見せる。縦の罫線は常に通す。
+   - build が付ける class：td.c＝処理内容の欄、tr.n＝字下げした行、tr.close＝ブロックを閉じる行（繰返終端・待機・try終端）、tr.hd＝見出しの行（次の行が字下げで 1 段深い行）。
+     tr.arm（「〜のとき」行・catch・finally など）は部品に書く。 */
+table.steps { table-layout: fixed; border-bottom: 1px solid var(--line); }
+table.steps > thead > tr > th:nth-child(1) { width: 4.8em; }
+table.steps > thead > tr > th:nth-child(3) { width: 15em; }
+table.steps > tbody > tr > td { overflow-wrap: anywhere; border-top: 1px solid var(--line); border-bottom: 0; }
+table.steps > tbody > tr.n > td, table.steps > tbody > tr.arm > td,
+table.steps > tbody > tr.close > td, table.steps > tbody > tr.dt > td { border-top: 0; }
+table.steps td.no { text-align: right; white-space: nowrap; font-family: Consolas, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.steps td.src { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); }
+table.steps tr.arm .of { color: var(--sub); }
+table.steps .kw { font-family: Consolas, monospace; font-size: 12.5px; font-weight: 700; }
+table.steps td.c.i1 { padding-left: calc(6px + 1.4em); background: var(--g1); }
+table.steps td.c.i2 { padding-left: calc(6px + 2.8em); background: var(--g2); }
+table.steps td.c.i3 { padding-left: calc(6px + 4.2em); background: var(--g3); }
+table.steps td.c.i4 { padding-left: calc(6px + 5.6em); background: var(--g4); }
+table.steps td.c.i5 { padding-left: calc(6px + 7em); background: var(--g5); }
+table.steps td.c.i6 { padding-left: calc(6px + 8.4em); background: var(--g6); }
+table.steps td.c.i7 { padding-left: calc(6px + 9.8em); background: var(--g7); }
+table.steps td.c.i8 { padding-left: calc(6px + 11.2em); background: var(--g8); }
+/* 「〜のとき」行・catch・finally：上位の縦線から横の枝（├─）を出す */
+table.steps tr.arm > td.c.i1 { background: var(--g1), var(--t1); }
+table.steps tr.arm > td.c.i2 { background: var(--g2), var(--t2); }
+table.steps tr.arm > td.c.i3 { background: var(--g3), var(--t3); }
+table.steps tr.arm > td.c.i4 { background: var(--g4), var(--t4); }
+table.steps tr.arm > td.c.i5 { background: var(--g5), var(--t5); }
+table.steps tr.arm > td.c.i6 { background: var(--g6), var(--t6); }
+table.steps tr.arm > td.c.i7 { background: var(--g7), var(--t7); }
+table.steps tr.arm > td.c.i8 { background: var(--g8), var(--t8); }
+/* ブロックを閉じる行（繰返終端・待機・try終端）：縦線をここで止めて枝を出す（└─） */
+table.steps tr.close > td.c.i1 { background: var(--h1), var(--t1); }
+table.steps tr.close > td.c.i2 { background: var(--g1), var(--h2), var(--t2); }
+table.steps tr.close > td.c.i3 { background: var(--g2), var(--h3), var(--t3); }
+table.steps tr.close > td.c.i4 { background: var(--g3), var(--h4), var(--t4); }
+table.steps tr.close > td.c.i5 { background: var(--g4), var(--h5), var(--t5); }
+table.steps tr.close > td.c.i6 { background: var(--g5), var(--h6), var(--t6); }
+table.steps tr.close > td.c.i7 { background: var(--g6), var(--h7), var(--t7); }
+table.steps tr.close > td.c.i8 { background: var(--g7), var(--h8), var(--t8); }
+/* 見出しの行（分岐・try・繰返・「〜のとき」など、下に字下げした行が続く行。build が tr.hd を付ける）：縦線を文の下から下ろす */
+table.steps tr.hd > td.c { background: var(--d1); }
+table.steps tr.hd > td.c.i1 { background: var(--g1), var(--d2); }
+table.steps tr.hd > td.c.i2 { background: var(--g2), var(--d3); }
+table.steps tr.hd > td.c.i3 { background: var(--g3), var(--d4); }
+table.steps tr.hd > td.c.i4 { background: var(--g4), var(--d5); }
+table.steps tr.hd > td.c.i5 { background: var(--g5), var(--d6); }
+table.steps tr.hd > td.c.i6 { background: var(--g6), var(--d7); }
+table.steps tr.hd > td.c.i7 { background: var(--g7), var(--d8); }
+table.steps tr.arm.hd > td.c.i1 { background: var(--g1), var(--t1), var(--d2); }
+table.steps tr.arm.hd > td.c.i2 { background: var(--g2), var(--t2), var(--d3); }
+table.steps tr.arm.hd > td.c.i3 { background: var(--g3), var(--t3), var(--d4); }
+table.steps tr.arm.hd > td.c.i4 { background: var(--g4), var(--t4), var(--d5); }
+table.steps tr.arm.hd > td.c.i5 { background: var(--g5), var(--t5), var(--d6); }
+table.steps tr.arm.hd > td.c.i6 { background: var(--g6), var(--t6), var(--d7); }
+table.steps tr.arm.hd > td.c.i7 { background: var(--g7), var(--t7), var(--d8); }
+/* 見出しの行の文が折り返したとき、2 行目以降を縦線より右から始める（ぶら下げ） */
+table.steps tr.hd > td.c { padding-left: calc(6px + 0.9em); text-indent: -0.9em; }
+table.steps tr.hd > td.c.i1 { padding-left: calc(6px + 1.4em + 0.9em); }
+table.steps tr.hd > td.c.i2 { padding-left: calc(6px + 2.8em + 0.9em); }
+table.steps tr.hd > td.c.i3 { padding-left: calc(6px + 4.2em + 0.9em); }
+table.steps tr.hd > td.c.i4 { padding-left: calc(6px + 5.6em + 0.9em); }
+table.steps tr.hd > td.c.i5 { padding-left: calc(6px + 7em + 0.9em); }
+table.steps tr.hd > td.c.i6 { padding-left: calc(6px + 8.4em + 0.9em); }
+table.steps tr.hd > td.c.i7 { padding-left: calc(6px + 9.8em + 0.9em); }
+table.steps tr.hd > td.c > * { text-indent: 0; }
+/* 処理の中の項目（1. 2. …）：処理の文より一段下げる。No.29.3 のように参照できる */
+table.steps td.c > ol { margin: 2px 0 1px; padding-left: 2.2em; }
+table.steps td.c > ol > li { margin: 0 0 3px; padding-left: 2px; }
+table.steps td.c > ol > li::marker { font-family: Consolas, monospace; font-size: 12px; color: #333; }
+table.steps td.c > ol > li > b:first-child { font-size: 12px; }
+/* 画面では、マウスを置いた行を薄く色付けして、同じ行の No.・処理内容・根拠を追いやすくする（印刷には出ない） */
+@media screen { table.steps > tbody > tr:hover > td { background-color: #eef3fb !important; } }
+/* リンクで移った先の行・項目 */
+@media screen { table.steps > tbody > tr:target > td, td.c li:target { background-color: #fff3c4; } }
+.k { display: inline-block; font-size: 11px; line-height: 1.35; padding: 0 3px; margin-right: 4px; border: 1px solid #888; border-radius: 2px; color: #222; background: #fff; white-space: nowrap; vertical-align: 1px; }
+.k.x { border-color: var(--mark); color: var(--mark); }
+table.steps td.c a, .go a { font-family: Consolas, monospace; }
+.end { color: var(--mark); font-weight: 600; }
+
+/* 推定・未確認 */
+.inf { color: var(--inf); font-weight: 600; }
+.uv { color: var(--mark); font-weight: 600; }
+
+/* 補足の表・SQL */
+table.sub { margin: 2px 0 3px; font-size: 12px; }
+table.sub th, table.sub td { padding: 2px 5px; }
+td table.sub, .db table.sub, .api table.sub, .box table.sub { width: auto; max-width: 100%; }
+.sqlh { font-size: 12px; color: var(--sub); margin: 0 0 1px; }
+.sqlh b { color: var(--fg); }
+pre.sql, pre.txt {
+  margin: 2px 0 3px; padding: 3px 6px; background: var(--code); border: 1px solid var(--line2); border-left: 3px solid #666;
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4;
+}
+pre.sql[data-kind="ref"] { border-left: 3px dashed #999; background: #fff; }
+/* JSON の例（リクエスト・レスポンス・外部 API の送受信）：項目の表の前に置く */
+pre.json {
+  margin: 2px 0 3px; padding: 3px 8px; background: var(--code); border: 1px solid var(--line2); border-left: 3px solid #8a8a8a;
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; width: fit-content; max-width: 100%;
+}
+.jsons { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: flex-start; }  /* 形の違う JSON の例を横に並べる */
+.jsons > div { max-width: 100%; }
+.note { font-size: 12px; color: var(--sub); }
+
+/* 処理ごとのタブ：処理が 2 つ以上あると build が nav.tabs と .panel を作る（JavaScript なし。:target で切り替える） */
+nav.tabs { display: none; }
+body.tabs nav.tabs {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px;
+  position: sticky; top: 0; z-index: 3; background: #fff;
+  margin: 6px 0 8px; padding: 4px 0 0; border-bottom: 1px solid #555;
+}
+nav.tabs .tg { display: flex; flex-direction: column; }
+nav.tabs .tgl { font-size: 11px; color: var(--sub); padding: 0 3px 1px; margin: 0 0 3px; border-bottom: 2px solid #9a9a9a; white-space: nowrap; }
+nav.tabs .tgt { display: flex; }
+nav.tabs a.tab {
+  position: relative; display: block; padding: 2px 10px 3px; margin-right: -1px;
+  border: 1px solid var(--line); border-bottom: 0; background: var(--th); color: var(--fg);
+  font-size: 12.5px; text-decoration: none; white-space: nowrap;
+}
+nav.tabs a.tab:hover { background: #fff; }
+body.tabs .panel { display: none; }
+body.tabs .panel:target, body.tabs .panel:has(:target), body.tabs:not(:has(.panel:target, .panel :target)) .panel.default { display: block; }
+body.tabs .panel, body.tabs .panel [id] { scroll-margin-top: calc(var(--tabs-h, 48px) + 6px); }
+
+/* 検証 */
+.vstatus { font-weight: 600; }
+.vstatus[data-status="open"] { color: var(--mark); }
+
+/* 印刷 */
+@page { size: A4 landscape; margin: 9mm; }
+@media print {
+  body { padding: 0; font-size: 9.5pt; }
+  main, header.doc { max-width: none; }
+  a { color: inherit; }
+  h2, h3, h4 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  tr:has(ol), tr.dt { break-inside: auto; }
+  thead { display: table-header-group; }
+  pre.sql, pre.txt, pre.json { background: #fafafa; }
+  nav.toc, .noprint { display: none; }
+  /* タブのある文書はすべてのパネルを印刷し、処理ごとに改ページする */
+  body.tabs nav.tabs { display: none !important; }
+  body.tabs .panel { display: block !important; }
+  body.tabs section.proc.panel, body.tabs #doc-check { break-before: page; }
+}
+</style>
+</head>
+<body>
+<header class="doc">
+<h1>詳細設計書：会員登録（POST /members）</h1>
+<p class="meta">作成日 2026-10-25 ／ 対象 examples/member-signup/src（NestJS・TypeORM・BullMQ）</p>
+<p class="legend">表の見方：No. は実行順。処理内容の「→ 12」は 12 へ進むことを示し、行き先の書かれていない行は次の番号の行へ進む。横の罫線は処理のまとまり（分岐・繰り返し・try などのブロック）の区切り。字下げと縦の線はブロックの内側、「├─ 〜のとき」は分岐の結果ごとの始まり、「└─」はブロックの終わりを示す。No.29.3 は No.29 の中の項目 3。<span class="inf">〔推定〕</span>はコードに直接書かれていない動作（フレームワークの仕様などからの推定）、<span class="uv">〔未確認〕</span>はコードから確定できない事項（「未確認事項」を参照）。「値の例」はすべて説明用の架空の値。</p>
+</header>
+<main>
+<section class="proc" id="p1" data-title="会員登録">
+<h2>1. 会員登録（POST /members）</h2>
+
+<section data-sec="overview">
+<h3>1.1 処理概要</h3>
+<table class="kv"><tbody>
+<tr><th>対象処理</th><td>会員（<code>members</code>）とプロフィール（<code>member_profiles</code>）を登録し、ウェルカムメール送信のジョブをキューに投入する</td></tr>
+<tr><th>種別</th><td>Web API（同期）＋ キューのワーカー（非同期・別プロセス）</td></tr>
+<tr><th>HTTPメソッド</th><td>POST</td></tr>
+<tr><th>エンドポイント</th><td><code>/members</code></td></tr>
+<tr><th>入力</th><td>ボディ <code>email</code>・<code>password</code>・<code>displayName</code>・<code>birthDate</code></td></tr>
+<tr><th>出力</th><td>201：登録した会員の <code>id</code>・<code>email</code>・<code>status</code>（JSON）／ 異常時 400・409・500</td></tr>
+<tr><th>認証</th><td>なし（コード上に認証の処理は無い）</td></tr>
+<tr><th>トランザクション</th><td>あり（1 つ。No.<a href="#p1-s17">17</a>〜21 の 2 テーブルへの INSERT）。No.<a href="#p1-s13">13</a> の重複確認はトランザクション外</td></tr>
+<tr><th>使用テーブル</th><td><code>members</code>（参照・登録、ワーカーで参照・更新）、<code>member_profiles</code>（登録）</td></tr>
+<tr><th>外部システム</th><td>Redis（BullMQ のキュー <code>mail</code>）、メール送信（<code>@nestjs-modules/mailer</code>。ワーカーから）</td></tr>
+<tr><th>非同期処理</th><td>A1：キュー <code>mail</code> のジョブ <code>welcome</code> を処理するワーカー（No.<a href="#p1-s23">23</a> で投入）</td></tr>
+<tr><th>起点（根拠）</th><td class="src">members.controller.ts:10-14 signup ／ main.ts:8</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="input">
+<h3>1.2 入力項目</h3>
+<div class="sqlh"><b>リクエストボディの例（POST /members、Content-Type: application/json）</b></div><pre class="json" data-title="リクエストボディの例（POST /members、Content-Type: application/json）" data-labeled="1">{
+  "email": "Taro.Yamada@Example.com",
+  "password": "passw0rd123",
+  "displayName": "山田太郎",
+  "birthDate": "1990-04-01"
+}</pre>
+<table class="sub"><thead><tr><th>項目</th><th>受け取り位置</th><th>型</th><th>必須</th><th>検証内容（コード上の条件）</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>email</code></td><td>ボディ（JSON）</td><td>string</td><td>必須</td><td><code>@IsEmail()</code>（No.<a href="#p1-s03">03</a>）</td><td>"Taro.Yamada@Example.com"</td></tr>
+<tr><td><code>password</code></td><td>ボディ</td><td>string</td><td>必須</td><td><code>@IsString()</code>・<code>@Length(8, 64)</code>・<code>@Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/)</code>（英字と数字を各 1 文字以上）（No.<a href="#p1-s04">04</a>〜06）</td><td>"passw0rd123"</td></tr>
+<tr><td><code>displayName</code></td><td>ボディ</td><td>string</td><td>必須</td><td><code>@IsString()</code>・<code>@Length(1, 30)</code>（No.<a href="#p1-s07">07</a>・08）</td><td>"山田太郎"</td></tr>
+<tr><td><code>birthDate</code></td><td>ボディ</td><td>string</td><td>任意</td><td><code>@IsOptional()</code>・<code>@IsDateString()</code>（No.<a href="#p1-s09">09</a>）</td><td>"1990-04-01"</td></tr>
+<tr><td>（上記以外の項目）</td><td>ボディ</td><td>—</td><td>—</td><td>あれば違反（<code>forbidNonWhitelisted: true</code>）（No.<a href="#p1-s02">02</a>）</td><td>—</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="steps">
+<h3>1.3 逐次処理</h3>
+<p class="note">シナリオ：未登録のメールアドレス Taro.Yamada@Example.com で会員登録し、会員 ID 1001 が採番される。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-s01" class="hd"><td class="no">01</td><td class="c"><span class="k">分岐</span>HTTP リクエスト <code>POST /members</code> を受け取り、ボディの JSON を読み取れるか判定する（NestJS 既定の body parser）<span class="inf">〔推定〕</span>。</td><td class="src">main.ts:6<br>FW 仕様</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">JSON を読み取れるとき<span class="of">（No.<a href="#p1-s01">01</a> が成立）</span> → <a href="#p1-s02">02</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">JSON の構文誤りのとき<span class="of">（No.<a href="#p1-s01">01</a> が不成立）</span> → <a href="#p1-E1">E1</a></td><td></td></tr>
+<tr id="p1-s02" class="hd"><td class="no">02</td><td class="c"><span class="k">分岐</span>グローバルの <code>ValidationPipe</code>（<code>whitelist: true</code>, <code>forbidNonWhitelisted: true</code>）で <code>SignupDto</code> を検証する：ボディに <code>SignupDto</code> に無い項目があるか判定する。</td><td class="src">main.ts:8<br>members.controller.ts:12</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">DTO に無い項目があるとき<span class="of">（No.<a href="#p1-s02">02</a> が成立）</span>：違反として記録する → <a href="#p1-s03">03</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">DTO に無い項目が無いとき<span class="of">（No.<a href="#p1-s02">02</a> が不成立）</span> → <a href="#p1-s03">03</a></td><td></td></tr>
+<tr id="p1-s03" class="hd"><td class="no">03</td><td class="c"><span class="k">分岐</span><code>email</code> がメールアドレスの形式でないか判定する（<code>@IsEmail()</code>。未指定も違反）。</td><td class="src">signup.dto.ts:4-5</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">メールアドレスの形式でないとき<span class="of">（No.<a href="#p1-s03">03</a> が成立）</span>：違反として記録する → <a href="#p1-s04">04</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">メールアドレスの形式のとき<span class="of">（No.<a href="#p1-s03">03</a> が不成立）</span> → <a href="#p1-s04">04</a></td><td></td></tr>
+<tr id="p1-s04" class="hd"><td class="no">04</td><td class="c"><span class="k">分岐</span><code>password</code> が文字列でないか判定する（<code>@IsString()</code>）。</td><td class="src">signup.dto.ts:8</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">文字列でないとき<span class="of">（No.<a href="#p1-s04">04</a> が成立）</span>：違反として記録する → <a href="#p1-s05">05</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">文字列のとき<span class="of">（No.<a href="#p1-s04">04</a> が不成立）</span> → <a href="#p1-s05">05</a></td><td></td></tr>
+<tr id="p1-s05" class="hd"><td class="no">05</td><td class="c"><span class="k">分岐</span><code>password</code> の長さが 8 未満または 64 を超えるか判定する（<code>@Length(8, 64)</code>）。</td><td class="src">signup.dto.ts:9</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">8 未満または 64 を超えるとき<span class="of">（No.<a href="#p1-s05">05</a> が成立）</span>：違反として記録する → <a href="#p1-s06">06</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">8〜64 文字のとき<span class="of">（No.<a href="#p1-s05">05</a> が不成立）</span> → <a href="#p1-s06">06</a></td><td></td></tr>
+<tr id="p1-s06" class="hd"><td class="no">06</td><td class="c"><span class="k">分岐</span><code>password</code> が英字と数字を各 1 文字以上含まないか判定する（<code>@Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/)</code>）。</td><td class="src">signup.dto.ts:7, 10</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">英字か数字のどちらかを含まないとき<span class="of">（No.<a href="#p1-s06">06</a> が成立）</span>：違反として記録する → <a href="#p1-s07">07</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">英字と数字を各 1 文字以上含むとき<span class="of">（No.<a href="#p1-s06">06</a> が不成立）</span> → <a href="#p1-s07">07</a></td><td></td></tr>
+<tr id="p1-s07" class="hd"><td class="no">07</td><td class="c"><span class="k">分岐</span><code>displayName</code> が文字列でないか判定する（<code>@IsString()</code>）。</td><td class="src">signup.dto.ts:13</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">文字列でないとき<span class="of">（No.<a href="#p1-s07">07</a> が成立）</span>：違反として記録する → <a href="#p1-s08">08</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">文字列のとき<span class="of">（No.<a href="#p1-s07">07</a> が不成立）</span> → <a href="#p1-s08">08</a></td><td></td></tr>
+<tr id="p1-s08" class="hd"><td class="no">08</td><td class="c"><span class="k">分岐</span><code>displayName</code> の長さが 1 未満または 30 を超えるか判定する（<code>@Length(1, 30)</code>）。</td><td class="src">signup.dto.ts:14</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">1 未満または 30 を超えるとき<span class="of">（No.<a href="#p1-s08">08</a> が成立）</span>：違反として記録する → <a href="#p1-s09">09</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">1〜30 文字のとき<span class="of">（No.<a href="#p1-s08">08</a> が不成立）</span> → <a href="#p1-s09">09</a></td><td></td></tr>
+<tr id="p1-s09" class="hd"><td class="no">09</td><td class="c"><span class="k">分岐</span><code>birthDate</code> が undefined・null か、ISO 8601 の日付文字列か判定する（<code>@IsOptional()</code>・<code>@IsDateString()</code>）。</td><td class="src">signup.dto.ts:17-19</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">undefined・null のとき<span class="of">（No.<a href="#p1-s09">09</a>。<code>@IsOptional()</code> により検証しない）</span> → <a href="#p1-s10">10</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">値があり、ISO 8601 の日付文字列でないとき<span class="of">（No.<a href="#p1-s09">09</a>）</span>：違反として記録する → <a href="#p1-s10">10</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">ISO 8601 の日付文字列のとき<span class="of">（No.<a href="#p1-s09">09</a>）</span> → <a href="#p1-s10">10</a></td><td></td></tr>
+<tr id="p1-s10" class="hd"><td class="no">10</td><td class="c"><span class="k">分岐</span>02〜09 で記録した違反が 1 件以上あるか判定する（すべての項目を検証してから判定する）。</td><td class="src">main.ts:8<br>FW 仕様</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">違反が 1 件以上あるとき<span class="of">（No.<a href="#p1-s10">10</a> が成立：<code>BadRequestException</code>）</span> → <a href="#p1-E2">E2</a></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c">違反が無いとき<span class="of">（No.<a href="#p1-s10">10</a> が不成立）</span>：検証済みの値を <code>dto</code> として渡す → <a href="#p1-s11">11</a></td><td></td></tr>
+<tr id="p1-s11"><td class="no">11</td><td class="c"><code>MembersController.signup</code> の処理として、12〜24 の会員登録を行い、その戻り値をそのまま応答のボディにする（正常時のステータスは <code>@HttpCode(HttpStatus.CREATED)</code> により 201）。</td><td class="src">members.controller.ts:10-14</td></tr>
+<tr id="p1-s12"><td class="no">12</td><td class="c"><code>dto.email</code> の前後の空白を除き小文字にして、<code>email</code> に格納する（例 "taro.yamada@example.com"）。</td><td class="src">members.service.ts:25</td></tr>
+<tr id="p1-s13"><td class="no">13</td><td class="c"><span class="k">SQL</span><code>members</code> から <code>email</code> が一致する会員の件数を取得し、<code>exists</code>（<code>count &gt; 0</code>）に格納する（例 false）。<code>dataSource.getRepository(Member)</code> を使うため、トランザクション外で実行する。DB の例外 → <a href="#p1-E4">E4</a>
+<ol class="db">
+<li id="p1-s13-1"><div class="sqlh"><b>参考SQL</b>（ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない。元の操作: members.repository.ts:11 getRepository(Member).count({ where: { email } })）</div><pre class="sql" data-kind="ref" data-src="members.repository.ts:11 getRepository(Member).count({ where: { email } })" data-labeled="1">SELECT COUNT(DISTINCT(Member.id)) AS cnt
+  FROM members Member
+ WHERE Member.email = :email</pre>
+<p class="note">TypeORM の <code>count</code> が組み立てる SQL の目安<span class="inf">〔推定〕</span>。識別子の引用符・プレースホルダーの形式は DB の種類による<span class="uv">〔未確認: U1〕</span>。ロックは取らないため、同じメールアドレスで同時に登録されると、両方が 0 件と判定して先へ進むことがある（E5 を参照）。</p></li>
+<li id="p1-s13-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:email</code></td><td><code>email</code>（No.<a href="#p1-s12">12</a> で正規化した値）</td><td>taro.yamada@example.com</td></tr>
+</tbody></table></li>
+<li id="p1-s13-3"><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>cnt</td><td>number</td><td>0</td><td><code>count</code> → <code>exists</code>（<code>count &gt; 0</code>）</td><td>No.<a href="#p1-s14">14</a> の判定</td></tr>
+</tbody></table></li>
+<li id="p1-s13-4"><b>結果ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>結果</th><th>処理</th></tr></thead><tbody>
+<tr><td>0</td><td class="go"><code>exists</code> = false → 14 で不成立 → <a href="#p1-s16">16</a></td></tr>
+<tr><td>1 以上</td><td class="go"><code>exists</code> = true → 14 で成立 → <a href="#p1-s15">15</a></td></tr>
+</tbody></table></li>
+</ol></td><td class="src">members.service.ts:27<br>members.repository.ts:10-13</td></tr>
+<tr id="p1-s14" class="hd"><td class="no">14</td><td class="c"><span class="k">分岐</span><code>exists</code>（No.<a href="#p1-s13-3">13.3</a>）が true（登録済み）か判定する。</td><td class="src">members.repository.ts:12<br>members.service.ts:28</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c">メールアドレスが登録済みのとき<span class="of">（No.<a href="#p1-s14">14</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s15"><td class="no">15</td><td class="i2 c"><span class="k x">例外</span><code>ConflictException</code>（ステータス 409、メッセージ「このメールアドレスは既に登録されています」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">members.service.ts:29</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">メールアドレスが未登録のとき<span class="of">（No.<a href="#p1-s14">14</a> が不成立）</span> → <a href="#p1-s16">16</a></td><td></td></tr>
+<tr id="p1-s16"><td class="no">16</td><td class="c"><code>dto.password</code> を bcrypt（コスト 12、ソルトは自動生成）でハッシュ化し、<code>passwordHash</code> に格納する（例 "$2b$12$Q9…"）。失敗 → <a href="#p1-E4">E4</a></td><td class="src">members.service.ts:32</td></tr>
+<tr id="p1-s17" class="hd"><td class="no">17</td><td class="c"><span class="k">TX</span>トランザクションを開始し（<code>dataSource.transaction</code>）、コールバック（18〜20）を実行する。コールバックの中では引数の <code>manager</code> を使った操作だけがこのトランザクションに入る。</td><td class="src">members.service.ts:34</td></tr>
+<tr class="n" id="p1-s18"><td class="no">18</td><td class="i1 c"><span class="k">SQL</span><code>members</code> に会員を 1 行登録する（<code>manager.getRepository(Member)</code> で <code>create</code> したエンティティを <code>save</code>）。採番された <code>id</code> などを含むエンティティを <code>saved</code> に格納する（例 id=1001）。一意制約違反などの DB の例外 → <a href="#p1-E5">E5</a>
+<ol class="db">
+<li id="p1-s18-1"><div class="sqlh"><b>参考SQL</b>（ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない。元の操作: members.repository.ts:16-17 repo.save(repo.create(data))）</div><pre class="sql" data-kind="ref" data-src="members.repository.ts:16-17 repo.save(repo.create(data))" data-labeled="1">INSERT INTO members (email, password_hash, status, welcome_sent_at, created_at)
+VALUES (:email, :passwordHash, :status, DEFAULT, DEFAULT)</pre>
+<p class="note">新規（主キーなし）のエンティティの <code>save</code> は INSERT になる<span class="inf">〔推定〕</span>。採番された <code>id</code> と既定値の列（<code>created_at</code> など）は、DB の種類に応じて RETURNING または追加の SELECT で受け取る<span class="inf">〔推定〕</span><span class="uv">〔未確認: U1〕</span>。</p></li>
+<li id="p1-s18-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:email</code></td><td><code>email</code>（No.<a href="#p1-s12">12</a>）</td><td>taro.yamada@example.com</td></tr>
+<tr><td><code>:passwordHash</code></td><td><code>passwordHash</code>（No.<a href="#p1-s16">16</a>）</td><td>$2b$12$Q9…</td></tr>
+<tr><td><code>:status</code></td><td>定数 <code>'PENDING'</code></td><td>PENDING</td></tr>
+</tbody></table></li>
+<li id="p1-s18-3"><b>登録データ</b>（1 行）
+<table class="sub ins"><thead><tr><th>登録列</th><th>登録値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>id</td><td>1001</td><td>DB で採番（<code>@PrimaryGeneratedColumn</code>）</td></tr>
+<tr><td>email</td><td>taro.yamada@example.com</td><td><code>:email</code>（一意制約 <code>@Column({ unique: true })</code>）</td></tr>
+<tr><td>password_hash</td><td>$2b$12$Q9…</td><td><code>:passwordHash</code></td></tr>
+<tr><td>status</td><td>PENDING</td><td>定数</td></tr>
+<tr><td>welcome_sent_at</td><td>NULL</td><td>指定なし（NULL 可）</td></tr>
+<tr><td>created_at</td><td>2026-10-25 10:15:30</td><td>DB の既定値（<code>@CreateDateColumn</code>）</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">members.service.ts:35-39<br>members.repository.ts:15-18</td></tr>
+<tr class="n" id="p1-s19"><td class="no">19</td><td class="i1 c"><span class="k">SQL</span><code>member_profiles</code> にプロフィールを 1 行登録する（<code>manager.insert</code>）。DB の例外 → <a href="#p1-E5">E5</a>
+<ol class="db">
+<li id="p1-s19-1"><div class="sqlh"><b>参考SQL</b>（ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない。元の操作: members.repository.ts:21 manager.insert(MemberProfile, data)）</div><pre class="sql" data-kind="ref" data-src="members.repository.ts:21 manager.insert(MemberProfile, data)" data-labeled="1">INSERT INTO member_profiles (member_id, display_name, birth_date)
+VALUES (:memberId, :displayName, :birthDate)</pre></li>
+<li id="p1-s19-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:memberId</code></td><td><code>saved.id</code>（No.<a href="#p1-s18">18</a> で採番）</td><td>1001</td></tr>
+<tr><td><code>:displayName</code></td><td><code>dto.displayName</code></td><td>山田太郎</td></tr>
+<tr><td><code>:birthDate</code></td><td><code>dto.birthDate</code>。未指定なら null（<code>?? null</code>）</td><td>1990-04-01</td></tr>
+</tbody></table></li>
+<li id="p1-s19-3"><b>登録データ</b>（1 行）
+<table class="sub ins"><thead><tr><th>登録列</th><th>登録値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>member_id</td><td>1001</td><td><code>:memberId</code>（主キー）</td></tr>
+<tr><td>display_name</td><td>山田太郎</td><td><code>:displayName</code></td></tr>
+<tr><td>birth_date</td><td>1990-04-01</td><td><code>:birthDate</code>（DATE 型、NULL 可）</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">members.service.ts:40-44<br>members.repository.ts:20-22</td></tr>
+<tr class="n" id="p1-s20"><td class="no">20</td><td class="i1 c">コールバックの戻り値として <code>saved</code> を返す。</td><td class="src">members.service.ts:45</td></tr>
+<tr class="close n" id="p1-s21"><td class="no">21</td><td class="i1 c"><span class="k">TX</span>コールバックが正常に終わったため COMMIT し、No.<a href="#p1-s18">18</a>・19 の INSERT を確定する。戻り値を <code>member</code> に格納する（= <code>saved</code>）。COMMIT の失敗 → <a href="#p1-E5">E5</a></td><td class="src">members.service.ts:34, 46<br>FW 仕様</td></tr>
+<tr id="p1-s22" class="hd"><td class="no">22</td><td class="c"><span class="k">try</span>23 を実行する。例外が発生したら catch へ進む（例外の型は問わない）。</td><td class="src">members.service.ts:48-53</td></tr>
+<tr class="n" id="p1-s23"><td class="no">23</td><td class="i1 c"><span class="k">非同期</span><span class="k">API</span>Redis のキュー <code>mail</code> に、ジョブ名 <code>welcome</code> のジョブを登録する。処理の完了は待たない（登録したジョブは別プロセスで → <a href="#p1-A1">A1</a>）。登録が成功したら → <a href="#p1-s25">25</a>
+<ol class="api">
+<li id="p1-s23-1"><b>送信</b>：BullMQ <code>queue('mail').add('welcome', data, opts)</code>。オプションは最大 3 回実行（<code>attempts: 3</code>）、再試行の間隔は指数的に増やす（<code>backoff: exponential, delay 5000ms</code>）。接続先の Redis の設定は<span class="uv">〔未確認: U1〕</span></li>
+<li id="p1-s23-2"><b>送信データ</b>（ジョブのデータ）
+<table class="sub req"><thead><tr><th>項目</th><th>型</th><th>値の例</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>memberId</td><td>number</td><td>1001</td><td><code>member.id</code>（No.<a href="#p1-s21">21</a>）</td></tr>
+<tr><td>email</td><td>string</td><td>"taro.yamada@example.com"</td><td><code>email</code>（No.<a href="#p1-s12">12</a>）</td></tr>
+</tbody></table></li>
+<li id="p1-s23-3"><b>結果ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>結果</th><th>処理</th></tr></thead><tbody>
+<tr><td>登録成功</td><td class="go">→ <a href="#p1-s25">25</a>（ジョブは A1 でワーカーが処理する）</td></tr>
+<tr><td>例外</td><td class="go">catch（No.<a href="#p1-s24">24</a>）へ（会員登録は確定済みのまま）。Redis が応答しない場合に例外になるか待ち続けるかは接続設定による<span class="uv">〔未確認: U3〕</span></td></tr>
+</tbody></table></li>
+</ol></td><td class="src">members.service.ts:49<br>mail.producer.ts:14-20</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><span class="kw">catch (e)</span><span class="of">（No.<a href="#p1-s22">22</a>。23 で例外が発生したとき）</span></td><td></td></tr>
+<tr class="n" id="p1-s24"><td class="no">24</td><td class="i2 c"><span class="k">ログ</span>WARN ログ「welcome mail enqueue failed: memberId=1001」と例外を出力する。例外は送出せず、会員登録は成功として続行する。→ <a href="#p1-s25">25</a></td><td class="src">members.service.ts:50-53</td></tr>
+<tr id="p1-s25"><td class="no">25</td><td class="c"><span class="k">応答</span>ステータス 201、ボディ <code>{"id":1001,"email":"taro.yamada@example.com","status":"PENDING"}</code> で応答する（項目は 1.6 の表）。201 応答で<span class="end">終了</span></td><td class="src">members.service.ts:55<br>members.controller.ts:11-13</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="exceptions">
+<h3>1.4 例外発生時の処理</h3>
+
+<section data-path="E1" id="p1-E1">
+<h4>E1：No.<a href="#p1-s01">01</a> でボディの JSON を読み取れなかった場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE1-01"><td class="no">E1-01</td><td class="c"><span class="k">応答</span>NestJS の既定の例外処理で、ステータス 400、ボディ <code>{"statusCode":400,"message": 構文誤りの内容,"error":"Bad Request"}</code> で応答する<span class="inf">〔推定〕</span>。DB 未アクセス。400 応答で<span class="end">終了</span></td><td class="src">FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E2" id="p1-E2">
+<h4>E2：No.<a href="#p1-s10">10</a> で入力検証の違反があった場合（<code>BadRequestException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE2-01"><td class="no">E2-01</td><td class="c"><span class="k">応答</span><code>ValidationPipe</code> が送出した <code>BadRequestException</code> を NestJS の既定の例外フィルターが変換し、ステータス 400、ボディ <code>{"statusCode":400,"message":[違反ごとのメッセージ],"error":"Bad Request"}</code> で応答する（例 <code>"message":["password must be longer than or equal to 8 characters"]</code>。文言は class-validator の既定<span class="inf">〔推定〕</span>）。DB 未アクセス。400 応答で<span class="end">終了</span></td><td class="src">main.ts:7-8<br>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E3" id="p1-E3">
+<h4>E3：No.<a href="#p1-s15">15</a> でメールアドレスが登録済みだった場合（<code>ConflictException</code>）</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE3-01"><td class="no">E3-01</td><td class="c"><span class="k">応答</span>既定の例外フィルターが <code>HttpException</code> として変換し、ステータス 409、ボディ <code>{"statusCode":409,"message":"このメールアドレスは既に登録されています","error":"Conflict"}</code> で応答する<span class="inf">〔推定〕</span>。トランザクションは未開始、DB の変更なし。409 応答で<span class="end">終了</span></td><td class="src">members.service.ts:29<br>FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E4" id="p1-E4">
+<h4>E4：No.<a href="#p1-s13">13</a> の DB アクセス、または No.<a href="#p1-s16">16</a> のハッシュ化で例外が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE4-01"><td class="no">E4-01</td><td class="c">例外は <code>signup</code> の中で捕捉されず、そのまま送出される（トランザクションは未開始。No.<a href="#p1-s13">13</a> は参照のみのため DB の変更なし）。</td><td class="src">members.service.ts:27, 32</td></tr>
+<tr id="p1-sE4-02"><td class="no">E4-02</td><td class="c"><span class="k">応答</span><code>HttpException</code> ではないため、既定の例外フィルターがステータス 500、ボディ <code>{"statusCode":500,"message":"Internal server error"}</code> で応答する<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td class="src">FW 仕様</td></tr>
+</tbody></table>
+</section>
+
+<section data-path="E5" id="p1-E5">
+<h4>E5：No.<a href="#p1-s18">18</a>・19・21（トランザクションの中、または COMMIT）で DB の例外が発生した場合</h4>
+<p class="note">例：同じメールアドレスの登録が同時に行われ、No.<a href="#p1-s13">13</a> では両方とも 0 件だったが、後から INSERT した側が <code>members.email</code> の一意制約に違反する（<code>QueryFailedError</code>）。この場合の応答は 409 ではなく 500 になる。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE5-01"><td class="no">E5-01</td><td class="c"><span class="k">TX</span>コールバックから例外が出たため ROLLBACK し、例外をそのまま送出する。No.<a href="#p1-s19">19</a> で失敗した場合は No.<a href="#p1-s18">18</a> の <code>members</code> の INSERT も取り消される。確定済みのデータは無い。キューへの登録（No.<a href="#p1-s23">23</a>）は行われない。</td><td class="src">members.service.ts:34-46<br>FW 仕様</td></tr>
+<tr id="p1-sE5-02"><td class="no">E5-02</td><td class="c"><span class="k">応答</span>既定の例外フィルターがステータス 500、ボディ <code>{"statusCode":500,"message":"Internal server error"}</code> で応答する<span class="inf">〔推定〕</span>。500 応答で<span class="end">終了</span></td><td class="src">FW 仕様</td></tr>
+</tbody></table>
+</section>
+</section>
+
+<section data-sec="async">
+<h3>1.5 非同期の処理</h3>
+<section data-path="A1" id="p1-A1">
+<h4>A1：キュー <code>mail</code> のジョブ <code>welcome</code> を処理するワーカー（No.<a href="#p1-s23">23</a> で登録したジョブを、API とは別のプロセスで処理する）</h4>
+<p class="note">起動条件：ワーカーがキューからジョブを取り出したとき（No.<a href="#p1-s25">25</a> の応答と前後関係は無い）。別プロセスで動く点はコードのコメントによる<span class="uv">〔未確認: U4〕</span>。ジョブが例外で終わると、最大 3 回まで実行される（A1-08）。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sA1-01" class="hd"><td class="no">A1-01</td><td class="c"><span class="k">分岐</span>ジョブ名 <code>job.name</code> が <code>'welcome'</code> でないか判定する。</td><td class="src">mail.processor.ts:20-21</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c">ジョブ名が <code>'welcome'</code> でないとき<span class="of">（No.<a href="#p1-sA1-01">A1-01</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sA1-02"><td class="no">A1-02</td><td class="i2 c">何もせずに return する（ジョブは成功として完了する）。<span class="end">終了</span></td><td class="src">mail.processor.ts:22</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">ジョブ名が <code>'welcome'</code> のとき<span class="of">（No.<a href="#p1-sA1-01">A1-01</a> が不成立）</span> → <a href="#p1-sA1-03">A1-03</a></td><td></td></tr>
+<tr id="p1-sA1-03"><td class="no">A1-03</td><td class="c"><span class="k">SQL</span><code>members</code> から <code>id</code> が <code>job.data.memberId</code> の会員を 1 件取得し、<code>member</code> に格納する（無ければ null。<code>findOne</code>。トランザクション外）。DB の例外 → <a href="#p1-sA1-08">A1-08</a>
+<ol class="db">
+<li id="p1-sA1-03-1"><div class="sqlh"><b>参考SQL</b>（ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない。元の操作: members.repository.ts:25 findOne({ where: { id } })）</div><pre class="sql" data-kind="ref" data-src="members.repository.ts:25 findOne({ where: { id } })" data-labeled="1">SELECT Member.id, Member.email, Member.password_hash, Member.status,
+       Member.welcome_sent_at, Member.created_at
+  FROM members Member
+ WHERE Member.id = :id
+ LIMIT 1</pre></li>
+<li id="p1-sA1-03-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:id</code></td><td><code>job.data.memberId</code></td><td>1001</td></tr>
+</tbody></table></li>
+<li id="p1-sA1-03-3"><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>1001</td><td><code>member.id</code></td><td>No.<a href="#p1-sA1-06-2">A1-06.2</a> のメールの <code>context</code>、No.<a href="#p1-sA1-07-2">A1-07.2</a> の UPDATE 条件</td></tr>
+<tr><td>email</td><td>string</td><td>taro.yamada@example.com</td><td><code>member.email</code></td><td>使用なし（宛先はジョブのデータを使う）</td></tr>
+<tr><td>password_hash</td><td>string</td><td>$2b$12$Q9…</td><td><code>member.passwordHash</code></td><td>使用なし</td></tr>
+<tr><td>status</td><td>string</td><td>PENDING</td><td><code>member.status</code></td><td>使用なし</td></tr>
+<tr><td>welcome_sent_at</td><td>timestamp</td><td>NULL</td><td><code>member.welcomeSentAt</code></td><td>使用なし（送信済みかを確認しない）</td></tr>
+<tr><td>created_at</td><td>timestamp</td><td>2026-10-25 10:15:30</td><td><code>member.createdAt</code></td><td>使用なし</td></tr>
+</tbody></table></li>
+<li id="p1-sA1-03-4"><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ <a href="#p1-sA1-04">A1-04</a> で不成立 → <a href="#p1-sA1-06">A1-06</a></td></tr>
+<tr><td>0 件</td><td class="go"><code>member</code> は null → <a href="#p1-sA1-04">A1-04</a> で成立 → <a href="#p1-sA1-05">A1-05</a></td></tr>
+</tbody></table></li>
+</ol></td><td class="src">mail.processor.ts:24<br>members.repository.ts:24-26</td></tr>
+<tr id="p1-sA1-04" class="hd"><td class="no">A1-04</td><td class="c"><span class="k">分岐</span><code>member</code> が null（会員が存在しない）か判定する。</td><td class="src">mail.processor.ts:25</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c">会員が存在しないとき<span class="of">（No.<a href="#p1-sA1-04">A1-04</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sA1-05"><td class="no">A1-05</td><td class="i2 c"><span class="k">ログ</span>WARN ログ「member not found: 1001」を出力して return する（ジョブは成功として完了し、再試行しない）。<span class="end">終了</span></td><td class="src">mail.processor.ts:26-27</td></tr>
+<tr class="arm n"><td></td><td class="i1 c">会員が存在するとき<span class="of">（No.<a href="#p1-sA1-04">A1-04</a> が不成立）</span> → <a href="#p1-sA1-06">A1-06</a></td><td></td></tr>
+<tr id="p1-sA1-06"><td class="no">A1-06</td><td class="c"><span class="k">API</span>ウェルカムメールを送信する（<code>@nestjs-modules/mailer</code> の <code>sendMail</code>。送信設定は<span class="uv">〔未確認: U1〕</span>）。成功 → <a href="#p1-sA1-07">A1-07</a> ／ 失敗（例外）→ <a href="#p1-sA1-08">A1-08</a>
+<ol class="api">
+<li id="p1-sA1-06-1"><b>送信</b>：<code>this.mailer.sendMail(…)</code>（同期的に完了を待つ）</li>
+<li id="p1-sA1-06-2"><b>送信データ</b>
+<table class="sub req"><thead><tr><th>項目</th><th>値の例</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>to</td><td>taro.yamada@example.com</td><td><code>job.data.email</code></td></tr>
+<tr><td>subject</td><td>ご登録ありがとうございます</td><td>定数</td></tr>
+<tr><td>template</td><td>welcome</td><td>定数（テンプレートの内容は提供されていない）</td></tr>
+<tr><td>context</td><td><code>{memberId: 1001}</code></td><td><code>member.id</code>（No.<a href="#p1-sA1-03-3">A1-03.3</a>）</td></tr>
+</tbody></table></li>
+<li id="p1-sA1-06-3"><b>結果ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>結果</th><th>処理</th></tr></thead><tbody>
+<tr><td>送信成功</td><td class="go">→ <a href="#p1-sA1-07">A1-07</a></td></tr>
+<tr><td>例外</td><td class="go">→ <a href="#p1-sA1-08">A1-08</a>（BullMQ が再試行する）</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">mail.processor.ts:29-35</td></tr>
+<tr id="p1-sA1-07"><td class="no">A1-07</td><td class="c"><span class="k">SQL</span><code>members</code> の <code>id</code> が <code>member.id</code> の行の <code>welcome_sent_at</code> を現在日時（アプリの <code>new Date()</code>）に更新する（トランザクション外）。正常に終わるとジョブは成功として完了する。<span class="end">終了</span> ／ DB の例外 → <a href="#p1-sA1-08">A1-08</a>
+<ol class="db">
+<li id="p1-sA1-07-1"><div class="sqlh"><b>参考SQL</b>（ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない。元の操作: members.repository.ts:29 update({ id }, { welcomeSentAt: new Date() })）</div><pre class="sql" data-kind="ref" data-src="members.repository.ts:29 update({ id }, { welcomeSentAt: new Date() })" data-labeled="1">UPDATE members
+   SET welcome_sent_at = :welcomeSentAt
+ WHERE id = :id</pre></li>
+<li id="p1-sA1-07-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>:welcomeSentAt</code></td><td>ワーカーの現在日時 <code>new Date()</code></td><td>2026-10-25 10:15:42</td></tr>
+<tr><td><code>:id</code></td><td><code>member.id</code>（No.<a href="#p1-sA1-03-3">A1-03.3</a>）</td><td>1001</td></tr>
+</tbody></table></li>
+<li id="p1-sA1-07-3"><b>更新内容</b>（1 行）
+<table class="sub upd"><thead><tr><th>更新列</th><th>更新前（例）</th><th>更新後（例）</th><th>値の取得元・計算</th></tr></thead><tbody>
+<tr><td>welcome_sent_at</td><td>NULL</td><td>2026-10-25 10:15:42</td><td><code>:welcomeSentAt</code></td></tr>
+</tbody></table></li>
+<li id="p1-sA1-07-4"><b>更新件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>更新件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td>ジョブ完了</td></tr>
+<tr><td>0 件</td><td>件数を確認しないため、そのままジョブ完了（A1-03 の後に会員が削除された場合）</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">mail.processor.ts:36<br>members.repository.ts:28-30</td></tr>
+<tr id="p1-sA1-08"><td class="no">A1-08</td><td class="c"><span class="k x">例外</span>（A1-03・A1-06・A1-07 で例外が出たとき）ジョブは失敗となる。実行回数が 3 回に達していなければ、BullMQ が待ち時間（1 回目の失敗後 5 秒、2 回目の失敗後 10 秒）の後に A1-01 から再実行する<span class="inf">〔推定〕</span>。3 回目も失敗した場合はジョブを失敗のまま残して終わる。A1-06 のメール送信が成功した後に A1-07 で失敗した場合も再実行されるため、<b>同じメールが再度送信される</b>。再実行 → <a href="#p1-sA1-01">A1-01</a> ／ 3 回失敗で<span class="end">終了</span></td><td class="src">mail.producer.ts:18<br>mail.processor.ts:29<br>FW 仕様（BullMQ）</td></tr>
+</tbody></table>
+</section>
+</section>
+
+<section data-sec="response">
+<h3>1.6 レスポンス</h3>
+<p>正常時は No.<a href="#p1-s21">21</a> で COMMIT した会員の値から No.<a href="#p1-s25">25</a> でボディを作る。</p>
+<div class="sqlh"><b>正常時のボディ（201 Created。members.service.ts:55 のオブジェクトの順）</b></div><pre class="json" data-title="正常時のボディ（201 Created。members.service.ts:55 のオブジェクトの順）" data-labeled="1">{
+  "id": 1001,
+  "email": "taro.yamada@example.com",
+  "status": "PENDING"
+}</pre>
+<table class="sub resp auto"><caption>正常時（201 Created、<code>application/json</code>）</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>1001</td><td><code>member.id</code>（No.<a href="#p1-s18">18</a> で採番）</td></tr>
+<tr><td>email</td><td>string</td><td>"taro.yamada@example.com"</td><td><code>member.email</code>（No.<a href="#p1-s12">12</a> で正規化した値）</td></tr>
+<tr><td>status</td><td>string</td><td>"PENDING"</td><td><code>member.status</code>（No.<a href="#p1-s18">18</a> の定数）</td></tr>
+</tbody></table>
+<div class="jsons">
+<div><div class="sqlh"><b>異常時のボディ：入力検証の違反（400。message は違反ごとの文の配列）〔推定〕</b></div><pre class="json" data-title="異常時のボディ：入力検証の違反（400。message は違反ごとの文の配列）〔推定〕" data-labeled="1">{
+  "statusCode": 400,
+  "message": [
+    "password must be longer than or equal to 8 characters"
+  ],
+  "error": "Bad Request"
+}</pre></div>
+<div><div class="sqlh"><b>異常時のボディ：ConflictException（409）</b></div><pre class="json" data-title="異常時のボディ：ConflictException（409）" data-labeled="1">{
+  "statusCode": 409,
+  "message": "このメールアドレスは既に登録されています",
+  "error": "Conflict"
+}</pre></div>
+<div><div class="sqlh"><b>異常時のボディ：想定外の例外（500）〔推定〕</b></div><pre class="json" data-title="異常時のボディ：想定外の例外（500）〔推定〕" data-labeled="1">{
+  "statusCode": 500,
+  "message": "Internal server error"
+}</pre></div>
+</div>
+<p class="note">いずれも NestJS の既定の例外フィルターが作る形（<code>statusCode</code>・<code>message</code>・<code>error</code>）。入力検証の違反の <code>message</code> の文は class-validator の既定の文<span class="inf">〔推定〕</span>。</p>
+<table class="sub errs"><caption>異常時</caption><thead><tr><th>発生条件（No.）</th><th>ステータス</th><th>応答ボディ</th><th>その時点のデータの状態</th></tr></thead><tbody>
+<tr><td>JSON の構文誤り（No.<a href="#p1-s01">01</a> → E1）</td><td>400</td><td><code>{"statusCode":400,"message":"…","error":"Bad Request"}</code><span class="inf">〔推定〕</span></td><td>DB 未アクセス</td></tr>
+<tr><td>入力検証の違反（No.<a href="#p1-s10">10</a> → E2）</td><td>400</td><td><code>{"statusCode":400,"message":[…],"error":"Bad Request"}</code></td><td>DB 未アクセス</td></tr>
+<tr><td>メールアドレスが登録済み（No.<a href="#p1-s15">15</a> → E3）</td><td>409</td><td><code>{"statusCode":409,"message":"このメールアドレスは既に登録されています","error":"Conflict"}</code></td><td>変更なし</td></tr>
+<tr><td>重複確認・ハッシュ化の失敗（No.<a href="#p1-s13">13</a>・No.<a href="#p1-s16">16</a> → E4）</td><td>500</td><td><code>{"statusCode":500,"message":"Internal server error"}</code></td><td>変更なし</td></tr>
+<tr><td>登録・COMMIT の失敗、同時登録による一意制約違反（No.<a href="#p1-s18">18</a>・No.<a href="#p1-s19">19</a>・No.<a href="#p1-s21">21</a> → E5）</td><td>500</td><td><code>{"statusCode":500,"message":"Internal server error"}</code></td><td>ROLLBACK 済み（変更なし）、キュー未登録</td></tr>
+<tr><td>キューへの登録の失敗（No.<a href="#p1-s23">23</a> → No.<a href="#p1-s24">24</a>）</td><td>201</td><td>正常時と同じ</td><td>会員は登録済み。ウェルカムメールは送信されない（<code>welcome_sent_at</code> は NULL のまま）</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="data">
+<h3>1.7 データ変更とトランザクション</h3>
+<table class="sub"><thead><tr><th>トランザクション</th><th>範囲（No.）</th><th>含まれる操作（No.）</th><th>正常終了時</th><th>例外発生時</th></tr></thead><tbody>
+<tr><td>（なし・自動コミット）</td><td>No.<a href="#p1-s13">13</a></td><td>No.<a href="#p1-s13">13</a> 件数の取得</td><td>—</td><td>—</td></tr>
+<tr><td>TX1（<code>dataSource.transaction</code>）</td><td>No.<a href="#p1-s17">17</a>〜21</td><td>No.<a href="#p1-s18">18</a> <code>members</code> INSERT、No.<a href="#p1-s19">19</a> <code>member_profiles</code> INSERT</td><td>No.<a href="#p1-s21">21</a> で COMMIT</td><td>E5 で ROLLBACK（両方を取り消し）</td></tr>
+<tr><td>（Redis・トランザクション外）</td><td>No.<a href="#p1-s23">23</a></td><td>ジョブの登録</td><td>COMMIT 後に登録するため、登録に失敗しても会員は残る</td><td>—</td></tr>
+<tr><td>（ワーカー・自動コミット）</td><td>A1-03・A1-07</td><td>A1-03 SELECT、A1-07 <code>members</code> UPDATE</td><td>A1-07 は 1 文ごとに確定</td><td>A1-08 で再実行（A1-07 の前の失敗なら更新なし）</td></tr>
+</tbody></table>
+<table class="sub auto"><caption>テーブルごとの操作</caption><thead><tr><th>テーブル</th><th>C</th><th>R</th><th>U</th><th>D</th><th>No.</th></tr></thead><tbody>
+<tr><td><code>members</code></td><td>○</td><td>○</td><td>○（ワーカー）</td><td></td><td>No.<a href="#p1-s13">13</a>・No.<a href="#p1-s18">18</a>・A1-03・A1-07</td></tr>
+<tr><td><code>member_profiles</code></td><td>○</td><td></td><td></td><td></td><td>No.<a href="#p1-s19">19</a></td></tr>
+</tbody></table>
+</section>
+</section>
+
+<section data-sec="unconfirmed">
+<h2>未確認事項</h2>
+<table class="sub uvlist"><thead><tr><th>ID</th><th>内容</th><th>影響する処理（No.）</th><th>確認方法</th></tr></thead><tbody>
+<tr><td>U1</td><td><code>AppModule</code>（<code>app.module.ts</code>）が提供されていないため、DB の種類（SQL の方言・採番値の受け取り方）、TypeORM の設定、BullMQ の Redis 接続、メール送信の設定を確認できない</td><td><a href="#p1-s13">p1 No.13</a>・<a href="#p1-s18">No.18</a>・<a href="#p1-s19">No.19</a>・<a href="#p1-s23">No.23</a>、A1-03・A1-06・A1-07</td><td><code>app.module.ts</code> と環境変数を確認する</td></tr>
+<tr><td>U2</td><td>テーブル定義（DDL）が提供されていない。<code>members.email</code> の一意制約・<code>member_profiles.member_id</code> の外部キーが DB に実在するかは、エンティティの定義からの推定</td><td><a href="#p1-s18">p1 No.18</a>・<a href="#p1-s19">No.19</a>、E5</td><td>マイグレーション・DDL を確認する</td></tr>
+<tr><td>U3</td><td>Redis に接続できないときに <code>queue.add</code> が例外になるか、待ち続けるか（接続の再試行・タイムアウトの設定による）</td><td><a href="#p1-s23">p1 No.23</a>・<a href="#p1-s24">No.24</a></td><td>BullMQ・ioredis の接続設定を確認する</td></tr>
+<tr><td>U4</td><td>ワーカーが API とは別のプロセスで動くこと（コードのコメントによる。起動構成は提供されていない）</td><td>A1</td><td>ワーカーの起動方法（エントリーポイント・デプロイ構成）を確認する</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（未確認事項 4 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td><code>check --coverage</code> の未参照行を確認。入力検証（<code>ValidationPipe</code>）、トランザクション、キュー投入、ワーカー（A1）を含めた</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>検証 → 重複確認（トランザクション外）→ ハッシュ化 → トランザクション → COMMIT → キュー投入 → 応答。ワーカーは応答と独立</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>分岐 13 か所（No.01〜10・No.14、A1-01・A1-04）すべてに結果ごとの「〜のとき」行あり（No.09 は 3 つの結果）。処理の無い結果には行き先あり。キュー投入（try・catch）・メール送信の成否に行き先あり</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>例外の送出（No.15）、捕捉して続行（No.24）、応答（No.25）、ワーカーの return 2 か所と再実行（A1-08）</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>シナリオ値（email の正規化、id 1001、PENDING）が INSERT・ジョブのデータ・応答・ワーカーの UPDATE で一致</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>ORM の操作 5 つをすべて参考SQL として記載し、列はエンティティの定義と照合。実行SQL として断定していない。<code>check --refs</code> で項目の参照（No.13.3・No.A1-03.3 など）が参照先と合うことを確認</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>E1〜E5 と A1-08。同時登録による一意制約違反が 409 ではなく 500 になること、メールの二重送信の可能性を記載</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>No.13 がトランザクション外であること、No.17〜21 の範囲、キュー投入が COMMIT 後であること</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>リポジトリ・プロデューサーの処理を呼び出し位置に展開。ABSTRACT 警告 0 件</td></tr>
+<tr><td>視認性</td><td>OK</td><td><code>render</code>：横スクロール・はみ出しなし。スクリーンショットで木の形（縦線・枝）と項目の字下げを確認</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1〜U4）</td><td>行番号を <code>--src-root</code> で照合。モジュール設定・DDL・起動構成は提供されていない</td></tr>
+</tbody></table>
+</section>
+
+</main>
+</body>
+</html>
