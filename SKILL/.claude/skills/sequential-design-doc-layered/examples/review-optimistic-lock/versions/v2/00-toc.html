@@ -1,4 +1,15 @@
 <section data-sec="toc">
+<h2>d805b15 → 780646c で変わった仕様</h2>
+<p>コミット「タスクの更新に楽観ロックを入れる」は、タスクの更新（PUT）が、先に行われた別の更新を上書きしないようにする変更である。行に <code>version</code> を持たせ、読んだときから変わっていないかを更新のときに確かめる。</p>
+<table class="sub"><thead><tr><th>変わった仕様</th><th>基準（d805b15）</th><th>対象（780646c）</th><th>該当する行</th></tr></thead><tbody>
+<tr><td>更新のリクエスト</td><td>ボディは <code>title</code>・<code>status</code>・<code>dueDate</code></td><td><code>version</code>（正の整数）が必須になる。無い・不正なら 400</td><td>p3 No.31a・p3 No.31b・p3 No.31c</td></tr>
+<tr><td>更新する行の条件</td><td><code>id</code> と <code>tenant_id</code> が一致する行</td><td><code>version</code> も一致する行だけを更新し、<code>version</code> を 1 増やす</td><td>p3 No.32</td></tr>
+<tr><td>更新が 0 件のときの応答</td><td>常に 404 <code>NOT_FOUND</code></td><td>行の有無を確かめ、無ければ 404 <code>NOT_FOUND</code>、あれば 409 <code>VERSION_CONFLICT</code></td><td>p3 No.33a・p3 No.33b・p3 No.33c・p3 No.33d</td></tr>
+<tr><td>取得・登録・更新の応答</td><td>ボディに <code>version</code> なし</td><td>ボディに <code>version</code> が付く。登録では列の既定値の 1 が入る</td><td>p1 No.18・p2 No.30・p3 No.35</td></tr>
+<tr><td>SQL の取得列</td><td><code>version</code> を含まない</td><td>取得の SELECT と、登録・更新の RETURNING に <code>version</code> を含む</td><td>p1 No.15・p2 No.29・p3 No.32</td></tr>
+</tbody></table>
+</section>
+<section data-sec="toc">
 <h2>文書の構成</h2>
 <table class="sub"><thead><tr><th>分類</th><th>No.</th><th>処理</th><th>メソッド・パス</th><th>使用テーブル</th><th>起点（根拠）</th></tr></thead><tbody>
 <tr><td>タスクの参照</td><td>1</td><td><a href="#p1">タスクの取得</a></td><td>GET /api/tasks/:id</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:34-47</td></tr>

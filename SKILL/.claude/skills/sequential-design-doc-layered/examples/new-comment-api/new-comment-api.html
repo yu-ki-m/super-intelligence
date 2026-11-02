@@ -281,12 +281,12 @@ nav.tabs .cvw .cvl { font-weight: 600; margin-right: 6px; }
 nav.tabs .cvw label { margin-right: 10px; cursor: pointer; }
 nav.tabs .cvw input { vertical-align: -2px; margin: 0 3px 0 0; }
 /* 変更のある行だけ */
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs):not(:target):not(:has(:target)),
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.all)),
 body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.last)),
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)) { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)):not(:has(:target)) { display: none; }
 
 /* 変更のある行だけ：行が隠れても、見えている最初の行に ▼、最後の行に ▲ を出す（印は build が付ける） */
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
@@ -307,6 +307,16 @@ body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2.gel2 { --gh2: calc(100%
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gel3 { --ge3: 10px; --gh3: calc(100% - 5px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3.gel3 { --gh3: calc(100% - 11px); }
+
+/* 変更のある行だけ：変更の無い経路（例外・非同期）も畳む。リンクで移ったときは出す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section[data-path]:not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:target):not(:has(:target)),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section[data-path]:not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
+
+/* 変更のある行だけ：変更の無い節も隠す。処理の概要は、どの処理かが分かるように残す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
 
 /* 推定・未確認 */
 .inf { color: var(--inf); font-weight: 600; }
@@ -725,7 +735,7 @@ RETURNING id, created_at</pre>
 <tr><td>根拠</td><td>未確認あり（U1, U3）</td><td>要件・指示の番号と、現行コードの行。独立レビューは未実施</td></tr>
 </tbody></table>
 </section>
-</div><div class="panel" id="doc-guide"><h2>見方</h2><table class="sub auto"><thead><tr><th>分類</th><th>表記</th><th>意味</th></tr></thead><tbody><tr><td rowspan="5">逐次処理</td><td>No.</td><td>実行順。行き先の書かれていない行は、次の番号の行へ進む。<code>31a</code> のような枝番は後から足した行で、既存の No. は振り直さない</td></tr><tr><td>→ 12</td><td>12 へ進む</td></tr><tr><td>No.29.3</td><td>No.29 の中の項目 3</td></tr><tr><td>字下げ・縦の線・├─・└─</td><td>ブロック（分岐・繰り返し・try）の内側、結果ごとの始まり、ブロックの終わり</td></tr><tr><td>E1・A1</td><td>例外経路・非同期経路</td></tr><tr><td rowspan="4">グループ</td><td>灰色の帯</td><td>意味の近い行のまとまり。行の中身は省略していない</td></tr><tr><td>右側の線と ▼ ▲</td><td>入れ子のグループの範囲。▼ が開始、▲ が終了</td></tr><tr><td>全API共通 など</td><td>同じコードを同じ順で通り、行も同じ処理の範囲</td></tr><tr><td>帯の左の ▼ ▶・表示レベル</td><td>開閉と、畳む深さの切り替え。リンクで移った先のグループは自動で開く。印刷ではすべての行が出る</td></tr><tr><td rowspan="3">SQL</td><td>実行SQL</td><td>コードに書かれている SQL</td></tr><tr><td>参考SQL</td><td>ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない</td></tr><tr><td>設計SQL</td><td>この設計で発行する SQL。まだ実装していない</td></tr><tr><td rowspan="3">確かさ</td><td><span class="inf">〔推定〕</span></td><td>コードに直接書かれていない動作（フレームワークの仕様などからの推定）</td></tr><tr><td><span class="uv">〔未確認〕</span></td><td>確定できない事項・未決の事項（未確認事項を参照）</td></tr><tr><td><span class="sup">〔補完〕</span></td><td>指示に無いことを AI が補った内容。確認して問題なければ印を消す</td></tr><tr><td rowspan="4">変更</td><td><ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del></td><td>追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除</td></tr><tr><td><span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span></td><td>範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）</td></tr><tr><td>v1・v2・v3</td><td>版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない</td></tr><tr><td>変更の表示</td><td>すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は変更の無い行を畳む。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す</td></tr><tr><td rowspan="2">その他</td><td>タブの上の小さな文字</td><td>処理の分類</td></tr><tr><td>値の例</td><td>すべて説明用の架空の値</td></tr></tbody></table></div>
+</div><div class="panel" id="doc-guide"><h2>見方</h2><table class="sub auto"><thead><tr><th>分類</th><th>表記</th><th>意味</th></tr></thead><tbody><tr><td rowspan="5">逐次処理</td><td>No.</td><td>実行順。行き先の書かれていない行は、次の番号の行へ進む。<code>31a</code> のような枝番は後から足した行で、既存の No. は振り直さない</td></tr><tr><td>→ 12</td><td>12 へ進む</td></tr><tr><td>No.29.3</td><td>No.29 の中の項目 3</td></tr><tr><td>字下げ・縦の線・├─・└─</td><td>ブロック（分岐・繰り返し・try）の内側、結果ごとの始まり、ブロックの終わり</td></tr><tr><td>E1・A1</td><td>例外経路・非同期経路</td></tr><tr><td rowspan="4">グループ</td><td>灰色の帯</td><td>意味の近い行のまとまり。行の中身は省略していない</td></tr><tr><td>右側の線と ▼ ▲</td><td>入れ子のグループの範囲。▼ が開始、▲ が終了</td></tr><tr><td>全API共通 など</td><td>同じコードを同じ順で通り、行も同じ処理の範囲</td></tr><tr><td>帯の左の ▼ ▶・表示レベル</td><td>開閉と、畳む深さの切り替え。リンクで移った先のグループは自動で開く。印刷ではすべての行が出る</td></tr><tr><td rowspan="3">SQL</td><td>実行SQL</td><td>コードに書かれている SQL</td></tr><tr><td>参考SQL</td><td>ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない</td></tr><tr><td>設計SQL</td><td>この設計で発行する SQL。まだ実装していない</td></tr><tr><td rowspan="3">確かさ</td><td><span class="inf">〔推定〕</span></td><td>コードに直接書かれていない動作（フレームワークの仕様などからの推定）</td></tr><tr><td><span class="uv">〔未確認〕</span></td><td>確定できない事項・未決の事項（未確認事項を参照）</td></tr><tr><td><span class="sup">〔補完〕</span></td><td>指示に無いことを AI が補った内容。確認して問題なければ印を消す</td></tr><tr><td rowspan="4">変更</td><td><ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del></td><td>追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除</td></tr><tr><td><span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span></td><td>範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）</td></tr><tr><td>v1・v2・v3</td><td>版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない</td></tr><tr><td>変更の表示</td><td>すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は、変更の無い行・経路・節を隠す（処理の概要は残す）。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す</td></tr><tr><td rowspan="2">その他</td><td>タブの上の小さな文字</td><td>処理の分類</td></tr><tr><td>値の例</td><td>すべて説明用の架空の値</td></tr></tbody></table></div>
 </main>
 </body>
 </html>

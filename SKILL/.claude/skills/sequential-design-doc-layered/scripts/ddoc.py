@@ -597,10 +597,24 @@ def _g_band(td, gid, a, b):
         c.parent = td
 
 
+def _live_text(n):
+    """削除の印（del）の語を除いた文。"""
+    out = []
+
+    def walk(x):
+        for ch in x.children:
+            if isinstance(ch, Text):
+                out.append(ch.raw)
+            elif isinstance(ch, Node) and ch.tag != "del":
+                walk(ch)
+    walk(n)
+    return html.unescape("".join(out))
+
+
 def _group_name(cell):
     for c in cell.children:
         if isinstance(c, Node) and c.tag == "b":
-            return c.text().strip()
+            return _live_text(c).strip()
     return ""
 
 
@@ -738,10 +752,10 @@ def groups_of(proc):
                 every = [r for r in rows if gid and gid in (r.get("data-in") or "").split()]
                 inside = [r for r in every if not is_tomb(r)]
                 d = row_depth(cells(tr)[1]) if len(cells(tr)) >= 2 else 0
-                out.append({"lv": int(tr.get("data-lv") or 1), "id": gid, "tr": tr, "name": names[0].text().strip() if names else "",
-                            "scope": scope, "label": sc[0].text().strip() if sc else "", "sc_html": serialize_one(sc[0]) if sc else "",
+                out.append({"lv": int(tr.get("data-lv") or 1), "id": gid, "tr": tr, "name": _live_text(names[0]).strip() if names else "",
+                            "scope": scope, "label": _live_text(sc[0]).strip() if sc else "", "sc_html": serialize_one(sc[0]) if sc else "",
                             "key": (tr.get("data-key") or "").strip(), "a": tr.get("data-a") or "", "b": tr.get("data-b") or "",
-                            "summary": re.sub(r"\s+", " ", gm[0].text()).strip() if gm else "", "summary_html": serialize_children(gm[0]) if gm else "",
+                            "summary": re.sub(r"\s+", " ", _live_text(gm[0])).strip() if gm else "", "summary_html": serialize_children(gm[0]) if gm else "",
                             "gx": gx[0] if gx else None, "rows": inside, "all_rows": every, "d": d})
     return out
 
@@ -758,7 +772,7 @@ def _gx_status(h):
     if h["gx"] is None:
         return []
     out = []
-    for m in re.finditer(r"(\d{3}(?:・\d{3})*)\s*→", h["gx"].text()):
+    for m in re.finditer(r"(\d{3}(?:・\d{3})*)\s*→", _live_text(h["gx"])):
         out.extend(m.group(1).split("・"))
     return out
 
@@ -927,6 +941,8 @@ def _sig(n):
         return "k:" + k
     if _is_steps_row(n):
         cs = cells(n)
+        if is_group_row(n) and cs:
+            return "grp:" + _group_name(cs[1] if len(cs) >= 2 else cs[0])
         return ("arm:" if n.has_class("arm") else "row:") + _norm(_nocite((cs[1] if len(cs) >= 2 else cs[0]).text() if cs else ""))
     return n.tag + ":" + _norm(_nocite(n.text()))
 
@@ -945,8 +961,31 @@ def _compatible(a, b):
     return True
 
 
+def _band_parts(td):
+    parts = {}
+    for ch in td.elements():
+        key = "b" if ch.tag == "b" else next((c for c in ("sc", "gm", "gx") if ch.has_class(c)), None)
+        if key and key not in parts:
+            parts[key] = ch
+    return parts
+
+
+def _walk_band(old, new, run):
+    """帯は、名前・共通の範囲・要約・失敗時を別々に比べる。1 つの文として比べると、語が境界をまたいで崩れる。"""
+    o, n = _band_parts(old), _band_parts(new)
+    changed = bool(set(o) - set(n))
+    for k, nn in n.items():
+        ot = _inline_text(o[k]) if k in o else ""
+        if _norm(ot) != _norm(_inline_text(nn)):
+            run.leaf[id(nn)] = (nn, ot)
+            changed = True
+    return changed
+
+
 def _walk(old, new, run):
     changed = False
+    if new.tag == "td" and new.parent is not None and new.parent.tag == "tr" and is_group_row(new.parent):
+        return _walk_band(old, new, run)
     if new.tag == "tr":
         oc, nc = cells(old), cells(new)
         idx = [1] if _is_steps_row(new) and len(nc) == 3 else range(len(nc))  # 根拠の欄と No. の欄は比べない
@@ -991,7 +1030,7 @@ def _align(ou, nu, container, run):
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "equal":
             for i, j in zip(range(i1, i2), range(j1, j2)):
-                if _key(nu[j]) or (use_no and _row_no(nu[j])):
+                if _key(nu[j]) or (use_no and _row_no(nu[j])) or (_is_steps_row(nu[j]) and is_group_row(nu[j])):
                     changed = _walk(ou[i], nu[j], run) or changed
                 prev = nu[j]
             continue
@@ -1300,6 +1339,11 @@ def versions_dir(a_parts, explicit=None):
     return None
 
 
+def _spec_text(t):
+    """版を比べるときの文。検証記録と一覧は差分の対象外なので除く（版を保存した後に書いてよい）。"""
+    return re.sub(r'<section data-sec="(?:%s)"[^>]*>.*?</section>' % "|".join(sorted(DIFF_SKIP_SEC)), "", t, flags=re.S)
+
+
 def read_parts_text(paths):
     return "\n".join(p.read_text(encoding="utf-8-sig").replace("\r\n", "\n") for p in paths)
 
@@ -1327,8 +1371,8 @@ def cmd_rev(a):
     cur = read_parts_text(_collect_parts([str(parts)]))
     if items:
         last = read_parts_text(_collect_parts([str(vd / ("v%d" % items[-1]["v"]))]))
-        if last == cur:
-            print("前の版（v%d）から部品が変わっていません。" % items[-1]["v"], file=sys.stderr)
+        if _spec_text(last) == _spec_text(cur):
+            print("前の版（v%d）から部品が変わっていません（検証記録と一覧は版の比較の対象外）。" % items[-1]["v"], file=sys.stderr)
             return 2
     v = len(items) + 1
     dst = vd / ("v%d" % v)
@@ -1449,7 +1493,7 @@ GUIDE_ROWS = [
     ("変更", '<ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del>', "追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除"),
     ("変更", '<span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span>', "範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）"),
     ("変更", "v1・v2・v3", "版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない"),
-    ("変更", "変更の表示", "すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は変更の無い行を畳む。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す"),
+    ("変更", "変更の表示", "すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は、変更の無い行・経路・節を隠す（処理の概要は残す）。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す"),
     ("その他", "タブの上の小さな文字", "処理の分類"),
     ("その他", "値の例", "すべて説明用の架空の値"),
 ]
@@ -2207,6 +2251,19 @@ def parse_citations(text):
     return out
 
 
+def reversed_ranges(text):
+    """根拠の行番号で、範囲が逆（47-42 など）になっているもの。"""
+    out = []
+    for m in CITE_RE.finditer(text):
+        if m.group(3) and int(m.group(2)) > int(m.group(3)):
+            out.append((int(m.group(2)), int(m.group(3))))
+        if m.group(4):
+            for x, y in re.findall(r"[Ll]?(\d+)\s*[-–~〜]\s*[Ll]?(\d+)", m.group(4)):
+                if int(x) > int(y):
+                    out.append((int(x), int(y)))
+    return out
+
+
 class SourceIndex:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -2305,6 +2362,34 @@ def check_json(body, procs, rep):
     walk(body)
 
 
+def _text_without_examples(cell):
+    """値の例を除いた文。シナリオの値は処理ごとに違ってよいので、共通のグループの比較に入れない。"""
+    out = []
+
+    def walk(x):
+        for ch in x.children:
+            if isinstance(ch, Text):
+                out.append(ch.raw)
+            elif isinstance(ch, Node):
+                if ch.tag == "table":
+                    table(ch)
+                else:
+                    walk(ch)
+
+    def table(t):
+        rows = own_rows(t)
+        head = next((r for r in rows if in_thead(r)), None)
+        skip = {i for i, c in enumerate(cells(head)) if "例" in c.text()} if head is not None else set()
+        for r in rows:
+            for i, c in enumerate(cells(r)):
+                if i not in skip:
+                    walk(c)
+                    out.append(" ")
+    walk(cell)
+    t = html.unescape("".join(out))
+    return re.sub(r"（([^（）]*)）", lambda m: "（%s）" % re.sub(r"例\s[^。）]*", "例", m.group(1)), t)
+
+
 def _norm_row(tr, base):
     """行の文を、No. の違いを除いて比べられる形にする（共通のグループの行が同じかを確かめるため）。"""
     cs = cells(tr)
@@ -2312,7 +2397,7 @@ def _norm_row(tr, base):
         names = tr.find_all(lambda n: n.tag == "b")
         return ("グループ", row_depth(cs[1]) - base if len(cs) >= 2 else 0, names[0].text().strip() if names else "")
     d = row_depth(cs[1]) - base if len(cs) >= 2 else 0
-    t = re.sub(r"\s+", " ", cs[1].text() if len(cs) >= 2 else "").strip()
+    t = re.sub(r"\s+", " ", _text_without_examples(cs[1]) if len(cs) >= 2 else "").strip()
     t = re.sub(r"No\.?\s?\d{2,3}(\.\d+)?", "No.#", t)
     t = re.sub(r"(→\s*)\d{2,3}(?![\d.])", r"\1#", t)
     t = re.sub(r"\b\d{2,3}へ", "#へ", t)
@@ -2762,6 +2847,11 @@ def check_doc(text, src_root=None, coverage=False, refs=False, git_base=None, gi
                     rep.err("VERIFY", "", "検証結果が NG のまま残っている（%s）。直してから出力する" % cs[0].text().strip())
 
     # 根拠の照合
+    for proc in procs:
+        for _t, _tr, cs in step_rows(proc):
+            if len(cs) >= 3:
+                for x, y in reversed_ranges(cs[-1].text()):
+                    rep.err("SRCRANGE", "%s No.%s" % (proc.get("id"), cs[0].text().strip()), "根拠の行番号の範囲が逆になっている（%d-%d）" % (x, y))
     if src_root:
         idx = SourceIndex(src_root)
         check_nest_src(procs, idx, rep)
@@ -2984,7 +3074,7 @@ def cmd_build(a):
     root = parse_html(body)
     procs_deleted, draft, marked = [], False, False
     if vers:
-        draft = vers[-1]["text"] != body
+        draft = _spec_text(vers[-1]["text"]) != _spec_text(body)
         seq = [v["text"] for v in vers]
         base_text = seq[0]
         prev_text = seq[-1] if draft else (seq[-2] if len(seq) >= 2 else seq[0])
@@ -3061,7 +3151,7 @@ def cmd_outline(a):
             if h["summary"]:
                 parts.append(" ： %s" % h["summary"])
             if h["gx"] is not None:
-                parts.append(" ／ %s" % re.sub(r"\s+", " ", h["gx"].text()).strip())
+                parts.append(" ／ %s" % re.sub(r"\s+", " ", _live_text(h["gx"])).strip())
             print("".join(parts))
         if not hs:
             print("  （グループがない）")
@@ -3342,7 +3432,7 @@ def main(argv=None):
     p.add_argument("--no-check", action="store_true")
     p.add_argument("--no-tabs", action="store_true", help="タブにせず、すべてを縦に並べる")
     p.add_argument("--versions", help="版のディレクトリ（省略時は部品のディレクトリの隣の versions）")
-    p.add_argument("--only-changes", action="store_true", help="「変更のある行だけ表示」を最初から有効にする（コードレビュー向け）")
+    p.add_argument("--only-changes", action="store_true", help="「変更のある行だけ表示」を最初から有効にする。既定は無効（行が隠れていることに気づけないため、利用者が頼んだときだけ使う）")
     p = sub.add_parser("check", help="HTML を検査する")
     p.add_argument("html")
     p.add_argument("--src-root")

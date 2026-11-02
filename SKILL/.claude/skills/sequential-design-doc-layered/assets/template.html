@@ -281,12 +281,12 @@ nav.tabs .cvw .cvl { font-weight: 600; margin-right: 6px; }
 nav.tabs .cvw label { margin-right: 10px; cursor: pointer; }
 nav.tabs .cvw input { vertical-align: -2px; margin: 0 3px 0 0; }
 /* 変更のある行だけ */
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs):not(:target):not(:has(:target)),
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.all)),
 body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.last)),
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)) { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)):not(:has(:target)) { display: none; }
 
 /* 変更のある行だけ：行が隠れても、見えている最初の行に ▼、最後の行に ▲ を出す（印は build が付ける） */
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
@@ -307,6 +307,16 @@ body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2.gel2 { --gh2: calc(100%
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gel3 { --ge3: 10px; --gh3: calc(100% - 5px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3.gel3 { --gh3: calc(100% - 11px); }
+
+/* 変更のある行だけ：変更の無い経路（例外・非同期）も畳む。リンクで移ったときは出す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section[data-path]:not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:target):not(:has(:target)),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section[data-path]:not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
+
+/* 変更のある行だけ：変更の無い節も隠す。処理の概要は、どの処理かが分かるように残す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
 
 /* 推定・未確認 */
 .inf { color: var(--inf); font-weight: 600; }

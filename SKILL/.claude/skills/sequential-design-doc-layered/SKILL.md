@@ -136,4 +136,6 @@ python ddoc.py inventory <file|dir>... [--src-root DIR]
 python ddoc.py render    OUT.html [--widths 1280,1600] [--no-print] [--shots DIR] [--parts N] [--focus SELECTOR]... [--tab ID] [--level 1|2|3|4] [--pdf OUT.pdf] [--browser PATH]
 ```
 
+`render --tab` の ID：処理は `p1`・`p2`…、一覧は `doc-toc`、変更履歴は `doc-history`、未確認事項・検証記録は `doc-check`、見方は `doc-guide`。
+
 終了コード：0 = 問題なし、1 = エラーあり、2 = 引数・入力の誤り、3 = ブラウザが見つからない（`--browser` か環境変数 `DDOC_BROWSER` で指定）。

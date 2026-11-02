@@ -6,7 +6,7 @@
 <tr><td>実行順序</td><td>OK</td><td>対象のコミットのソースを読み直して確認</td></tr>
 <tr><td>分岐網羅性</td><td>OK</td><td>すべての分岐に結果ごとの行あり（check）</td></tr>
 <tr><td>終了条件</td><td>OK</td><td>追加した例外（No.31c・33c・33d）を確認</td></tr>
-<tr><td>データ整合性</td><td>OK</td><td>version 4 → 5 が入力・バインド変数・更新列・応答で一致</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>更新の version 4 → 5 が入力・バインド変数・更新列・応答で一致。登録は列の既定値の 1、取得は更新前の 4</td></tr>
 <tr><td>SQL整合性</td><td>OK</td><td>SQL 全文を対象のコミットのソースと照合。バインド変数・列が表と一致</td></tr>
 <tr><td>例外処理</td><td>OK</td><td>E7 を追加。VersionConflictError は HttpError を継承</td></tr>
 <tr><td>トランザクション</td><td>OK</td><td>明示的なトランザクションなし</td></tr>

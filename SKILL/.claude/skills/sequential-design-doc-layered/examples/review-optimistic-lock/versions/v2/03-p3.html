@@ -3,12 +3,12 @@
 <section data-sec="overview">
 <h3>3.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件更新する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>PUT</td></tr>
 <tr><th>エンドポイント</th><td><code>/api/tasks/:id</code></td></tr>
-<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code></td></tr>
+<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code>・<code>version</code></td></tr>
 <tr><th>出力</th><td>200：更新後のタスク（JSON）／ 異常時 400・401・404・409（<code>VERSION_CONFLICT</code> を追加）・500</td></tr>
 <tr><th>認証</th><td>API キー（ヘッダー <code>X-API-Key</code>。No.04〜11）</td></tr>
 <tr><th>トランザクション</th><td>明示的な開始なし（SQL は 1 文ごとに確定する<span class="inf">〔推定〕</span>）</td></tr>
@@ -268,7 +268,7 @@
 <tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E2-02 が不成立）</span> → E2-03</td><td></td></tr>
 <tr><td>E2-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:46</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E2-03 が成立）</span></td><td></td></tr>
-<tr><td>E2-04</td><td class="i2"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.10 のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td>errors.ts:9, 47-42</td></tr>
+<tr><td>E2-04</td><td class="i2"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.10 のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td>errors.ts:9, 47-48</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E2-03 が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -291,7 +291,7 @@
 <tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E4-02 が不成立）</span> → E4-03</td><td></td></tr>
 <tr><td>E4-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:46</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E4-03 が成立）</span></td><td></td></tr>
-<tr><td>E4-04</td><td class="i2"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td>errors.ts:29-31, 47-42</td></tr>
+<tr><td>E4-04</td><td class="i2"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td>errors.ts:29-31, 47-48</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E4-03 が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>

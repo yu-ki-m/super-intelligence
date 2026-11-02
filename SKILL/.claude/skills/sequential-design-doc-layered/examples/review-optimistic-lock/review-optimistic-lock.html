@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="sequential-design-doc-layered">
-<title>仕様差分：タスクの更新に楽観ロックを入れる（e1c6372 → 3abac1e）</title>
+<title>仕様差分：タスクの更新に楽観ロックを入れる（d805b15 → 780646c）</title>
 <style>
 /* sequential-design-doc-layered 標準スタイル。ここを書き換えずに使う（独自の装飾を足さない）。 */
 :root {
@@ -281,12 +281,12 @@ nav.tabs .cvw .cvl { font-weight: 600; margin-right: 6px; }
 nav.tabs .cvw label { margin-right: 10px; cursor: pointer; }
 nav.tabs .cvw input { vertical-align: -2px; margin: 0 3px 0 0; }
 /* 変更のある行だけ */
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs):not(:target):not(:has(:target)),
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.all)),
 body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.last)),
-body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)),
-body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)) { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)):not(:has(:target)) { display: none; }
 
 /* 変更のある行だけ：行が隠れても、見えている最初の行に ▼、最後の行に ▲ を出す（印は build が付ける） */
 body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
@@ -307,6 +307,16 @@ body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2.gel2 { --gh2: calc(100%
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gel3 { --ge3: 10px; --gh3: calc(100% - 5px); }
 body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3.gel3 { --gh3: calc(100% - 11px); }
+
+/* 変更のある行だけ：変更の無い経路（例外・非同期）も畳む。リンクで移ったときは出す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section[data-path]:not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:target):not(:has(:target)),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section[data-path]:not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:target):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section:is([data-sec="exceptions"], [data-sec="async"]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
+
+/* 変更のある行だけ：変更の無い節も隠す。処理の概要は、どの処理かが分かるように残す */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-ch]):not(:has([data-ch], ins.a, del.a)):not(:has(:target)),
+body:has(#cv-last:checked):has(#cv-only:checked) section.proc > section:is([data-sec="steps"], [data-sec="input"], [data-sec="response"], [data-sec="data"]):not([data-chl]):not(:has([data-chl], ins.l, del.l)):not(:has(:target)) { display: none; }
 
 /* 推定・未確認 */
 .inf { color: var(--inf); font-weight: 600; }
@@ -511,7 +521,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 </head>
 <body class="tabs">
 <header class="doc">
-<h1>仕様差分：タスクの更新に楽観ロックを入れる（e1c6372 → 3abac1e）</h1>
+<h1>仕様差分：タスクの更新に楽観ロックを入れる（d805b15 → 780646c）</h1>
 <p class="meta">版 v2 ／ コードレビュー用</p>
 </header>
 <main>
@@ -519,9 +529,20 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <div class="tg"><div class="tgl">文書</div><div class="tgt"><a class="tab default" href="#doc-toc">一覧</a><a class="tab" href="#doc-history">変更履歴</a><a class="tab" href="#doc-check">未確認事項・検証記録</a><a class="tab" href="#doc-guide">見方</a></div></div>
 <div class="tg"><div class="tgl">タスクの参照</div><div class="tgt"><a class="tab" href="#p1">取得 GET /api/tasks/:id</a></div></div>
 <div class="tg"><div class="tgl">タスクの変更</div><div class="tgt"><a class="tab" href="#p2">登録 POST /api/tasks</a><a class="tab" href="#p3">更新 PUT /api/tasks/:id</a><a class="tab" href="#p4">削除 DELETE /api/tasks/:id</a></div></div>
-<div class="cvw noprint"><span class="cvl">変更の表示</span><label><input type="radio" name="cv" id="cv-all" checked>すべての変更（v1 から）</label><label><input type="radio" name="cv" id="cv-hide">隠す（確定後の姿）</label><label><input type="checkbox" id="cv-only" checked>変更のある行だけ表示</label></div>
+<div class="cvw noprint"><span class="cvl">変更の表示</span><label><input type="radio" name="cv" id="cv-all" checked>すべての変更（v1 から）</label><label><input type="radio" name="cv" id="cv-hide">隠す（確定後の姿）</label><label><input type="checkbox" id="cv-only">変更のある行だけ表示</label></div>
 </nav>
 <div class="panel default" id="doc-toc"><section data-sec="toc">
+<h2>d805b15 → 780646c で変わった仕様</h2>
+<p>コミット「タスクの更新に楽観ロックを入れる」は、タスクの更新（PUT）が、先に行われた別の更新を上書きしないようにする変更である。行に <code>version</code> を持たせ、読んだときから変わっていないかを更新のときに確かめる。</p>
+<table class="sub"><thead><tr><th>変わった仕様</th><th>基準（d805b15）</th><th>対象（780646c）</th><th>該当する行</th></tr></thead><tbody>
+<tr><td>更新のリクエスト</td><td>ボディは <code>title</code>・<code>status</code>・<code>dueDate</code></td><td><code>version</code>（正の整数）が必須になる。無い・不正なら 400</td><td><a href="#p3-s31a">p3 No.31a</a>・<a href="#p3-s31b">p3 No.31b</a>・<a href="#p3-s31c">p3 No.31c</a></td></tr>
+<tr><td>更新する行の条件</td><td><code>id</code> と <code>tenant_id</code> が一致する行</td><td><code>version</code> も一致する行だけを更新し、<code>version</code> を 1 増やす</td><td><a href="#p3-s32">p3 No.32</a></td></tr>
+<tr><td>更新が 0 件のときの応答</td><td>常に 404 <code>NOT_FOUND</code></td><td>行の有無を確かめ、無ければ 404 <code>NOT_FOUND</code>、あれば 409 <code>VERSION_CONFLICT</code></td><td><a href="#p3-s33a">p3 No.33a</a>・<a href="#p3-s33b">p3 No.33b</a>・<a href="#p3-s33c">p3 No.33c</a>・<a href="#p3-s33d">p3 No.33d</a></td></tr>
+<tr><td>取得・登録・更新の応答</td><td>ボディに <code>version</code> なし</td><td>ボディに <code>version</code> が付く。登録では列の既定値の 1 が入る</td><td><a href="#p1-s18">p1 No.18</a>・<a href="#p2-s30">p2 No.30</a>・<a href="#p3-s35">p3 No.35</a></td></tr>
+<tr><td>SQL の取得列</td><td><code>version</code> を含まない</td><td>取得の SELECT と、登録・更新の RETURNING に <code>version</code> を含む</td><td><a href="#p1-s15">p1 No.15</a>・<a href="#p2-s29">p2 No.29</a>・<a href="#p3-s32">p3 No.32</a></td></tr>
+</tbody></table>
+</section>
+<section data-sec="toc">
 <h2>文書の構成</h2>
 <table class="sub"><thead><tr><th>分類</th><th>No.</th><th>処理</th><th>メソッド・パス</th><th>使用テーブル</th><th>起点（根拠）</th></tr></thead><tbody>
 <tr><td>タスクの参照</td><td>1</td><td><a href="#p1">タスクの取得</a></td><td>GET /api/tasks/:id</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:34-47</td></tr>
@@ -545,7 +566,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <section data-sec="overview">
 <h3>1.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件取得する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>GET</td></tr>
@@ -653,7 +674,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <tr><td>due_date</td><td>DATE</td><td>2026-11-20</td><td><code>rows[0].due_date</code></td><td>No.<a href="#p1-s18">18</a></td></tr>
 <tr><td>created_at</td><td>Date</td><td>2026-10-30 01:00:00+00</td><td><code>rows[0].created_at</code></td><td>No.<a href="#p1-s18">18</a></td></tr>
 <tr><td>updated_at</td><td>Date</td><td>2026-11-02 03:15:00+00</td><td><code>rows[0].updated_at</code></td><td>No.<a href="#p1-s18">18</a></td></tr>
-<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td><td>No.<a href="#p1-s18">18</a></td></tr>
+<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>4</td><td><code>rows[0].version</code></td><td>No.<a href="#p1-s18">18</a></td></tr>
 </tbody></table></li>
 <li id="p1-s15-4"><b>件数ごとの処理</b>
 <table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
@@ -679,7 +700,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <tr><td><code>row.due_date</code></td><td><code>dueDate</code></td><td>"2026-11-20"<span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td><code>row.created_at.toISOString()</code></td><td><code>createdAt</code></td><td>"2026-10-30T01:00:00.000Z"</td></tr>
 <tr><td><code>row.updated_at.toISOString()</code></td><td><code>updatedAt</code></td><td>"2026-11-02T03:15:00.000Z"</td></tr>
-<tr data-ch="add" data-chl="add"><td><code>row.version</code></td><td><code>version</code></td><td>5</td></tr>
+<tr data-ch="add" data-chl="add"><td><code>row.version</code></td><td><code>version</code></td><td>4</td></tr>
 </tbody></table></li>
 </ol></td><td class="src">tasks.ts:21-31<br>tasks.ts:45</td></tr>
 <tr id="p1-s19" data-in="p1-g11"><td class="no">19</td><td class="c"><span class="k">応答</span>ステータス 200、ボディを JSON にして応答する（項目はレスポンス節の表）。200 応答で<span class="end">終了</span></td><td class="src">tasks.ts:45</td></tr>
@@ -717,7 +738,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE2-02">E2-02</a> が不成立）</span> → <a href="#p1-sE2-03">E2-03</a></td><td></td></tr>
 <tr id="p1-sE2-03" class="hd"><td class="no">E2-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE2-03">E2-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p1-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p1-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-42</td></tr>
+<tr class="n" id="p1-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p1-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE2-03">E2-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -740,7 +761,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE4-02">E4-02</a> が不成立）</span> → <a href="#p1-sE4-03">E4-03</a></td><td></td></tr>
 <tr id="p1-sE4-03" class="hd"><td class="no">E4-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE4-03">E4-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p1-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-42</td></tr>
+<tr class="n" id="p1-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE4-03">E4-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -776,7 +797,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
   "dueDate": "2026-11-20",
   "createdAt": "2026-10-30T01:00:00.000Z",
   "updatedAt": "2026-11-02T03:15:00.000Z"<ins class="a l">,
-  "version": 5</ins>
+  "version": 4</ins>
 }</pre>
 <table class="sub resp auto"><caption>正常時のボディの項目</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
 <tr><td>id</td><td>number</td><td>42</td><td><code>rows[0].id</code></td></tr>
@@ -785,7 +806,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <tr><td>dueDate</td><td>string / null</td><td>"2026-11-20"</td><td><code>rows[0].due_date</code><span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td>createdAt</td><td>string</td><td>"2026-10-30T01:00:00.000Z"</td><td><code>rows[0].created_at</code></td></tr>
 <tr><td>updatedAt</td><td>string</td><td>"2026-11-02T03:15:00.000Z"</td><td><code>rows[0].updated_at</code></td></tr>
-<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td></tr>
+<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>4</td><td><code>rows[0].version</code></td></tr>
 </tbody></table>
 <div class="jsons">
 <div><div class="sqlh"><b>異常時のボディ：入力検証の違反（400、errors.ts:43）</b></div><pre class="json" data-title="異常時のボディ：入力検証の違反（400、errors.ts:43）" data-labeled="1">{
@@ -811,7 +832,7 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <section data-sec="overview">
 <h3>2.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件登録する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>POST</td></tr>
@@ -967,7 +988,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td>due_date</td><td>DATE</td><td>2026-11-20</td><td><code>rows[0].due_date</code></td><td>No.<a href="#p2-s30">30</a></td></tr>
 <tr><td>created_at</td><td>Date</td><td>2026-10-30 01:00:00+00</td><td><code>rows[0].created_at</code></td><td>No.<a href="#p2-s30">30</a></td></tr>
 <tr><td>updated_at</td><td>Date</td><td>2026-11-02 03:15:00+00</td><td><code>rows[0].updated_at</code></td><td>No.<a href="#p2-s30">30</a></td></tr>
-<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td><td>No.<a href="#p2-s30">30</a></td></tr>
+<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>1</td><td><code>rows[0].version</code></td><td>No.<a href="#p2-s30">30</a></td></tr>
 </tbody></table></li>
 </ol></td><td class="src">tasks.ts:54-59<br>tasks.ts:9</td></tr>
 </tbody>
@@ -983,7 +1004,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td><code>row.due_date</code></td><td><code>dueDate</code></td><td>"2026-11-20"<span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td><code>row.created_at.toISOString()</code></td><td><code>createdAt</code></td><td>"2026-10-30T01:00:00.000Z"</td></tr>
 <tr><td><code>row.updated_at.toISOString()</code></td><td><code>updatedAt</code></td><td>"2026-11-02T03:15:00.000Z"</td></tr>
-<tr data-ch="add" data-chl="add"><td><code>row.version</code></td><td><code>version</code></td><td>5</td></tr>
+<tr data-ch="add" data-chl="add"><td><code>row.version</code></td><td><code>version</code></td><td>1</td></tr>
 </tbody></table></li>
 </ol></td><td class="src">tasks.ts:21-31<br>tasks.ts:60</td></tr>
 <tr id="p2-s31" data-in="p2-g14"><td class="no">31</td><td class="c"><span class="k">応答</span>ステータス 201、ヘッダー <code>Location: /api/tasks/42</code>（<code>rows[0].id</code>）、ボディを JSON にして応答する（項目はレスポンス節の表）。201 応答で<span class="end">終了</span></td><td class="src">tasks.ts:60</td></tr>
@@ -1021,7 +1042,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p2-sE2-02">E2-02</a> が不成立）</span> → <a href="#p2-sE2-03">E2-03</a></td><td></td></tr>
 <tr id="p2-sE2-03" class="hd"><td class="no">E2-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p2-sE2-03">E2-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p2-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p2-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-42</td></tr>
+<tr class="n" id="p2-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p2-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p2-sE2-03">E2-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -1084,7 +1105,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
   "dueDate": "2026-11-20",
   "createdAt": "2026-10-30T01:00:00.000Z",
   "updatedAt": "2026-11-02T03:15:00.000Z"<ins class="a l">,
-  "version": 5</ins>
+  "version": 1</ins>
 }</pre>
 <table class="sub resp auto"><caption>正常時のボディの項目</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
 <tr><td>id</td><td>number</td><td>42</td><td><code>rows[0].id</code></td></tr>
@@ -1093,7 +1114,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td>dueDate</td><td>string / null</td><td>"2026-11-20"</td><td><code>rows[0].due_date</code><span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td>createdAt</td><td>string</td><td>"2026-10-30T01:00:00.000Z"</td><td><code>rows[0].created_at</code></td></tr>
 <tr><td>updatedAt</td><td>string</td><td>"2026-11-02T03:15:00.000Z"</td><td><code>rows[0].updated_at</code></td></tr>
-<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td></tr>
+<tr data-ch="add" data-chl="add"><td>version</td><td>number</td><td>1</td><td><code>rows[0].version</code></td></tr>
 </tbody></table>
 <div class="jsons">
 <div><div class="sqlh"><b>異常時のボディ：入力検証の違反（400、errors.ts:43）</b></div><pre class="json" data-title="異常時のボディ：入力検証の違反（400、errors.ts:43）" data-labeled="1">{
@@ -1125,12 +1146,12 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <section data-sec="overview">
 <h3>3.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件更新する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>PUT</td></tr>
 <tr><th>エンドポイント</th><td><code>/api/tasks/:id</code></td></tr>
-<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code></td></tr>
+<tr data-ch="mod" data-chl="mod"><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code><ins class="a l">・</ins><code><ins class="a l">version</ins></code></td></tr>
 <tr data-ch="mod" data-chl="mod"><th>出力</th><td>200：更新後のタスク（JSON）／ 異常時 400・401・404・409<ins class="a l">（</ins><code><ins class="a l">VERSION_CONFLICT</ins></code><ins class="a l"> を追加）</ins>・500</td></tr>
 <tr><th>認証</th><td>API キー（ヘッダー <code>X-API-Key</code>。No.<a href="#p3-s04">04</a>〜11）</td></tr>
 <tr><th>トランザクション</th><td>明示的な開始なし（SQL は 1 文ごとに確定する<span class="inf">〔推定〕</span>）</td></tr>
@@ -1390,7 +1411,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p3-sE2-02">E2-02</a> が不成立）</span> → <a href="#p3-sE2-03">E2-03</a></td><td></td></tr>
 <tr id="p3-sE2-03" class="hd"><td class="no">E2-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p3-sE2-03">E2-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p3-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p3-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-42</td></tr>
+<tr class="n" id="p3-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p3-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p3-sE2-03">E2-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -1413,7 +1434,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p3-sE4-02">E4-02</a> が不成立）</span> → <a href="#p3-sE4-03">E4-03</a></td><td></td></tr>
 <tr id="p3-sE4-03" class="hd"><td class="no">E4-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p3-sE4-03">E4-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p3-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-42</td></tr>
+<tr class="n" id="p3-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p3-sE4-03">E4-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -1522,7 +1543,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <section data-sec="overview">
 <h3>4.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件削除する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>DELETE</td></tr>
@@ -1675,7 +1696,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p4-sE2-02">E2-02</a> が不成立）</span> → <a href="#p4-sE2-03">E2-03</a></td><td></td></tr>
 <tr id="p4-sE2-03" class="hd"><td class="no">E2-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p4-sE2-03">E2-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p4-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p4-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-42</td></tr>
+<tr class="n" id="p4-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p4-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p4-sE2-03">E2-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -1698,7 +1719,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p4-sE4-02">E4-02</a> が不成立）</span> → <a href="#p4-sE4-03">E4-03</a></td><td></td></tr>
 <tr id="p4-sE4-03" class="hd"><td class="no">E4-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:46</td></tr>
 <tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p4-sE4-03">E4-03</a> が成立）</span></td><td></td></tr>
-<tr class="n" id="p4-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-42</td></tr>
+<tr class="n" id="p4-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 47-48</td></tr>
 <tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p4-sE4-03">E4-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -1752,7 +1773,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td>明示的な開始なし<span class="inf">〔推定〕</span></td><td>No.<a href="#p4-s15">15</a> の 1 文</td><td><code>tasks</code> の削除（No.<a href="#p4-s15">15</a>）</td><td>文の完了で確定</td><td>文の変更は確定しない（E6）</td></tr>
 </tbody></table>
 </section>
-</section><div class="panel" id="doc-history"><h2>変更履歴</h2><table class="sub"><thead><tr><th>版</th><th>日付</th><th>きっかけ</th><th>コミット</th><th>内容</th><th>変更した行</th></tr></thead><tbody><tr><td>v1</td><td>2026-11-02</td><td>基準</td><td>e1c6372</td><td>基準のコミット（タスク API の現行版）</td><td>—</td></tr><tr><td>v2</td><td>2026-11-02</td><td>コミット</td><td>3abac1e</td><td>タスクの更新に楽観ロックを入れる</td><td>取得 GET：<span class="chc"><span class="cp">+2</span><span class="cm">−2</span></span><br>登録 POST：<span class="chc"><span class="cp">+2</span><span class="cm">−2</span></span><br>更新 PUT：<span class="chc"><span class="cp">+22</span><span class="cm">−4</span></span></td></tr></tbody></table><h2>変更した行の一覧</h2><table class="sub"><thead><tr><th>版</th><th>処理</th><th>No.</th><th>種類</th><th>内容（複数なら最初の行）</th></tr></thead><tbody><tr><td>v2</td><td>更新 PUT</td><td>34</td><td>削除</td><td>[例外] NotFoundError（ステータス 404、コード NOT_FOUND、メッセ…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p3-s32">32</a>・<a href="#p3-s35">35</a></td><td>変更</td><td>[SQL] tasks の、id と tenant_idと version が一致する行を更…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p3-s31a">31a</a>・<a href="#p3-s31b">31b</a>・<a href="#p3-s31c">31c</a>・<a href="#p3-s33a">33a</a>・<a href="#p3-s33b">33b</a>・<a href="#p3-s33c">33c</a>・<a href="#p3-s33d">33d</a>・<a href="#p3-sE7-01">E7-01</a>・<a href="#p3-sE7-02">E7-02</a>・<a href="#p3-sE7-03">E7-03</a>・<a href="#p3-sE7-04">E7-04</a></td><td>追加</td><td>req.body.version を version に格納する（例 4）。…</td></tr><tr><td>v2</td><td>登録 POST</td><td><a href="#p2-s29">29</a>・<a href="#p2-s30">30</a></td><td>変更</td><td>[SQL] tasks に 1 行登録し、登録した行を rows に格納する。一意制約の違反…</td></tr><tr><td>v2</td><td>取得 GET</td><td><a href="#p1-s15">15</a>・<a href="#p1-s18">18</a></td><td>変更</td><td>[SQL] tasks から、id と tenant_id が一致する行を取得し、rows …</td></tr></tbody></table></div><div class="panel" id="doc-check">
+</section><div class="panel" id="doc-history"><h2>変更履歴</h2><table class="sub"><thead><tr><th>版</th><th>日付</th><th>きっかけ</th><th>コミット</th><th>内容</th><th>変更した行</th></tr></thead><tbody><tr><td>v1</td><td>2026-11-02</td><td>基準</td><td>d805b15</td><td>基準のコミット（タスク API の現行版）</td><td>—</td></tr><tr><td>v2</td><td>2026-11-02</td><td>コミット</td><td>780646c</td><td>タスクの更新に楽観ロックを入れる</td><td>取得 GET：<span class="chc"><span class="cp">+2</span><span class="cm">−2</span></span><br>登録 POST：<span class="chc"><span class="cp">+2</span><span class="cm">−2</span></span><br>更新 PUT：<span class="chc"><span class="cp">+22</span><span class="cm">−4</span></span></td></tr></tbody></table><h2>変更した行の一覧</h2><table class="sub"><thead><tr><th>版</th><th>処理</th><th>No.</th><th>種類</th><th>内容（複数なら最初の行）</th></tr></thead><tbody><tr><td>v2</td><td>更新 PUT</td><td>34</td><td>削除</td><td>[例外] NotFoundError（ステータス 404、コード NOT_FOUND、メッセ…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p3-s32">32</a>・<a href="#p3-s35">35</a></td><td>変更</td><td>[SQL] tasks の、id と tenant_idと version が一致する行を更…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p3-s31a">31a</a>・<a href="#p3-s31b">31b</a>・<a href="#p3-s31c">31c</a>・<a href="#p3-s33a">33a</a>・<a href="#p3-s33b">33b</a>・<a href="#p3-s33c">33c</a>・<a href="#p3-s33d">33d</a>・<a href="#p3-sE7-01">E7-01</a>・<a href="#p3-sE7-02">E7-02</a>・<a href="#p3-sE7-03">E7-03</a>・<a href="#p3-sE7-04">E7-04</a></td><td>追加</td><td>req.body.version を version に格納する（例 4）。…</td></tr><tr><td>v2</td><td>登録 POST</td><td><a href="#p2-s29">29</a>・<a href="#p2-s30">30</a></td><td>変更</td><td>[SQL] tasks に 1 行登録し、登録した行を rows に格納する。一意制約の違反…</td></tr><tr><td>v2</td><td>取得 GET</td><td><a href="#p1-s15">15</a>・<a href="#p1-s18">18</a></td><td>変更</td><td>[SQL] tasks から、id と tenant_id が一致する行を取得し、rows …</td></tr></tbody></table></div><div class="panel" id="doc-check">
 
 
 
@@ -1776,7 +1797,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td>実行順序</td><td>OK</td><td>対象のコミットのソースを読み直して確認</td></tr>
 <tr><td>分岐網羅性</td><td>OK</td><td>すべての分岐に結果ごとの行あり（check）</td></tr>
 <tr><td>終了条件</td><td>OK</td><td>追加した例外（No.31c・33c・33d）を確認</td></tr>
-<tr><td>データ整合性</td><td>OK</td><td>version 4 → 5 が入力・バインド変数・更新列・応答で一致</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>更新の version 4 → 5 が入力・バインド変数・更新列・応答で一致。登録は列の既定値の 1、取得は更新前の 4</td></tr>
 <tr><td>SQL整合性</td><td>OK</td><td>SQL 全文を対象のコミットのソースと照合。バインド変数・列が表と一致</td></tr>
 <tr><td>例外処理</td><td>OK</td><td>E7 を追加。VersionConflictError は HttpError を継承</td></tr>
 <tr><td>トランザクション</td><td>OK</td><td>明示的なトランザクションなし</td></tr>
@@ -1786,7 +1807,7 @@ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a l">, 
 <tr><td>根拠</td><td>未確認あり（U1, U2）</td><td>根拠は対象のコミットの行番号。独立レビューは未実施</td></tr>
 </tbody></table>
 </section>
-</div><div class="panel" id="doc-guide"><h2>見方</h2><table class="sub auto"><thead><tr><th>分類</th><th>表記</th><th>意味</th></tr></thead><tbody><tr><td rowspan="5">逐次処理</td><td>No.</td><td>実行順。行き先の書かれていない行は、次の番号の行へ進む。<code>31a</code> のような枝番は後から足した行で、既存の No. は振り直さない</td></tr><tr><td>→ 12</td><td>12 へ進む</td></tr><tr><td>No.29.3</td><td>No.29 の中の項目 3</td></tr><tr><td>字下げ・縦の線・├─・└─</td><td>ブロック（分岐・繰り返し・try）の内側、結果ごとの始まり、ブロックの終わり</td></tr><tr><td>E1・A1</td><td>例外経路・非同期経路</td></tr><tr><td rowspan="4">グループ</td><td>灰色の帯</td><td>意味の近い行のまとまり。行の中身は省略していない</td></tr><tr><td>右側の線と ▼ ▲</td><td>入れ子のグループの範囲。▼ が開始、▲ が終了</td></tr><tr><td>全API共通 など</td><td>同じコードを同じ順で通り、行も同じ処理の範囲</td></tr><tr><td>帯の左の ▼ ▶・表示レベル</td><td>開閉と、畳む深さの切り替え。リンクで移った先のグループは自動で開く。印刷ではすべての行が出る</td></tr><tr><td rowspan="3">SQL</td><td>実行SQL</td><td>コードに書かれている SQL</td></tr><tr><td>参考SQL</td><td>ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない</td></tr><tr><td>設計SQL</td><td>この設計で発行する SQL。まだ実装していない</td></tr><tr><td rowspan="3">確かさ</td><td><span class="inf">〔推定〕</span></td><td>コードに直接書かれていない動作（フレームワークの仕様などからの推定）</td></tr><tr><td><span class="uv">〔未確認〕</span></td><td>確定できない事項・未決の事項（未確認事項を参照）</td></tr><tr><td><span class="sup">〔補完〕</span></td><td>指示に無いことを AI が補った内容。確認して問題なければ印を消す</td></tr><tr><td rowspan="4">変更</td><td><ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del></td><td>追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除</td></tr><tr><td><span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span></td><td>範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）</td></tr><tr><td>v1・v2・v3</td><td>版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない</td></tr><tr><td>変更の表示</td><td>すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は変更の無い行を畳む。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す</td></tr><tr><td rowspan="2">その他</td><td>タブの上の小さな文字</td><td>処理の分類</td></tr><tr><td>値の例</td><td>すべて説明用の架空の値</td></tr></tbody></table></div>
+</div><div class="panel" id="doc-guide"><h2>見方</h2><table class="sub auto"><thead><tr><th>分類</th><th>表記</th><th>意味</th></tr></thead><tbody><tr><td rowspan="5">逐次処理</td><td>No.</td><td>実行順。行き先の書かれていない行は、次の番号の行へ進む。<code>31a</code> のような枝番は後から足した行で、既存の No. は振り直さない</td></tr><tr><td>→ 12</td><td>12 へ進む</td></tr><tr><td>No.29.3</td><td>No.29 の中の項目 3</td></tr><tr><td>字下げ・縦の線・├─・└─</td><td>ブロック（分岐・繰り返し・try）の内側、結果ごとの始まり、ブロックの終わり</td></tr><tr><td>E1・A1</td><td>例外経路・非同期経路</td></tr><tr><td rowspan="4">グループ</td><td>灰色の帯</td><td>意味の近い行のまとまり。行の中身は省略していない</td></tr><tr><td>右側の線と ▼ ▲</td><td>入れ子のグループの範囲。▼ が開始、▲ が終了</td></tr><tr><td>全API共通 など</td><td>同じコードを同じ順で通り、行も同じ処理の範囲</td></tr><tr><td>帯の左の ▼ ▶・表示レベル</td><td>開閉と、畳む深さの切り替え。リンクで移った先のグループは自動で開く。印刷ではすべての行が出る</td></tr><tr><td rowspan="3">SQL</td><td>実行SQL</td><td>コードに書かれている SQL</td></tr><tr><td>参考SQL</td><td>ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない</td></tr><tr><td>設計SQL</td><td>この設計で発行する SQL。まだ実装していない</td></tr><tr><td rowspan="3">確かさ</td><td><span class="inf">〔推定〕</span></td><td>コードに直接書かれていない動作（フレームワークの仕様などからの推定）</td></tr><tr><td><span class="uv">〔未確認〕</span></td><td>確定できない事項・未決の事項（未確認事項を参照）</td></tr><tr><td><span class="sup">〔補完〕</span></td><td>指示に無いことを AI が補った内容。確認して問題なければ印を消す</td></tr><tr><td rowspan="4">変更</td><td><ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del></td><td>追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除</td></tr><tr><td><span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span></td><td>範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）</td></tr><tr><td>v1・v2・v3</td><td>版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない</td></tr><tr><td>変更の表示</td><td>すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は、変更の無い行・経路・節を隠す（処理の概要は残す）。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す</td></tr><tr><td rowspan="2">その他</td><td>タブの上の小さな文字</td><td>処理の分類</td></tr><tr><td>値の例</td><td>すべて説明用の架空の値</td></tr></tbody></table></div>
 </main>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <section data-sec="overview">
 <h3>2.1 処理概要</h3>
 <table class="kv"><tbody>
-<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 e1c6372 → 対象 3abac1e）</td></tr>
+<tr><th>文書の種類</th><td><b>仕様差分</b>（コードレビュー用。基準 d805b15 → 対象 780646c）</td></tr>
 <tr><th>対象処理</th><td>タスクを 1 件登録する</td></tr>
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>POST</td></tr>
@@ -159,7 +159,7 @@ RETURNING id, title, status, due_date, created_at, updated_at, version</pre>
 <tr><td>due_date</td><td>DATE</td><td>2026-11-20</td><td><code>rows[0].due_date</code></td><td>No.30</td></tr>
 <tr><td>created_at</td><td>Date</td><td>2026-10-30 01:00:00+00</td><td><code>rows[0].created_at</code></td><td>No.30</td></tr>
 <tr><td>updated_at</td><td>Date</td><td>2026-11-02 03:15:00+00</td><td><code>rows[0].updated_at</code></td><td>No.30</td></tr>
-<tr><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td><td>No.30</td></tr>
+<tr><td>version</td><td>number</td><td>1</td><td><code>rows[0].version</code></td><td>No.30</td></tr>
 </tbody></table></li>
 </ol></td><td>tasks.ts:54-59<br>tasks.ts:9</td></tr>
 </tbody>
@@ -175,7 +175,7 @@ RETURNING id, title, status, due_date, created_at, updated_at, version</pre>
 <tr><td><code>row.due_date</code></td><td><code>dueDate</code></td><td>"2026-11-20"<span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td><code>row.created_at.toISOString()</code></td><td><code>createdAt</code></td><td>"2026-10-30T01:00:00.000Z"</td></tr>
 <tr><td><code>row.updated_at.toISOString()</code></td><td><code>updatedAt</code></td><td>"2026-11-02T03:15:00.000Z"</td></tr>
-<tr><td><code>row.version</code></td><td><code>version</code></td><td>5</td></tr>
+<tr><td><code>row.version</code></td><td><code>version</code></td><td>1</td></tr>
 </tbody></table></li>
 </ol></td><td>tasks.ts:21-31<br>tasks.ts:60</td></tr>
 <tr><td>31</td><td><span class="k">応答</span>ステータス 201、ヘッダー <code>Location: /api/tasks/42</code>（<code>rows[0].id</code>）、ボディを JSON にして応答する（項目はレスポンス節の表）。201 応答で<span class="end">終了</span></td><td>tasks.ts:60</td></tr>
@@ -213,7 +213,7 @@ RETURNING id, title, status, due_date, created_at, updated_at, version</pre>
 <tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E2-02 が不成立）</span> → E2-03</td><td></td></tr>
 <tr><td>E2-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:46</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E2-03 が成立）</span></td><td></td></tr>
-<tr><td>E2-04</td><td class="i2"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.10 のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td>errors.ts:9, 47-42</td></tr>
+<tr><td>E2-04</td><td class="i2"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.10 のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td>errors.ts:9, 47-48</td></tr>
 <tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E2-03 が不成立。この経路では到達しない）</span></td><td></td></tr>
 </tbody></table>
 </section>
@@ -276,7 +276,7 @@ RETURNING id, title, status, due_date, created_at, updated_at, version</pre>
   "dueDate": "2026-11-20",
   "createdAt": "2026-10-30T01:00:00.000Z",
   "updatedAt": "2026-11-02T03:15:00.000Z",
-  "version": 5
+  "version": 1
 }</pre>
 <table class="sub resp auto"><caption>正常時のボディの項目</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
 <tr><td>id</td><td>number</td><td>42</td><td><code>rows[0].id</code></td></tr>
@@ -285,7 +285,7 @@ RETURNING id, title, status, due_date, created_at, updated_at, version</pre>
 <tr><td>dueDate</td><td>string / null</td><td>"2026-11-20"</td><td><code>rows[0].due_date</code><span class="uv">〔未確認: U2〕</span></td></tr>
 <tr><td>createdAt</td><td>string</td><td>"2026-10-30T01:00:00.000Z"</td><td><code>rows[0].created_at</code></td></tr>
 <tr><td>updatedAt</td><td>string</td><td>"2026-11-02T03:15:00.000Z"</td><td><code>rows[0].updated_at</code></td></tr>
-<tr><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td></tr>
+<tr><td>version</td><td>number</td><td>1</td><td><code>rows[0].version</code></td></tr>
 </tbody></table>
 <div class="jsons">
 <div><pre class="json" data-title="異常時のボディ：入力検証の違反（400、errors.ts:43）">{

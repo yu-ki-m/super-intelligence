@@ -8,7 +8,7 @@
 <tr><th>種別</th><td>Web API（同期）</td></tr>
 <tr><th>HTTPメソッド</th><td>PUT</td></tr>
 <tr><th>エンドポイント</th><td><code>/api/tasks/:id</code></td></tr>
-<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code></td></tr>
+<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code>・<code>version</code></td></tr>
 <tr><th>出力</th><td>200：更新後のタスク（JSON）／ 異常時 400・401・404・409・500</td></tr>
 <tr><th>認証</th><td>API キー（ヘッダー <code>X-API-Key</code>。No.04〜11）</td></tr>
 <tr><th>トランザクション</th><td>明示的な開始なし（SQL は 1 文ごとに確定する<span class="inf">〔推定〕</span>）</td></tr>
