@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="sequential-design-doc-layered">
+<title>{{TITLE}}</title>
+<style>
+/* sequential-design-doc-layered 標準スタイル。ここを書き換えずに使う（独自の装飾を足さない）。 */
+:root {
+  --fg: #111; --sub: #555; --line: #bcbcbc; --line2: #dadada;
+  --th: #efefef; --code: #f6f6f4; --mark: #b00020; --inf: #7a4b00; --link: #0b57d0;
+  /* 逐次処理の木：深さ k の縦線は x(k) = 6px + (k-1)×1.4em + 0.35em。横の枝（├─ └─）は x(k) から文字の手前まで。 */
+  --gc: #8f8f8f; --gl: linear-gradient(var(--gc), var(--gc));
+  --v1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px 100%;
+  --v2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px 100%;
+  --v3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px 100%;
+  --v4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px 100%;
+  --v5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px 100%;
+  --v6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px 100%;
+  --v7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px 100%;
+  --v8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px 100%;
+  --g1: var(--v1); --g2: var(--g1), var(--v2); --g3: var(--g2), var(--v3); --g4: var(--g3), var(--v4);
+  --g5: var(--g4), var(--v5); --g6: var(--g5), var(--v6); --g7: var(--g6), var(--v7); --g8: var(--g7), var(--v8);
+  --ty: 0.95em; --tw: calc(1.05em - 3px);
+  --t1: var(--gl) no-repeat calc(6px + 0.35em) var(--ty) / var(--tw) 1px;
+  --t2: var(--gl) no-repeat calc(6px + 1.75em) var(--ty) / var(--tw) 1px;
+  --t3: var(--gl) no-repeat calc(6px + 3.15em) var(--ty) / var(--tw) 1px;
+  --t4: var(--gl) no-repeat calc(6px + 4.55em) var(--ty) / var(--tw) 1px;
+  --t5: var(--gl) no-repeat calc(6px + 5.95em) var(--ty) / var(--tw) 1px;
+  --t6: var(--gl) no-repeat calc(6px + 7.35em) var(--ty) / var(--tw) 1px;
+  --t7: var(--gl) no-repeat calc(6px + 8.75em) var(--ty) / var(--tw) 1px;
+  --t8: var(--gl) no-repeat calc(6px + 10.15em) var(--ty) / var(--tw) 1px;
+  --h1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px var(--ty);
+  --h2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px var(--ty);
+  --h3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px var(--ty);
+  --h4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px var(--ty);
+  --h5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px var(--ty);
+  --h6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px var(--ty);
+  --h7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px var(--ty);
+  --h8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px var(--ty);
+  /* ブロックの先頭の行（下に字下げした行が続く行）：文の 1 行目の下から縦線を下ろす */
+  --d1: var(--gl) no-repeat calc(6px + 0.35em) calc(2px + 1.5em) / 1px 100%;
+  --d2: var(--gl) no-repeat calc(6px + 1.75em) calc(2px + 1.5em) / 1px 100%;
+  --d3: var(--gl) no-repeat calc(6px + 3.15em) calc(2px + 1.5em) / 1px 100%;
+  --d4: var(--gl) no-repeat calc(6px + 4.55em) calc(2px + 1.5em) / 1px 100%;
+  --d5: var(--gl) no-repeat calc(6px + 5.95em) calc(2px + 1.5em) / 1px 100%;
+  --d6: var(--gl) no-repeat calc(6px + 7.35em) calc(2px + 1.5em) / 1px 100%;
+  --d7: var(--gl) no-repeat calc(6px + 8.75em) calc(2px + 1.5em) / 1px 100%;
+  --d8: var(--gl) no-repeat calc(6px + 10.15em) calc(2px + 1.5em) / 1px 100%;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; padding: 8px 12px 20px; color: var(--fg); background: #fff;
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, "Noto Sans JP", sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+main, header.doc { max-width: 1920px; }
+h1 { font-size: 17px; margin: 0 0 2px; }
+h2 { font-size: 14.5px; margin: 14px 0 4px; padding: 0 0 1px; border-bottom: 1px solid #333; }
+h3 { font-size: 13.5px; margin: 10px 0 3px; }
+h4 { font-size: 13px; margin: 6px 0 2px; }
+p { margin: 2px 0 4px; }
+ul, ol { margin: 2px 0 4px; padding-left: 1.6em; }
+li { margin: 0; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: Consolas, "BIZ UDGothic", "Courier New", monospace; }
+code { font-size: 12px; padding: 0 2px; background: var(--code); border: 1px solid #e8e8e8; border-radius: 2px; }
+pre code { padding: 0; background: none; border: 0; }
+
+/* 表 */
+table { border-collapse: collapse; width: 100%; margin: 0 0 6px; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+th { background: var(--th); font-weight: 600; }
+thead th { white-space: nowrap; }
+table.auto { width: auto; max-width: 100%; }
+table.kv > tbody > tr > th { width: 10em; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+caption { caption-side: top; text-align: left; font-size: 11.5px; font-weight: 600; padding: 0 0 1px; color: #333; }
+
+/* 文書ヘッダー */
+header.doc { border-bottom: 1px solid #333; padding-bottom: 3px; margin-bottom: 4px; }
+.meta { color: var(--sub); font-size: 12px; margin: 0; }
+.legend { font-size: 11.5px; color: var(--sub); margin: 2px 0 0; }
+nav.toc { font-size: 12px; margin: 4px 0; }
+nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; }
+
+/* 逐次処理表（No.・処理内容・根拠の 3 列）
+   - 横の罫線は、ブロック（字下げなしの文と、その内側の行・「〜のとき」行・終端行）の間にだけ、全列を通して引く。
+     ブロックの内側には横の罫線を引かず、処理内容の欄の縦線と枝（├─ └─）で入れ子を見せる。縦の罫線は常に通す。
+   - build が付ける class：td.c＝処理内容の欄、tr.n＝字下げした行、tr.close＝ブロックを閉じる行（繰返終端・待機・try終端）、tr.hd＝ブロックの先頭の行（次の行が字下げで 1 段深い行）。
+     tr.arm（「〜のとき」行・catch・finally など）は部品に書く。 */
+table.steps { table-layout: fixed; border-bottom: 1px solid var(--line); }
+table.steps > thead > tr > th:nth-child(1) { width: 4.8em; }
+table.steps > thead > tr > th:nth-child(3) { width: 15em; }
+table.steps > tbody > tr > td { overflow-wrap: anywhere; border-top: 1px solid var(--line); border-bottom: 0; }
+table.steps > tbody > tr.n > td, table.steps > tbody > tr.arm > td,
+table.steps > tbody > tr.close > td, table.steps > tbody > tr.dt > td { border-top: 0; }
+table.steps td.no { text-align: right; white-space: nowrap; font-family: Consolas, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.steps td.src { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); }
+table.steps tr.arm .of { color: var(--sub); }
+table.steps .kw { font-family: Consolas, monospace; font-size: 12.5px; font-weight: 700; }
+table.steps td.c.i1 { padding-left: calc(6px + 1.4em); background: var(--g1); }
+table.steps td.c.i2 { padding-left: calc(6px + 2.8em); background: var(--g2); }
+table.steps td.c.i3 { padding-left: calc(6px + 4.2em); background: var(--g3); }
+table.steps td.c.i4 { padding-left: calc(6px + 5.6em); background: var(--g4); }
+table.steps td.c.i5 { padding-left: calc(6px + 7em); background: var(--g5); }
+table.steps td.c.i6 { padding-left: calc(6px + 8.4em); background: var(--g6); }
+table.steps td.c.i7 { padding-left: calc(6px + 9.8em); background: var(--g7); }
+table.steps td.c.i8 { padding-left: calc(6px + 11.2em); background: var(--g8); }
+/* 「〜のとき」行・catch・finally：上位の縦線から横の枝（├─）を出す */
+table.steps tr.arm > td.c.i1 { background: var(--g1), var(--t1); }
+table.steps tr.arm > td.c.i2 { background: var(--g2), var(--t2); }
+table.steps tr.arm > td.c.i3 { background: var(--g3), var(--t3); }
+table.steps tr.arm > td.c.i4 { background: var(--g4), var(--t4); }
+table.steps tr.arm > td.c.i5 { background: var(--g5), var(--t5); }
+table.steps tr.arm > td.c.i6 { background: var(--g6), var(--t6); }
+table.steps tr.arm > td.c.i7 { background: var(--g7), var(--t7); }
+table.steps tr.arm > td.c.i8 { background: var(--g8), var(--t8); }
+/* ブロックを閉じる行（繰返終端・待機・try終端）：縦線をここで止めて枝を出す（└─） */
+table.steps tr.close > td.c.i1 { background: var(--h1), var(--t1); }
+table.steps tr.close > td.c.i2 { background: var(--g1), var(--h2), var(--t2); }
+table.steps tr.close > td.c.i3 { background: var(--g2), var(--h3), var(--t3); }
+table.steps tr.close > td.c.i4 { background: var(--g3), var(--h4), var(--t4); }
+table.steps tr.close > td.c.i5 { background: var(--g4), var(--h5), var(--t5); }
+table.steps tr.close > td.c.i6 { background: var(--g5), var(--h6), var(--t6); }
+table.steps tr.close > td.c.i7 { background: var(--g6), var(--h7), var(--t7); }
+table.steps tr.close > td.c.i8 { background: var(--g7), var(--h8), var(--t8); }
+/* ブロックの先頭の行（分岐・try・繰返・「〜のとき」など、下に字下げした行が続く行。build が tr.hd を付ける）：縦線を文の下から下ろす */
+table.steps tr.hd > td.c { background: var(--d1); }
+table.steps tr.hd > td.c.i1 { background: var(--g1), var(--d2); }
+table.steps tr.hd > td.c.i2 { background: var(--g2), var(--d3); }
+table.steps tr.hd > td.c.i3 { background: var(--g3), var(--d4); }
+table.steps tr.hd > td.c.i4 { background: var(--g4), var(--d5); }
+table.steps tr.hd > td.c.i5 { background: var(--g5), var(--d6); }
+table.steps tr.hd > td.c.i6 { background: var(--g6), var(--d7); }
+table.steps tr.hd > td.c.i7 { background: var(--g7), var(--d8); }
+table.steps tr.arm.hd > td.c.i1 { background: var(--g1), var(--t1), var(--d2); }
+table.steps tr.arm.hd > td.c.i2 { background: var(--g2), var(--t2), var(--d3); }
+table.steps tr.arm.hd > td.c.i3 { background: var(--g3), var(--t3), var(--d4); }
+table.steps tr.arm.hd > td.c.i4 { background: var(--g4), var(--t4), var(--d5); }
+table.steps tr.arm.hd > td.c.i5 { background: var(--g5), var(--t5), var(--d6); }
+table.steps tr.arm.hd > td.c.i6 { background: var(--g6), var(--t6), var(--d7); }
+table.steps tr.arm.hd > td.c.i7 { background: var(--g7), var(--t7), var(--d8); }
+/* ブロックの先頭の行の文が折り返したとき、2 行目以降を縦線より右から始める（ぶら下げ） */
+table.steps tr.hd > td.c { padding-left: calc(6px + 0.9em); text-indent: -0.9em; }
+table.steps tr.hd > td.c.i1 { padding-left: calc(6px + 1.4em + 0.9em); }
+table.steps tr.hd > td.c.i2 { padding-left: calc(6px + 2.8em + 0.9em); }
+table.steps tr.hd > td.c.i3 { padding-left: calc(6px + 4.2em + 0.9em); }
+table.steps tr.hd > td.c.i4 { padding-left: calc(6px + 5.6em + 0.9em); }
+table.steps tr.hd > td.c.i5 { padding-left: calc(6px + 7em + 0.9em); }
+table.steps tr.hd > td.c.i6 { padding-left: calc(6px + 8.4em + 0.9em); }
+table.steps tr.hd > td.c.i7 { padding-left: calc(6px + 9.8em + 0.9em); }
+table.steps tr.hd > td.c > * { text-indent: 0; }
+/* 処理の中の項目（1. 2. …）：処理の文より一段下げる。No.29.3 のように参照できる */
+table.steps td.c > ol { margin: 2px 0 1px; padding-left: 2.2em; }
+table.steps td.c > ol > li { margin: 0 0 3px; padding-left: 2px; }
+table.steps td.c > ol > li::marker { font-family: Consolas, monospace; font-size: 12px; color: #333; }
+table.steps td.c > ol > li > b:first-child { font-size: 12px; }
+/* 画面では、マウスを置いた行を薄く色付けして、同じ行の No.・処理内容・根拠を追いやすくする（印刷には出ない） */
+@media screen { table.steps > tbody > tr:hover > td { background-color: #eef3fb !important; } }
+/* リンクで移った先の行・項目 */
+@media screen { table.steps > tbody > tr:target > td, td.c li:target { background-color: #fff3c4; } }
+.k { display: inline-block; font-size: 11px; line-height: 1.35; padding: 0 3px; margin-right: 4px; border: 1px solid #888; border-radius: 2px; color: #222; background: #fff; white-space: nowrap; vertical-align: 1px; }
+.k.x { border-color: var(--mark); color: var(--mark); }
+table.steps td.c a, .go a { font-family: Consolas, monospace; }
+.end { color: var(--mark); font-weight: 600; }
+
+/* 処理のグループ。行の中身と字下げは変えず、帯と範囲の括弧だけを足す。左側（木の線）には何も足さない */
+:root {
+  --gtbg: #e6e6e6; --gsbg: #f0f0f0; --gcr: #555;
+  --gmd: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='8'%3E%3Cpath d='M0 0h10L5 8z' fill='%23555'/%3E%3C/svg%3E");
+  --gmu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='8'%3E%3Cpath d='M5 0l5 8H0z' fill='%23555'/%3E%3C/svg%3E");
+  --gline: linear-gradient(#555, #555);
+}
+/* 一番外側のグループ：行全体に広がる帯。線は表の罫線と同じ 1px。画面ではスクロール中もタブの下に残す */
+table.steps > tbody > tr.gt > td { background: linear-gradient(#8f8f8f, #8f8f8f) top / 100% 1px no-repeat, var(--gtbg); border-top: 0; padding: 3px 6px; overflow-wrap: anywhere; }
+@media screen {
+  table.steps > tbody > tr.gt > td { position: sticky; top: var(--tabs-h, 0px); z-index: 2; }
+  table.steps > tbody.grp tr[id], table.steps > tbody.grp li[id] { scroll-margin-top: calc(var(--tabs-h, 0px) + 48px); }
+  table.steps > tbody > tr.gt:hover > td { background-color: #dcdcdc !important; }
+}
+.gb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+.gl { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+.gl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.gl::before { content: "▼"; font-size: 10px; color: var(--gcr); width: 1.1em; }
+.gl:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 1px; }
+.sc { display: inline-block; font-size: 11px; line-height: 1.4; padding: 0 5px; border: 1px solid #333; border-radius: 2px; white-space: nowrap; font-weight: 600; }
+.sc.all { background: #333; color: #fff; }
+.sc.part { background: #fff; color: #222; }
+.sc.own { background: transparent; color: var(--sub); border-color: #999; font-weight: 400; }
+.rng { font-family: Consolas, monospace; font-size: 12px; white-space: nowrap; }
+.gm { font-size: 12.5px; }
+.gx { font-size: 12px; color: var(--sub); margin-left: auto; }
+.gx a { font-family: Consolas, monospace; }
+/* 入れ子のグループ：帯（tr.gs）と、範囲を示す右側の実線（▼ が開始、▲ が終了）。階層によって色を変えない。入れ子の分だけ線が内側に並ぶ */
+table.steps tr.gs > td.c { padding-top: 0; padding-bottom: 0; }
+tr.gs .gb { margin: 0 calc(-1 * var(--gpr, 6px)) 0 -6px; padding: 2px var(--gpr, 6px) 2px 6px; background: var(--gsbg); }
+tr.gs.n .gb { margin-left: calc(-1.05em + 1px); padding-left: calc(1.05em - 1px); }
+table.steps > tbody > tr.gs > td:last-child { background: var(--gsbg); }
+table.steps > tbody > tr.gs:not(.n) > td { border-top-color: #8f8f8f; }
+tr.gs.n .gb { border-top: 1px solid #8f8f8f; }
+table.steps > tbody > tr.gs.n > td:last-child { background: linear-gradient(#8f8f8f, #8f8f8f) top / 100% 1px no-repeat, var(--gsbg); }
+tr.gs .gl { font-size: 13px; }
+tr.gs .gm { font-size: 12px; }
+tr.gs .gx { font-size: 11.5px; }
+tr.gs .rng { font-size: 11.5px; }
+table.steps td.c.gf { position: relative; padding-right: var(--gpr); }
+table.steps td.c.gf::before {
+  content: ""; position: absolute; inset: -1px 0 0 0; pointer-events: none;
+  background:
+    var(--gmd) no-repeat right 2px top 1px / var(--gb1, 0px) 8px,
+    var(--gmd) no-repeat right 13px top 1px / var(--gb2, 0px) 8px,
+    var(--gmd) no-repeat right 24px top 1px / var(--gb3, 0px) 8px,
+    var(--gmu) no-repeat right 2px bottom 0 / var(--ge1, 0px) 8px,
+    var(--gmu) no-repeat right 13px bottom 0 / var(--ge2, 0px) 8px,
+    var(--gmu) no-repeat right 24px bottom 0 / var(--ge3, 0px) 8px,
+    var(--gline) no-repeat right 6px top var(--gy1, 0px) / var(--gs1, 0px) var(--gh1, 100%),
+    var(--gline) no-repeat right 17px top var(--gy2, 0px) / var(--gs2, 0px) var(--gh2, 100%),
+    var(--gline) no-repeat right 28px top var(--gy3, 0px) / var(--gs3, 0px) var(--gh3, 100%);
+}
+td.gd1 { --gs1: 2px; --gpr: 16px; }
+td.gd2 { --gs2: 2px; --gpr: 27px; }
+td.gd3 { --gs3: 2px; --gpr: 38px; }
+td.gb1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+td.gb2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+td.gb3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+td.ge1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+td.ge2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+td.ge3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+td.gb1.ge1 { --gh1: calc(100% - 11px); }
+td.gb2.ge2 { --gh2: calc(100% - 11px); }
+td.gb3.ge3 { --gh3: calc(100% - 11px); }
+/* 表示レベルと帯の▼：レベルが既定の開閉を決め、▼がそれを反転する。行を隠す規則は build が生成する。JavaScript は使わない */
+.gbar { margin: 2px 0 4px; font-size: 12.5px; }
+.gbar .gbl { font-weight: 600; margin-right: 6px; }
+.gbar label { margin-right: 10px; cursor: pointer; }
+.gbar input { vertical-align: -2px; margin: 0 3px 0 0; }
+@media screen {
+  .gsec:has(.gv1:checked) tr.gt .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked)) tr.gt .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked) tr.gs[data-lv="2"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked)) tr.gs[data-lv="2"] .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked,.gv3:checked) tr.gs[data-lv="3"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)) tr.gs[data-lv="3"] .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked,.gv3:checked,.gv4:checked) tr.gs[data-lv="4"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked,.gv4:checked)) tr.gs[data-lv="4"] .gl:has(input:checked)::before { content: "▶"; }
+}
+/* グループと処理の対応表（一覧のタブ） */
+table.gmap td.c0 { font-weight: 600; }
+table.gmap td.none { color: #aaa; text-align: center; }
+
+/* 差分：追加は緑、削除は赤の取り消し線（git の配色）。文中の変更は変えた語だけに色を付ける。行ごとの追加・削除は処理内容と根拠の欄に色を付け、番号の欄は + と − だけにする。
+   class a＝基準（v1）から、l＝前の版から。行の属性 data-ch＝基準から、data-chl＝前の版から */
+ins { text-decoration: none; }
+del { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) ins.a, body:has(#cv-last:checked) ins.l { background: #abf2bc; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) del.a, body:has(#cv-last:checked) del.l { display: inline; background: #ffcecb; color: var(--mark); text-decoration: line-through; }
+[data-ch="del"], [data-chl="del"] { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) [data-ch="del"], body:has(#cv-last:checked) [data-chl="del"] { display: block; color: var(--mark); text-decoration: line-through; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="del"], body:has(#cv-last:checked) tr[data-chl="del"] { display: table-row; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) li[data-ch="del"], body:has(#cv-last:checked) li[data-chl="del"] { display: list-item; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) :is(p, li, pre, h3, h4, caption)[data-ch="add"], body:has(#cv-last:checked) :is(p, li, pre, h3, h4, caption)[data-chl="add"] { background-color: #e6ffec; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) :is(p, li, pre, h3, h4, caption)[data-ch="del"], body:has(#cv-last:checked) :is(p, li, pre, h3, h4, caption)[data-chl="del"] { background-color: #ffebe9; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="add"] > td, body:has(#cv-last:checked) tr[data-chl="add"] > td { background-color: #e6ffec !important; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="del"] > td, body:has(#cv-last:checked) tr[data-chl="del"] > td { background-color: #ffebe9 !important; }
+table.steps > tbody > tr:is([data-ch], [data-chl]):not(.gt):not(.gs) > td:first-child { background-color: transparent !important; position: relative; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) table.steps > tbody > tr[data-ch="add"]:not(.gt):not(.gs) > td:first-child::before, body:has(#cv-last:checked) table.steps > tbody > tr[data-chl="add"]:not(.gt):not(.gs) > td:first-child::before { content: "+"; position: absolute; left: 6px; color: #1a7f37; font-weight: 700; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) table.steps > tbody > tr[data-ch="del"]:not(.gt):not(.gs) > td:first-child::before, body:has(#cv-last:checked) table.steps > tbody > tr[data-chl="del"]:not(.gt):not(.gs) > td:first-child::before { content: "−"; position: absolute; left: 6px; color: #cf222e; font-weight: 700; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr.gs[data-ch="add"] .gb, body:has(#cv-last:checked) tr.gs[data-chl="add"] .gb { background: #e6ffec; }
+.chc { font: 600 12px Consolas, monospace; white-space: nowrap; }
+.chc .cp { color: #1a7f37; }
+.chc .cm { color: #cf222e; margin-left: 4px; }
+.gb .chc { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) .gb .chc.all, body:has(#cv-last:checked) .gb .chc.last { display: inline; }
+.sup { color: #6a3fb5; font-weight: 600; }
+nav.tabs .cvw { flex-basis: 100%; font-size: 12px; padding: 2px 0 3px; }
+nav.tabs .cvw .cvl { font-weight: 600; margin-right: 6px; }
+nav.tabs .cvw label { margin-right: 10px; cursor: pointer; }
+nav.tabs .cvw input { vertical-align: -2px; margin: 0 3px 0 0; }
+/* 変更のある行だけ */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.all)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.last)),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)) { display: none; }
+
+/* 変更のある行だけ：行が隠れても、見えている最初の行に ▼、最後の行に ▲ を出す（印は build が付ける） */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1.gea1 { --gh1: calc(100% - 11px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba2.gea2 { --gh2: calc(100% - 11px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba3.gea3 { --gh3: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl1.gel1 { --gh1: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2.gel2 { --gh2: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3.gel3 { --gh3: calc(100% - 11px); }
+
+/* 推定・未確認 */
+.inf { color: var(--inf); font-weight: 600; }
+.uv { color: var(--mark); font-weight: 600; }
+
+/* 補足の表・SQL */
+table.sub { margin: 2px 0 3px; font-size: 12px; }
+table.sub th, table.sub td { padding: 2px 5px; }
+td table.sub, .db table.sub, .api table.sub, .box table.sub { width: auto; max-width: 100%; }
+.sqlh { font-size: 12px; color: var(--sub); margin: 0 0 1px; }
+.sqlh b { color: var(--fg); }
+pre.sql, pre.txt {
+  margin: 2px 0 3px; padding: 3px 6px; background: var(--code); border: 1px solid var(--line2);
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4;
+}
+pre.sql[data-kind="ref"] { background: #fff; }
+pre.sql[data-kind="design"] { background: #fff; border-color: #8f8f8f; }
+/* JSON の例（リクエスト・レスポンス・外部 API の送受信）：項目の表の前に置く */
+pre.json {
+  margin: 2px 0 3px; padding: 3px 8px; background: var(--code); border: 1px solid var(--line2);
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; width: fit-content; max-width: 100%;
+}
+.jsons { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: flex-start; }  /* 形の違う JSON の例を横に並べる */
+.jsons > div { max-width: 100%; }
+.note { font-size: 12px; color: var(--sub); }
+
+/* 処理ごとのタブ：処理が 2 つ以上あると build が nav.tabs と .panel を作る（JavaScript なし。:target で切り替える） */
+nav.tabs { display: none; }
+body.tabs nav.tabs {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px;
+  position: sticky; top: 0; z-index: 3; background: #fff;
+  margin: 6px 0 8px; padding: 4px 0 0; border-bottom: 1px solid #555;
+}
+nav.tabs .tg { display: flex; flex-direction: column; }
+nav.tabs .tgl { font-size: 11px; color: var(--sub); padding: 0 3px 1px; margin: 0 0 3px; border-bottom: 1px solid #9a9a9a; white-space: nowrap; }
+nav.tabs .tgt { display: flex; }
+nav.tabs a.tab {
+  position: relative; display: block; padding: 2px 10px 3px; margin-right: -1px;
+  border: 1px solid var(--line); border-bottom: 0; background: var(--th); color: var(--fg);
+  font-size: 12.5px; text-decoration: none; white-space: nowrap;
+}
+nav.tabs a.tab:hover { background: #fff; }
+body.tabs .panel { display: none; }
+body.tabs .panel:target, body.tabs .panel:has(:target), body.tabs:not(:has(.panel:target, .panel :target)) .panel.default { display: block; }
+body.tabs .panel, body.tabs .panel [id] { scroll-margin-top: calc(var(--tabs-h, 48px) + 6px); }
+
+/* 検証 */
+.vstatus { font-weight: 600; }
+.vstatus[data-status="open"] { color: var(--mark); }
+
+/* 印刷：木の線・範囲の括弧・帯は背景で描いているので、ブラウザの「背景のグラフィックス」の設定によらず印刷する */
+table.steps td.c, table.steps td.c.gf::before, .gb, table.steps tr.gt > td, table.steps tr.gs > td, .sc.all { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@page { size: A4 landscape; margin: 9mm; }
+@media print {
+  body { padding: 0; font-size: 9.5pt; }
+  main, header.doc { max-width: none; }
+  a { color: inherit; }
+  h2, h3, h4 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  tr.gt, tr.gs { break-after: avoid; }
+  tr:has(ol), tr.dt { break-inside: auto; }
+  thead { display: table-header-group; }
+  pre.sql, pre.txt, pre.json { background: #fafafa; }
+  nav.toc, .noprint, .gbar { display: none; }
+  .gl::before { content: none; }
+  /* タブのある文書はすべてのパネルを印刷し、処理ごとに改ページする */
+  body.tabs nav.tabs { display: none !important; }
+  body.tabs .panel { display: block !important; }
+  body.tabs section.proc.panel, body.tabs #doc-check { break-before: page; }
+  body.tabs #doc-guide { display: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="doc">
+<h1>{{TITLE}}</h1>
+<p class="meta">{{META}}</p>
+</header>
+<main>
+{{BODY}}
+</main>
+</body>
+</html>

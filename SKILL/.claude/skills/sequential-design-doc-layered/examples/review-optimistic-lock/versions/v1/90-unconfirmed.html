@@ -1,0 +1,7 @@
+<section data-sec="unconfirmed">
+<h2>未確認事項</h2>
+<table class="sub uvlist"><thead><tr><th>ID</th><th>内容</th><th>影響する処理（No.）</th><th>確認方法</th></tr></thead><tbody>
+<tr><td>U1</td><td>DB の接続・問い合わせのタイムアウトがコードに指定されていない。接続先が応答しないときの待ち時間を確定できない</td><td>p1 No.08・p1 No.15</td><td>接続先の設定と <code>pg</code> の既定値を確認する</td></tr>
+<tr><td>U2</td><td><code>due_date</code>（DATE 型）を <code>TaskRow</code> は string と宣言しているが、<code>pg</code> の既定の型変換では Date になる可能性がある。応答の <code>dueDate</code> の形が例と違う場合がある</td><td>p1 No.18・p3 No.35</td><td>実行して応答を確認する</td></tr>
+</tbody></table>
+</section>

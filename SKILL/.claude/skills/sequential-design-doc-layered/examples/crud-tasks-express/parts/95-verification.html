@@ -1,0 +1,18 @@
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（未確認事項 2 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td><code>check --coverage</code> で根拠から参照されていない注目行が 0 件。ミドルウェア（<code>express.json</code>・<code>apiKeyAuth</code>）、<code>asyncHandler</code>、<code>errorHandler</code> を含めた</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>app.ts:8-11 の登録順（<code>express.json</code> → <code>apiKeyAuth</code> → <code>tasksRouter</code> → <code>errorHandler</code>）。ハンドラーの中は <code>parseTaskId</code> → <code>validateTaskBody</code> → SQL → 応答の順（tasks.ts:66-78）</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>すべての分岐に結果ごとの「〜のとき」行あり（<code>check</code> の ARM エラー 0 件）。短絡評価（No.13 など）を明記</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>例外の送出（<code>UnauthorizedError</code>・<code>ValidationError</code>・<code>NotFoundError</code>）と、正常応答（200・201・204）の位置を確認</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>シナリオ値（テナント 3、クライアント 12、タスク 42）がバインド変数・更新列・応答で一致。<code>check --refs</code> で No. の参照と参照先を確認</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>SQL 5 文を、定数 <code>COLUMNS</code> を展開したうえでソースとスクリプトで照合（空白の違いを除いて一致）。バインド変数・取得列・更新列・登録列が表と一致</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>6 経路（E1〜E6）。<code>errorHandler</code> の判定の順、<code>asyncHandler</code> の <code>.catch(next)</code>、ボディの大きさの超過が 500 になること〔推定〕を記載</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>明示的なトランザクションなし（<code>pool.query</code> で 1 文ずつ）。1 文ごとに確定すること〔推定〕を記載</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>共通の処理も API ごとに展開。ABSTRACT 警告 0 件</td></tr>
+<tr><td>グループの整合</td><td>OK</td><td><code>check</code> で、全行がグループの下にあること、共通と書いたグループの行が API 間で同じこと、失敗時の経路が範囲の行の行き先と一致することを確認。<code>outline</code> でグループだけを読み、処理の筋が通ることを確認</td></tr>
+<tr><td>視認性</td><td>OK</td><td><code>render</code>：1280px・1600px・印刷相当で横スクロール・はみ出しなし。スクリーンショットと表示レベルの切り替えを確認。実際に印刷した見た目は未確認</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1, U2）</td><td>根拠の行番号を <code>--src-root</code> で照合（範囲外 0 件）。独立レビューは未実施</td></tr>
+</tbody></table>
+</section>

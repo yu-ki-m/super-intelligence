@@ -1,0 +1,18 @@
+<section data-sec="toc">
+<h2>文書の構成</h2>
+<table class="sub"><thead><tr><th>分類</th><th>No.</th><th>処理</th><th>メソッド・パス</th><th>使用テーブル</th><th>起点（根拠）</th></tr></thead><tbody>
+<tr><td>タスクの参照</td><td>1</td><td><a href="#p1">タスクの取得</a></td><td>GET /api/tasks/:id</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:34-47</td></tr>
+<tr><td>タスクの変更</td><td>2</td><td><a href="#p2">タスクの登録</a></td><td>POST /api/tasks</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:50-62</td></tr>
+<tr><td>タスクの変更</td><td>3</td><td><a href="#p3">タスクの更新</a></td><td>PUT /api/tasks/:id</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:65-87</td></tr>
+<tr><td>タスクの変更</td><td>4</td><td><a href="#p4">タスクの削除</a></td><td>DELETE /api/tasks/:id</td><td><code>api_clients</code>・<code>tasks</code></td><td>tasks.ts:90-100</td></tr>
+</tbody></table>
+
+<h2>グループと処理の対応表</h2>
+<div data-group-map></div>
+
+<h2>処理に共通する前提</h2>
+<ul>
+<li>ミドルウェアの順：<code>express.json</code> → <code>apiKeyAuth</code>（<code>/api</code> の下）→ <code>tasksRouter</code>（<code>/api/tasks</code> の下）→ <code>errorHandler</code>（app.ts:8-11）。</li>
+<li>DB は <code>pool.query</code> で 1 文ずつ実行し、明示的なトランザクションは使わない（db.ts:3）。</li>
+</ul>
+</section>

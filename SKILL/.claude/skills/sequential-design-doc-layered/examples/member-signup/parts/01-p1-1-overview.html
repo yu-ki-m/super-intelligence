@@ -1,0 +1,37 @@
+<section class="proc" id="p1" data-title="会員登録">
+<h2>1. 会員登録（POST /members）</h2>
+
+<section data-sec="overview">
+<h3>1.1 処理概要</h3>
+<table class="kv"><tbody>
+<tr><th>対象処理</th><td>会員（<code>members</code>）とプロフィール（<code>member_profiles</code>）を登録し、ウェルカムメール送信のジョブをキューに投入する</td></tr>
+<tr><th>種別</th><td>Web API（同期）＋ キューのワーカー（非同期・別プロセス）</td></tr>
+<tr><th>HTTPメソッド</th><td>POST</td></tr>
+<tr><th>エンドポイント</th><td><code>/members</code></td></tr>
+<tr><th>入力</th><td>ボディ <code>email</code>・<code>password</code>・<code>displayName</code>・<code>birthDate</code></td></tr>
+<tr><th>出力</th><td>201：登録した会員の <code>id</code>・<code>email</code>・<code>status</code>（JSON）／ 異常時 400・409・500</td></tr>
+<tr><th>認証</th><td>なし（コード上に認証の処理は無い）</td></tr>
+<tr><th>トランザクション</th><td>あり（1 つ。No.17〜21 の 2 テーブルへの INSERT）。No.13 の重複確認はトランザクション外</td></tr>
+<tr><th>使用テーブル</th><td><code>members</code>（参照・登録、ワーカーで参照・更新）、<code>member_profiles</code>（登録）</td></tr>
+<tr><th>外部システム</th><td>Redis（BullMQ のキュー <code>mail</code>）、メール送信（<code>@nestjs-modules/mailer</code>。ワーカーから）</td></tr>
+<tr><th>非同期処理</th><td>A1：キュー <code>mail</code> のジョブ <code>welcome</code> を処理するワーカー（No.23 で投入）</td></tr>
+<tr><th>起点（根拠）</th><td class="src">members.controller.ts:10-14 signup ／ main.ts:8</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="input">
+<h3>1.2 入力項目</h3>
+<pre class="json" data-title="リクエストボディの例（POST /members、Content-Type: application/json）">{
+  "email": "Taro.Yamada@Example.com",
+  "password": "passw0rd123",
+  "displayName": "山田太郎",
+  "birthDate": "1990-04-01"
+}</pre>
+<table class="sub"><thead><tr><th>項目</th><th>受け取り位置</th><th>型</th><th>必須</th><th>検証内容（コード上の条件）</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>email</code></td><td>ボディ（JSON）</td><td>string</td><td>必須</td><td><code>@IsEmail()</code>（No.03）</td><td>"Taro.Yamada@Example.com"</td></tr>
+<tr><td><code>password</code></td><td>ボディ</td><td>string</td><td>必須</td><td><code>@IsString()</code>・<code>@Length(8, 64)</code>・<code>@Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/)</code>（英字と数字を各 1 文字以上）（No.04〜06）</td><td>"passw0rd123"</td></tr>
+<tr><td><code>displayName</code></td><td>ボディ</td><td>string</td><td>必須</td><td><code>@IsString()</code>・<code>@Length(1, 30)</code>（No.07・08）</td><td>"山田太郎"</td></tr>
+<tr><td><code>birthDate</code></td><td>ボディ</td><td>string</td><td>任意</td><td><code>@IsOptional()</code>・<code>@IsDateString()</code>（No.09）</td><td>"1990-04-01"</td></tr>
+<tr><td>（上記以外の項目）</td><td>ボディ</td><td>—</td><td>—</td><td>あれば違反（<code>forbidNonWhitelisted: true</code>）（No.02）</td><td>—</td></tr>
+</tbody></table>
+</section>

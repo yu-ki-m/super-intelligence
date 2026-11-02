@@ -1,0 +1,242 @@
+<section class="proc" id="p1" data-group="コメント" data-tab="コメント登録 POST /api/tasks/:id/comments">
+<h2>1. コメントの登録（POST /api/tasks/:id/comments）</h2>
+<section data-sec="overview">
+<h3>1.1 処理概要</h3>
+<table class="kv"><tbody>
+<tr><th>文書の種類</th><td><b>新規設計</b>（コードはまだ無い。要件 R1〜R3 から AI が v1 を作成し、指示と補完で直している）</td></tr>
+<tr><th>対象処理</th><td>タスクにコメントを 1 件登録する</td></tr>
+<tr><th>HTTPメソッド</th><td>POST</td></tr>
+<tr><th>エンドポイント</th><td><code>/api/tasks/:id/comments</code></td></tr>
+<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>comment</code></td></tr>
+<tr><th>出力</th><td>201：登録したコメント（JSON）／ 異常時 400・401・500</td></tr>
+<tr><th>使用テーブル</th><td><code>api_clients</code>（参照）、<code>tasks</code>（参照）、<code>task_comments</code>（登録。新規）</td></tr>
+<tr><th>起点（根拠）</th><td class="src">要件 R1</td></tr>
+</tbody></table>
+</section>
+<section data-sec="input">
+<h3>1.2 入力項目</h3>
+<pre class="json" data-title="リクエストボディの例（Content-Type: application/json）">{
+  "comment": "見積もりの金額を確認しました"
+}</pre>
+<table class="sub"><thead><tr><th>項目</th><th>受け取り位置</th><th>型</th><th>必須</th><th>検証内容</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>X-API-Key</code></td><td>ヘッダー</td><td>string</td><td>必須</td><td>No.05・08・09</td><td><code>tk_live_7f3a9c…</code></td></tr>
+<tr><td><code>id</code></td><td>パス</td><td>string → number</td><td>必須</td><td>正の整数（No.13）</td><td>"42"</td></tr>
+<tr><td><code>comment</code></td><td>ボディ（JSON）</td><td>string</td><td>必須</td><td>文字列で、前後の空白を除いて空でなく、1000 文字以内（No.16・19）</td><td>"見積もりの金額を確認しました"</td></tr>
+</tbody></table>
+</section>
+<section data-sec="steps">
+<h3>1.3 逐次処理</h3>
+<p class="note">シナリオ：テナント 3 の API クライアント 12 が、タスク 42 にコメントを登録する。全API共通バリデーションとパスIDのバリデーションは、現行コードと同じ処理なので根拠はソースの行を指す。</p>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead>
+<tbody class="grp">
+<tr class="gt" data-key="common-validation"><td colspan="3"><b>全API共通バリデーション</b><span class="sc all">全API共通</span><span class="gm">ボディの JSON を解析し、<code>X-API-Key</code> から呼び出し元のテナントを特定する。</span><span class="gx">失敗時：<span class="go">400 → E1</span> ／ <span class="go">401 → E2</span> ／ <span class="go">500 → E6</span></span></td></tr>
+<tr class="gs" data-to="03c"><td></td><td><b>ボディの JSON 解析</b><span class="gm">JSON のボディがあれば解析して <code>req.body</code> に入れる。</span><span class="gx">失敗時：<span class="go">400 → E1</span> ／ <span class="go">500 → E6</span></span></td><td></td></tr>
+<tr><td>01</td><td><span class="k">分岐</span>リクエストに <code>Content-Type: application/json</code> のボディがあるか判定する（<code>express.json</code> の解析の対象か）<span class="inf">〔推定〕</span>。</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm"><td></td><td class="i1">ボディがあるとき<span class="of">（No.01 が成立）</span></td><td></td></tr>
+<tr class="gs" data-to="03b"><td></td><td class="i2"><b>大きさと形式の確認</b><span class="gm">100kb 以下で、JSON として読めることを確かめる。</span></td><td></td></tr>
+<tr><td>02</td><td class="i2"><span class="k">分岐</span>ボディの大きさが 100kb を超えるか判定する（<code>limit: '100kb'</code>）。</td><td>app.ts:8</td></tr>
+<tr class="arm"><td></td><td class="i3">100kb を超えるとき<span class="of">（No.02 が成立）</span></td><td></td></tr>
+<tr><td>02a</td><td class="i4"><code>type: 'entity.too.large'</code> のエラーを <code>next</code> に渡す<span class="inf">〔推定〕</span>。→ E6</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm"><td></td><td class="i3">100kb 以下のとき<span class="of">（No.02 が不成立）</span> → 03</td><td></td></tr>
+<tr><td>03</td><td class="i2"><span class="k">分岐</span>ボディを JSON として解析できるか判定する（既定の <code>strict</code> により、オブジェクトか配列だけを受け付ける）<span class="inf">〔推定〕</span>。</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm"><td></td><td class="i3">解析できないとき<span class="of">（No.03 が不成立）</span></td><td></td></tr>
+<tr><td>03a</td><td class="i4"><code>type: 'entity.parse.failed'</code> のエラーを <code>next</code> に渡す。→ E1</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm"><td></td><td class="i3">解析できるとき<span class="of">（No.03 が成立）</span></td><td></td></tr>
+<tr><td>03b</td><td class="i4">解析結果を <code>req.body</code> に格納する。→ 04</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm"><td></td><td class="i1">それ以外のとき<span class="of">（No.01 が不成立）</span></td><td></td></tr>
+<tr><td>03c</td><td class="i2">解析せず、<code>req.body</code> を <code>{}</code> のままにする<span class="inf">〔推定〕</span>。→ 04</td><td>app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="gs" data-to="11"><td></td><td><b>API キーの確認</b><span class="gm">キーから呼び出し元を特定し、テナントを記録する。</span><span class="gx">失敗時：<span class="go">401 → E2</span> ／ <span class="go">500 → E6</span></span></td><td></td></tr>
+<tr class="gs" data-to="06"><td></td><td><b>キーの有無の確認</b></td><td></td></tr>
+<tr><td>04</td><td>ヘッダー <code>X-API-Key</code> の値を <code>apiKey</code> に格納する（例 <code>tk_live_7f3a9c…</code>。無ければ undefined）。</td><td>apiKeyAuth.ts:8</td></tr>
+<tr><td>05</td><td><span class="k">分岐</span><code>apiKey</code> が空（undefined または空文字）か判定する（<code>!apiKey</code>）。</td><td>apiKeyAuth.ts:9</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>apiKey</code> が空のとき<span class="of">（No.05 が成立）</span></td><td></td></tr>
+<tr><td>06</td><td class="i2"><span class="k x">例外</span><code>UnauthorizedError</code>（ステータス 401、コード <code>API_KEY_REQUIRED</code>）を送出する。→ E2</td><td>apiKeyAuth.ts:10<br>errors.ts:13-17</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>apiKey</code> に値があるとき<span class="of">（No.05 が不成立）</span> → 07</td><td></td></tr>
+<tr class="gs" data-to="10"><td></td><td><b>キーの照合</b><span class="gm">ハッシュが一致し、失効していないクライアントを探す。</span></td><td></td></tr>
+<tr><td>07</td><td><code>apiKey</code> の SHA-256 を 16 進文字列にして <code>keyHash</code> に格納する（例 <code>9c1e0b4d…</code>）。</td><td>apiKeyAuth.ts:12</td></tr>
+<tr><td>08</td><td><span class="k">SQL</span><code>api_clients</code> から、<code>key_hash</code> が <code>keyHash</code> と一致し、失効していない行を取得し、<code>rows</code> に格納する。DB の例外 → E6
+<ol class="db">
+<li><pre class="sql" data-kind="exec" data-src="apiKeyAuth.ts:14-17">SELECT id, tenant_id
+  FROM api_clients
+ WHERE key_hash = $1
+   AND revoked_at IS NULL</pre>
+<p class="note">常に実行する。接続・問い合わせのタイムアウトはコードに指定がない<span class="uv">〔未確認: U1〕</span>。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>$1</code></td><td><code>keyHash</code>（No.07）</td><td>9c1e0b4d…</td></tr>
+</tbody></table></li>
+<li><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>12</td><td><code>rows[0].id</code></td><td>No.11</td></tr>
+<tr><td>tenant_id</td><td>number</td><td>3</td><td><code>rows[0].tenant_id</code></td><td>No.11</td></tr>
+</tbody></table></li>
+<li><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ 09 で不成立 → 11</td></tr>
+<tr><td>0 件（未登録、または失効済み）</td><td class="go">→ 09 で成立 → 10</td></tr>
+<tr><td>2 件以上</td><td><code>key_hash</code> は UNIQUE のため発生しない（schema.sql:6）</td></tr>
+</tbody></table></li>
+</ol></td><td>apiKeyAuth.ts:13-19</td></tr>
+<tr><td>09</td><td><span class="k">分岐</span><code>rows</code> が 0 件か判定する（<code>rows.length === 0</code>）。</td><td>apiKeyAuth.ts:20</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>rows</code> が 0 件のとき（キーが未登録、または失効済みのとき）<span class="of">（No.09 が成立）</span></td><td></td></tr>
+<tr><td>10</td><td class="i2"><span class="k x">例外</span><code>UnauthorizedError</code>（ステータス 401、コード <code>API_KEY_INVALID</code>）を送出する。→ E2</td><td>apiKeyAuth.ts:21<br>errors.ts:13-17</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>rows</code> が 1 件のとき<span class="of">（No.09 が不成立）</span> → 11</td><td></td></tr>
+<tr><td>11</td><td><code>rows[0].id</code> を <code>res.locals.clientId</code> に、<code>rows[0].tenant_id</code> を <code>res.locals.tenantId</code> に格納し（例 12、3）、次の処理へ進む（<code>next()</code>）。</td><td>apiKeyAuth.ts:23-25</td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="path-id"><td colspan="3"><b>パスIDのバリデーション</b><span class="sc part">取得・更新・削除 共通</span><span class="gm">パスの <code>id</code> を正の整数に変換する。</span><span class="gx">失敗時：<span class="go">400 → E3</span></span></td></tr>
+<tr><td>12</td><td>パスの <code>req.params.id</code>（例 "42"）を <code>Number</code> で数値にして <code>id</code> に格納する（例 42。数値にならなければ NaN）。</td><td>task.ts:14</td></tr>
+<tr><td>13</td><td><span class="k">分岐</span><code>id</code> が整数でない、または 0 以下か判定する（<code>!Number.isInteger(id) || id &lt;= 0</code>。左が成立すると右は評価しない）。</td><td>task.ts:15, 18</td></tr>
+<tr class="arm"><td></td><td class="i1">整数でない、または 0 以下のとき<span class="of">（No.13 が成立）</span></td><td></td></tr>
+<tr><td>14</td><td class="i2"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>id</code>、メッセージ「id は正の整数で指定してください」）を送出する。→ E3</td><td>task.ts:16<br>errors.ts:19-26</td></tr>
+<tr class="arm"><td></td><td class="i1">正の整数のとき<span class="of">（No.13 が不成立）</span> → 15</td><td></td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="comment-body"><td colspan="3"><b>コメント本文のバリデーション</b><span class="sc own">このAPI固有</span><span class="gm"><code>comment</code> を、空でない 500 文字以内の文字列に整える。</span><span class="gx">失敗時：<span class="go">400 → E3</span></span></td></tr>
+<tr><td>15</td><td><code>req.body</code> を <code>b</code> に格納する（null・undefined なら <code>{}</code>）。</td><td>要件 R2</td></tr>
+<tr><td>16</td><td><span class="k">分岐</span><code>b.comment</code> が文字列でない、または前後の空白を除くと空文字か判定する（左が成立すると右は評価しない）。</td><td>要件 R2</td></tr>
+<tr class="arm"><td></td><td class="i1">文字列でない、または空のとき<span class="of">（No.16 が成立）</span></td><td></td></tr>
+<tr><td>17</td><td class="i2"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>comment</code>、メッセージ「comment は必須です」）を送出する。→ E3</td><td>要件 R2</td></tr>
+<tr class="arm"><td></td><td class="i1">空でない文字列のとき<span class="of">（No.16 が不成立）</span> → 18</td><td></td></tr>
+<tr><td>18</td><td><code>b.comment</code> の前後の空白を除いて <code>comment</code> に格納する（例 "見積もりの金額を確認しました"）。</td><td>要件 R2</td></tr>
+<tr><td>19</td><td><span class="k">分岐</span><code>comment.length</code> が 1000 より大きいか判定する。</td><td>要件 R2<br>指示 3</td></tr>
+<tr class="arm"><td></td><td class="i1">1000 文字を超えるとき<span class="of">（No.19 が成立）</span></td><td></td></tr>
+<tr><td>20</td><td class="i2"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>comment</code>、メッセージ「comment は 1000 文字以内で指定してください」）を送出する。→ E3</td><td>要件 R2<br>指示 3</td></tr>
+<tr class="arm"><td></td><td class="i1">1000 文字以内のとき<span class="of">（No.19 が不成立）</span> → 21</td><td></td></tr>
+</tbody>
+<tbody class="grp">
+
+
+
+
+
+
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="comment-insert"><td colspan="3"><b>コメントの登録</b><span class="sc own">このAPI固有</span><span class="gm"><code>task_comments</code> に 1 行登録する。</span><span class="gx">失敗時：<span class="go">500 → E6</span></span></td></tr>
+<tr><td>21</td><td><span class="k">SQL</span><code>task_comments</code> に 1 行登録し、登録した行を <code>rows</code> に格納する。DB の例外 → E6
+<ol class="db">
+<li><pre class="sql" data-kind="design" data-src="要件 R3">INSERT INTO task_comments (task_id, tenant_id, client_id, body)
+VALUES ($1, $2, $3, $4)
+RETURNING id, created_at</pre>
+<p class="note">テーブルはまだ無い。列の型と制約は未決<span class="uv">〔未確認: U3〕</span>。</p></li>
+<li><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>$1</code></td><td><code>id</code>（No.13 で確認）</td><td>42</td></tr>
+<tr><td><code>$2</code></td><td><code>res.locals.tenantId</code>（No.11）</td><td>3</td></tr>
+<tr><td><code>$3</code></td><td><code>res.locals.clientId</code>（No.11）</td><td>12</td></tr>
+<tr><td><code>$4</code></td><td><code>comment</code>（No.18）</td><td>見積もりの金額を確認しました</td></tr>
+</tbody></table></li>
+<li><b>登録データ</b>
+<table class="sub ins"><thead><tr><th>列</th><th>登録する値</th><th>値の例</th></tr></thead><tbody>
+<tr><td>task_id</td><td><code>$1</code></td><td>42</td></tr>
+<tr><td>tenant_id</td><td><code>$2</code></td><td>3</td></tr>
+<tr><td>client_id</td><td><code>$3</code></td><td>12</td></tr>
+<tr><td>body</td><td><code>$4</code></td><td>見積もりの金額を確認しました</td></tr>
+</tbody></table></li>
+</ol></td><td>要件 R3</td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="comment-resp"><td colspan="3"><b>応答の返却</b><span class="sc own">このAPI固有</span><span class="gm">登録したコメントを 201 で返す。</span></td></tr>
+<tr><td>22</td><td><span class="k">応答</span>ステータス 201、ヘッダー <code>Location: /api/tasks/42/comments/7</code>、ボディを JSON にして応答する（項目はレスポンス節の表）。201 応答で<span class="end">終了</span></td><td>要件 R1</td></tr>
+</tbody>
+</table>
+</section>
+<section data-sec="exceptions">
+<h3>1.4 例外発生時の処理</h3>
+<section data-path="E1">
+<h4>E1：No.03 でボディを JSON として解析できなかった場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E1-01</td><td><code>express.json</code> がエラーを <code>next</code> に渡し、<code>errorHandler</code> へ進む。API キーの確認（No.04 以降）は実行されない<span class="inf">〔推定〕</span>。</td><td>app.ts:8-11<br>FW 仕様</td></tr>
+<tr><td>E1-02</td><td><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td>errors.ts:36</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> のとき<span class="of">（No.E1-02 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E1-02 が不成立）</span> → E1-03</td><td></td></tr>
+<tr><td>E1-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:40</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E1-03 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E1-03 が不成立）</span> → E1-04</td><td></td></tr>
+<tr><td>E1-04</td><td><code>err.code</code> を <code>pgCode</code> に格納する（無ければ undefined）。</td><td>errors.ts:44</td></tr>
+<tr><td>E1-05</td><td><span class="k">分岐</span><code>pgCode</code> が <code>'23505'</code> か判定する。</td><td>errors.ts:45</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>pgCode</code> が <code>'23505'</code> のとき<span class="of">（No.E1-05 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>pgCode</code> が <code>'23505'</code> でないとき<span class="of">（No.E1-05 が不成立）</span> → E1-06</td><td></td></tr>
+<tr><td>E1-06</td><td><span class="k">分岐</span><code>err.type</code> が <code>'entity.parse.failed'</code> か判定する。</td><td>errors.ts:49</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>err.type</code> が <code>'entity.parse.failed'</code> のとき<span class="of">（No.E1-06 が成立）</span></td><td></td></tr>
+<tr><td>E1-07</td><td class="i2"><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"INVALID_JSON","message":"リクエストボディが JSON ではありません"}</code> で応答する。400 応答で<span class="end">終了</span></td><td>errors.ts:50-51</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>err.type</code> が <code>'entity.parse.failed'</code> でないとき<span class="of">（No.E1-06 が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E2">
+<h4>E2：No.06・10 で <code>UnauthorizedError</code> が送出された場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E2-01</td><td><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td>asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr><td>E2-02</td><td><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td>errors.ts:36</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> のとき<span class="of">（No.E2-02 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E2-02 が不成立）</span> → E2-03</td><td></td></tr>
+<tr><td>E2-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:40</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E2-03 が成立）</span></td><td></td></tr>
+<tr><td>E2-04</td><td class="i2"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.10 のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td>errors.ts:9, 41-42</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E2-03 が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E3">
+<h4>E3：No.14・17・20 で <code>ValidationError</code> が送出された場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E3-01</td><td><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td>asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr><td>E3-02</td><td><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td>errors.ts:36</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> のとき<span class="of">（No.E3-02 が成立）</span></td><td></td></tr>
+<tr><td>E3-03</td><td class="i2"><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"VALIDATION_ERROR","field":…,"message":…}</code>（<code>field</code>・<code>message</code> は送出した行の値）で応答する。400 応答で<span class="end">終了</span></td><td>errors.ts:37-38</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E3-02 が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E6">
+<h4>E6：No.02・08・20a・21 で想定外のエラー（DB の接続失敗・ボディの大きさの超過など）が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr><td>E6-01</td><td>エラーが <code>next</code> で <code>errorHandler</code> へ渡される（ミドルウェア・ハンドラーの中の例外は <code>asyncHandler</code> の <code>.catch(next)</code>）。</td><td>asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr><td>E6-02</td><td><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td>errors.ts:36</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> のとき<span class="of">（No.E6-02 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>ValidationError</code> でないとき<span class="of">（No.E6-02 が不成立）</span> → E6-03</td><td></td></tr>
+<tr><td>E6-03</td><td><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td>errors.ts:40</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> のとき<span class="of">（No.E6-03 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>HttpError</code> でないとき<span class="of">（No.E6-03 が不成立）</span> → E6-04</td><td></td></tr>
+<tr><td>E6-04</td><td><code>err.code</code> を <code>pgCode</code> に格納する（無ければ undefined）。</td><td>errors.ts:44</td></tr>
+<tr><td>E6-05</td><td><span class="k">分岐</span><code>pgCode</code> が <code>'23505'</code> か判定する。</td><td>errors.ts:45</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>pgCode</code> が <code>'23505'</code> のとき<span class="of">（No.E6-05 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>pgCode</code> が <code>'23505'</code> でないとき<span class="of">（No.E6-05 が不成立）</span> → E6-06</td><td></td></tr>
+<tr><td>E6-06</td><td><span class="k">分岐</span><code>err.type</code> が <code>'entity.parse.failed'</code> か判定する。</td><td>errors.ts:49</td></tr>
+<tr class="arm"><td></td><td class="i1"><code>err.type</code> が <code>'entity.parse.failed'</code> のとき<span class="of">（No.E6-06 が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm"><td></td><td class="i1"><code>err.type</code> が <code>'entity.parse.failed'</code> でないとき<span class="of">（No.E6-06 が不成立）</span> → E6-07</td><td></td></tr>
+<tr><td>E6-07</td><td><code>console.error(err)</code> を出力する。</td><td>errors.ts:53</td></tr>
+<tr><td>E6-08</td><td><span class="k">応答</span>ステータス 500、ボディ <code>{"code":"INTERNAL_ERROR","message":"内部エラーが発生しました"}</code> で応答する。500 応答で<span class="end">終了</span></td><td>errors.ts:54</td></tr>
+</tbody></table>
+</section>
+</section>
+<section data-sec="response">
+<h3>1.5 レスポンス</h3>
+<pre class="json" data-title="正常時のボディ">{
+  "id": 7,
+  "taskId": 42,
+  "comment": "見積もりの金額を確認しました",
+  "createdAt": "2026-11-02T03:15:00.000Z"
+}</pre>
+<table class="sub resp auto"><caption>正常時のボディの項目</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>7</td><td><code>rows[0].id</code></td></tr>
+<tr><td>taskId</td><td>number</td><td>42</td><td><code>id</code></td></tr>
+<tr><td>comment</td><td>string</td><td>"見積もりの金額を確認しました"</td><td><code>comment</code></td></tr>
+<tr><td>createdAt</td><td>string</td><td>"2026-11-02T03:15:00.000Z"</td><td><code>rows[0].created_at</code></td></tr>
+</tbody></table>
+<div class="jsons">
+<div><pre class="json" data-title="異常時のボディ：入力検証の違反（400、errors.ts:37）">{
+  "code": "VALIDATION_ERROR",
+  "field": "id",
+  "message": "id は正の整数で指定してください"
+}</pre></div>
+<div><pre class="json" data-title="異常時のボディ：それ以外（errors.ts:41・46・50・54）">{
+  "code": "NOT_FOUND",
+  "message": "task 42 not found"
+}</pre></div>
+</div>
+<table class="sub errs"><caption>異常時</caption><thead><tr><th>発生条件（No.）</th><th>ステータス</th><th>応答ボディの <code>code</code>（<code>message</code> は各経路、<code>field</code> は VALIDATION_ERROR だけ）</th><th>その時点のデータの状態</th></tr></thead><tbody>
+<tr><td>検証の違反（No.14・17・20）</td><td>400</td><td>VALIDATION_ERROR</td><td>変更なし</td></tr>
+
+</tbody></table>
+</section>
+</section>

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="sequential-design-doc-layered">
+<title>詳細設計書：タスクの更新に楽観ロックを入れる（PUT /api/tasks/:id）</title>
+<style>
+/* sequential-design-doc-layered 標準スタイル。ここを書き換えずに使う（独自の装飾を足さない）。 */
+:root {
+  --fg: #111; --sub: #555; --line: #bcbcbc; --line2: #dadada;
+  --th: #efefef; --code: #f6f6f4; --mark: #b00020; --inf: #7a4b00; --link: #0b57d0;
+  /* 逐次処理の木：深さ k の縦線は x(k) = 6px + (k-1)×1.4em + 0.35em。横の枝（├─ └─）は x(k) から文字の手前まで。 */
+  --gc: #8f8f8f; --gl: linear-gradient(var(--gc), var(--gc));
+  --v1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px 100%;
+  --v2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px 100%;
+  --v3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px 100%;
+  --v4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px 100%;
+  --v5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px 100%;
+  --v6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px 100%;
+  --v7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px 100%;
+  --v8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px 100%;
+  --g1: var(--v1); --g2: var(--g1), var(--v2); --g3: var(--g2), var(--v3); --g4: var(--g3), var(--v4);
+  --g5: var(--g4), var(--v5); --g6: var(--g5), var(--v6); --g7: var(--g6), var(--v7); --g8: var(--g7), var(--v8);
+  --ty: 0.95em; --tw: calc(1.05em - 3px);
+  --t1: var(--gl) no-repeat calc(6px + 0.35em) var(--ty) / var(--tw) 1px;
+  --t2: var(--gl) no-repeat calc(6px + 1.75em) var(--ty) / var(--tw) 1px;
+  --t3: var(--gl) no-repeat calc(6px + 3.15em) var(--ty) / var(--tw) 1px;
+  --t4: var(--gl) no-repeat calc(6px + 4.55em) var(--ty) / var(--tw) 1px;
+  --t5: var(--gl) no-repeat calc(6px + 5.95em) var(--ty) / var(--tw) 1px;
+  --t6: var(--gl) no-repeat calc(6px + 7.35em) var(--ty) / var(--tw) 1px;
+  --t7: var(--gl) no-repeat calc(6px + 8.75em) var(--ty) / var(--tw) 1px;
+  --t8: var(--gl) no-repeat calc(6px + 10.15em) var(--ty) / var(--tw) 1px;
+  --h1: var(--gl) no-repeat calc(6px + 0.35em) 0 / 1px var(--ty);
+  --h2: var(--gl) no-repeat calc(6px + 1.75em) 0 / 1px var(--ty);
+  --h3: var(--gl) no-repeat calc(6px + 3.15em) 0 / 1px var(--ty);
+  --h4: var(--gl) no-repeat calc(6px + 4.55em) 0 / 1px var(--ty);
+  --h5: var(--gl) no-repeat calc(6px + 5.95em) 0 / 1px var(--ty);
+  --h6: var(--gl) no-repeat calc(6px + 7.35em) 0 / 1px var(--ty);
+  --h7: var(--gl) no-repeat calc(6px + 8.75em) 0 / 1px var(--ty);
+  --h8: var(--gl) no-repeat calc(6px + 10.15em) 0 / 1px var(--ty);
+  /* ブロックの先頭の行（下に字下げした行が続く行）：文の 1 行目の下から縦線を下ろす */
+  --d1: var(--gl) no-repeat calc(6px + 0.35em) calc(2px + 1.5em) / 1px 100%;
+  --d2: var(--gl) no-repeat calc(6px + 1.75em) calc(2px + 1.5em) / 1px 100%;
+  --d3: var(--gl) no-repeat calc(6px + 3.15em) calc(2px + 1.5em) / 1px 100%;
+  --d4: var(--gl) no-repeat calc(6px + 4.55em) calc(2px + 1.5em) / 1px 100%;
+  --d5: var(--gl) no-repeat calc(6px + 5.95em) calc(2px + 1.5em) / 1px 100%;
+  --d6: var(--gl) no-repeat calc(6px + 7.35em) calc(2px + 1.5em) / 1px 100%;
+  --d7: var(--gl) no-repeat calc(6px + 8.75em) calc(2px + 1.5em) / 1px 100%;
+  --d8: var(--gl) no-repeat calc(6px + 10.15em) calc(2px + 1.5em) / 1px 100%;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; padding: 8px 12px 20px; color: var(--fg); background: #fff;
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, "Noto Sans JP", sans-serif;
+  font-size: 13px; line-height: 1.5;
+}
+main, header.doc { max-width: 1920px; }
+h1 { font-size: 17px; margin: 0 0 2px; }
+h2 { font-size: 14.5px; margin: 14px 0 4px; padding: 0 0 1px; border-bottom: 1px solid #333; }
+h3 { font-size: 13.5px; margin: 10px 0 3px; }
+h4 { font-size: 13px; margin: 6px 0 2px; }
+p { margin: 2px 0 4px; }
+ul, ol { margin: 2px 0 4px; padding-left: 1.6em; }
+li { margin: 0; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: Consolas, "BIZ UDGothic", "Courier New", monospace; }
+code { font-size: 12px; padding: 0 2px; background: var(--code); border: 1px solid #e8e8e8; border-radius: 2px; }
+pre code { padding: 0; background: none; border: 0; }
+
+/* 表 */
+table { border-collapse: collapse; width: 100%; margin: 0 0 6px; }
+th, td { border: 1px solid var(--line); padding: 3px 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+th { background: var(--th); font-weight: 600; }
+thead th { white-space: nowrap; }
+table.auto { width: auto; max-width: 100%; }
+table.kv > tbody > tr > th { width: 10em; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+caption { caption-side: top; text-align: left; font-size: 11.5px; font-weight: 600; padding: 0 0 1px; color: #333; }
+
+/* 文書ヘッダー */
+header.doc { border-bottom: 1px solid #333; padding-bottom: 3px; margin-bottom: 4px; }
+.meta { color: var(--sub); font-size: 12px; margin: 0; }
+.legend { font-size: 11.5px; color: var(--sub); margin: 2px 0 0; }
+nav.toc { font-size: 12px; margin: 4px 0; }
+nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; }
+
+/* 逐次処理表（No.・処理内容・根拠の 3 列）
+   - 横の罫線は、ブロック（字下げなしの文と、その内側の行・「〜のとき」行・終端行）の間にだけ、全列を通して引く。
+     ブロックの内側には横の罫線を引かず、処理内容の欄の縦線と枝（├─ └─）で入れ子を見せる。縦の罫線は常に通す。
+   - build が付ける class：td.c＝処理内容の欄、tr.n＝字下げした行、tr.close＝ブロックを閉じる行（繰返終端・待機・try終端）、tr.hd＝ブロックの先頭の行（次の行が字下げで 1 段深い行）。
+     tr.arm（「〜のとき」行・catch・finally など）は部品に書く。 */
+table.steps { table-layout: fixed; border-bottom: 1px solid var(--line); }
+table.steps > thead > tr > th:nth-child(1) { width: 4.8em; }
+table.steps > thead > tr > th:nth-child(3) { width: 15em; }
+table.steps > tbody > tr > td { overflow-wrap: anywhere; border-top: 1px solid var(--line); border-bottom: 0; }
+table.steps > tbody > tr.n > td, table.steps > tbody > tr.arm > td,
+table.steps > tbody > tr.close > td, table.steps > tbody > tr.dt > td { border-top: 0; }
+table.steps td.no { text-align: right; white-space: nowrap; font-family: Consolas, monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.steps td.src { font-family: Consolas, monospace; font-size: 11px; color: var(--sub); }
+table.steps tr.arm .of { color: var(--sub); }
+table.steps .kw { font-family: Consolas, monospace; font-size: 12.5px; font-weight: 700; }
+table.steps td.c.i1 { padding-left: calc(6px + 1.4em); background: var(--g1); }
+table.steps td.c.i2 { padding-left: calc(6px + 2.8em); background: var(--g2); }
+table.steps td.c.i3 { padding-left: calc(6px + 4.2em); background: var(--g3); }
+table.steps td.c.i4 { padding-left: calc(6px + 5.6em); background: var(--g4); }
+table.steps td.c.i5 { padding-left: calc(6px + 7em); background: var(--g5); }
+table.steps td.c.i6 { padding-left: calc(6px + 8.4em); background: var(--g6); }
+table.steps td.c.i7 { padding-left: calc(6px + 9.8em); background: var(--g7); }
+table.steps td.c.i8 { padding-left: calc(6px + 11.2em); background: var(--g8); }
+/* 「〜のとき」行・catch・finally：上位の縦線から横の枝（├─）を出す */
+table.steps tr.arm > td.c.i1 { background: var(--g1), var(--t1); }
+table.steps tr.arm > td.c.i2 { background: var(--g2), var(--t2); }
+table.steps tr.arm > td.c.i3 { background: var(--g3), var(--t3); }
+table.steps tr.arm > td.c.i4 { background: var(--g4), var(--t4); }
+table.steps tr.arm > td.c.i5 { background: var(--g5), var(--t5); }
+table.steps tr.arm > td.c.i6 { background: var(--g6), var(--t6); }
+table.steps tr.arm > td.c.i7 { background: var(--g7), var(--t7); }
+table.steps tr.arm > td.c.i8 { background: var(--g8), var(--t8); }
+/* ブロックを閉じる行（繰返終端・待機・try終端）：縦線をここで止めて枝を出す（└─） */
+table.steps tr.close > td.c.i1 { background: var(--h1), var(--t1); }
+table.steps tr.close > td.c.i2 { background: var(--g1), var(--h2), var(--t2); }
+table.steps tr.close > td.c.i3 { background: var(--g2), var(--h3), var(--t3); }
+table.steps tr.close > td.c.i4 { background: var(--g3), var(--h4), var(--t4); }
+table.steps tr.close > td.c.i5 { background: var(--g4), var(--h5), var(--t5); }
+table.steps tr.close > td.c.i6 { background: var(--g5), var(--h6), var(--t6); }
+table.steps tr.close > td.c.i7 { background: var(--g6), var(--h7), var(--t7); }
+table.steps tr.close > td.c.i8 { background: var(--g7), var(--h8), var(--t8); }
+/* ブロックの先頭の行（分岐・try・繰返・「〜のとき」など、下に字下げした行が続く行。build が tr.hd を付ける）：縦線を文の下から下ろす */
+table.steps tr.hd > td.c { background: var(--d1); }
+table.steps tr.hd > td.c.i1 { background: var(--g1), var(--d2); }
+table.steps tr.hd > td.c.i2 { background: var(--g2), var(--d3); }
+table.steps tr.hd > td.c.i3 { background: var(--g3), var(--d4); }
+table.steps tr.hd > td.c.i4 { background: var(--g4), var(--d5); }
+table.steps tr.hd > td.c.i5 { background: var(--g5), var(--d6); }
+table.steps tr.hd > td.c.i6 { background: var(--g6), var(--d7); }
+table.steps tr.hd > td.c.i7 { background: var(--g7), var(--d8); }
+table.steps tr.arm.hd > td.c.i1 { background: var(--g1), var(--t1), var(--d2); }
+table.steps tr.arm.hd > td.c.i2 { background: var(--g2), var(--t2), var(--d3); }
+table.steps tr.arm.hd > td.c.i3 { background: var(--g3), var(--t3), var(--d4); }
+table.steps tr.arm.hd > td.c.i4 { background: var(--g4), var(--t4), var(--d5); }
+table.steps tr.arm.hd > td.c.i5 { background: var(--g5), var(--t5), var(--d6); }
+table.steps tr.arm.hd > td.c.i6 { background: var(--g6), var(--t6), var(--d7); }
+table.steps tr.arm.hd > td.c.i7 { background: var(--g7), var(--t7), var(--d8); }
+/* ブロックの先頭の行の文が折り返したとき、2 行目以降を縦線より右から始める（ぶら下げ） */
+table.steps tr.hd > td.c { padding-left: calc(6px + 0.9em); text-indent: -0.9em; }
+table.steps tr.hd > td.c.i1 { padding-left: calc(6px + 1.4em + 0.9em); }
+table.steps tr.hd > td.c.i2 { padding-left: calc(6px + 2.8em + 0.9em); }
+table.steps tr.hd > td.c.i3 { padding-left: calc(6px + 4.2em + 0.9em); }
+table.steps tr.hd > td.c.i4 { padding-left: calc(6px + 5.6em + 0.9em); }
+table.steps tr.hd > td.c.i5 { padding-left: calc(6px + 7em + 0.9em); }
+table.steps tr.hd > td.c.i6 { padding-left: calc(6px + 8.4em + 0.9em); }
+table.steps tr.hd > td.c.i7 { padding-left: calc(6px + 9.8em + 0.9em); }
+table.steps tr.hd > td.c > * { text-indent: 0; }
+/* 処理の中の項目（1. 2. …）：処理の文より一段下げる。No.29.3 のように参照できる */
+table.steps td.c > ol { margin: 2px 0 1px; padding-left: 2.2em; }
+table.steps td.c > ol > li { margin: 0 0 3px; padding-left: 2px; }
+table.steps td.c > ol > li::marker { font-family: Consolas, monospace; font-size: 12px; color: #333; }
+table.steps td.c > ol > li > b:first-child { font-size: 12px; }
+/* 画面では、マウスを置いた行を薄く色付けして、同じ行の No.・処理内容・根拠を追いやすくする（印刷には出ない） */
+@media screen { table.steps > tbody > tr:hover > td { background-color: #eef3fb !important; } }
+/* リンクで移った先の行・項目 */
+@media screen { table.steps > tbody > tr:target > td, td.c li:target { background-color: #fff3c4; } }
+.k { display: inline-block; font-size: 11px; line-height: 1.35; padding: 0 3px; margin-right: 4px; border: 1px solid #888; border-radius: 2px; color: #222; background: #fff; white-space: nowrap; vertical-align: 1px; }
+.k.x { border-color: var(--mark); color: var(--mark); }
+table.steps td.c a, .go a { font-family: Consolas, monospace; }
+.end { color: var(--mark); font-weight: 600; }
+
+/* 処理のグループ。行の中身と字下げは変えず、帯と範囲の括弧だけを足す。左側（木の線）には何も足さない */
+:root {
+  --gtbg: #e6e6e6; --gsbg: #f0f0f0; --gcr: #555;
+  --gmd: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='8'%3E%3Cpath d='M0 0h10L5 8z' fill='%23555'/%3E%3C/svg%3E");
+  --gmu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='8'%3E%3Cpath d='M5 0l5 8H0z' fill='%23555'/%3E%3C/svg%3E");
+  --gline: linear-gradient(#555, #555);
+}
+/* 一番外側のグループ：行全体に広がる帯。線は表の罫線と同じ 1px。画面ではスクロール中もタブの下に残す */
+table.steps > tbody > tr.gt > td { background: linear-gradient(#8f8f8f, #8f8f8f) top / 100% 1px no-repeat, var(--gtbg); border-top: 0; padding: 3px 6px; overflow-wrap: anywhere; }
+@media screen {
+  table.steps > tbody > tr.gt > td { position: sticky; top: var(--tabs-h, 0px); z-index: 2; }
+  table.steps > tbody.grp tr[id], table.steps > tbody.grp li[id] { scroll-margin-top: calc(var(--tabs-h, 0px) + 48px); }
+  table.steps > tbody > tr.gt:hover > td { background-color: #dcdcdc !important; }
+}
+.gb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+.gl { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+.gl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.gl::before { content: "▼"; font-size: 10px; color: var(--gcr); width: 1.1em; }
+.gl:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 1px; }
+.sc { display: inline-block; font-size: 11px; line-height: 1.4; padding: 0 5px; border: 1px solid #333; border-radius: 2px; white-space: nowrap; font-weight: 600; }
+.sc.all { background: #333; color: #fff; }
+.sc.part { background: #fff; color: #222; }
+.sc.own { background: transparent; color: var(--sub); border-color: #999; font-weight: 400; }
+.rng { font-family: Consolas, monospace; font-size: 12px; white-space: nowrap; }
+.gm { font-size: 12.5px; }
+.gx { font-size: 12px; color: var(--sub); margin-left: auto; }
+.gx a { font-family: Consolas, monospace; }
+/* 入れ子のグループ：帯（tr.gs）と、範囲を示す右側の実線（▼ が開始、▲ が終了）。階層によって色を変えない。入れ子の分だけ線が内側に並ぶ */
+table.steps tr.gs > td.c { padding-top: 0; padding-bottom: 0; }
+tr.gs .gb { margin: 0 calc(-1 * var(--gpr, 6px)) 0 -6px; padding: 2px var(--gpr, 6px) 2px 6px; background: var(--gsbg); }
+tr.gs.n .gb { margin-left: calc(-1.05em + 1px); padding-left: calc(1.05em - 1px); }
+table.steps > tbody > tr.gs > td:last-child { background: var(--gsbg); }
+table.steps > tbody > tr.gs:not(.n) > td { border-top-color: #8f8f8f; }
+tr.gs.n .gb { border-top: 1px solid #8f8f8f; }
+table.steps > tbody > tr.gs.n > td:last-child { background: linear-gradient(#8f8f8f, #8f8f8f) top / 100% 1px no-repeat, var(--gsbg); }
+tr.gs .gl { font-size: 13px; }
+tr.gs .gm { font-size: 12px; }
+tr.gs .gx { font-size: 11.5px; }
+tr.gs .rng { font-size: 11.5px; }
+table.steps td.c.gf { position: relative; padding-right: var(--gpr); }
+table.steps td.c.gf::before {
+  content: ""; position: absolute; inset: -1px 0 0 0; pointer-events: none;
+  background:
+    var(--gmd) no-repeat right 2px top 1px / var(--gb1, 0px) 8px,
+    var(--gmd) no-repeat right 13px top 1px / var(--gb2, 0px) 8px,
+    var(--gmd) no-repeat right 24px top 1px / var(--gb3, 0px) 8px,
+    var(--gmu) no-repeat right 2px bottom 0 / var(--ge1, 0px) 8px,
+    var(--gmu) no-repeat right 13px bottom 0 / var(--ge2, 0px) 8px,
+    var(--gmu) no-repeat right 24px bottom 0 / var(--ge3, 0px) 8px,
+    var(--gline) no-repeat right 6px top var(--gy1, 0px) / var(--gs1, 0px) var(--gh1, 100%),
+    var(--gline) no-repeat right 17px top var(--gy2, 0px) / var(--gs2, 0px) var(--gh2, 100%),
+    var(--gline) no-repeat right 28px top var(--gy3, 0px) / var(--gs3, 0px) var(--gh3, 100%);
+}
+td.gd1 { --gs1: 2px; --gpr: 16px; }
+td.gd2 { --gs2: 2px; --gpr: 27px; }
+td.gd3 { --gs3: 2px; --gpr: 38px; }
+td.gb1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+td.gb2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+td.gb3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+td.ge1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+td.ge2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+td.ge3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+td.gb1.ge1 { --gh1: calc(100% - 11px); }
+td.gb2.ge2 { --gh2: calc(100% - 11px); }
+td.gb3.ge3 { --gh3: calc(100% - 11px); }
+/* 表示レベルと帯の▼：レベルが既定の開閉を決め、▼がそれを反転する。行を隠す規則は build が生成する。JavaScript は使わない */
+.gbar { margin: 2px 0 4px; font-size: 12.5px; }
+.gbar .gbl { font-weight: 600; margin-right: 6px; }
+.gbar label { margin-right: 10px; cursor: pointer; }
+.gbar input { vertical-align: -2px; margin: 0 3px 0 0; }
+@media screen {
+  .gsec:has(.gv1:checked) tr.gt .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked)) tr.gt .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked) tr.gs[data-lv="2"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked)) tr.gs[data-lv="2"] .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked,.gv3:checked) tr.gs[data-lv="3"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)) tr.gs[data-lv="3"] .gl:has(input:checked)::before,
+  .gsec:has(.gv1:checked,.gv2:checked,.gv3:checked,.gv4:checked) tr.gs[data-lv="4"] .gl:not(:has(input:checked))::before,
+  .gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked,.gv4:checked)) tr.gs[data-lv="4"] .gl:has(input:checked)::before { content: "▶"; }
+}
+/* グループと処理の対応表（一覧のタブ） */
+table.gmap td.c0 { font-weight: 600; }
+table.gmap td.none { color: #aaa; text-align: center; }
+
+/* 差分：追加は緑、削除は赤の取り消し線（git の配色）。文中の変更は変えた語だけに色を付ける。行ごとの追加・削除は処理内容と根拠の欄に色を付け、番号の欄は + と − だけにする。
+   class a＝基準（v1）から、l＝前の版から。行の属性 data-ch＝基準から、data-chl＝前の版から */
+ins { text-decoration: none; }
+del { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) ins.a, body:has(#cv-last:checked) ins.l { background: #abf2bc; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) del.a, body:has(#cv-last:checked) del.l { display: inline; background: #ffcecb; color: var(--mark); text-decoration: line-through; }
+[data-ch="del"], [data-chl="del"] { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) [data-ch="del"], body:has(#cv-last:checked) [data-chl="del"] { display: block; color: var(--mark); text-decoration: line-through; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="del"], body:has(#cv-last:checked) tr[data-chl="del"] { display: table-row; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) li[data-ch="del"], body:has(#cv-last:checked) li[data-chl="del"] { display: list-item; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) :is(p, li, pre, h3, h4, caption)[data-ch="add"], body:has(#cv-last:checked) :is(p, li, pre, h3, h4, caption)[data-chl="add"] { background-color: #e6ffec; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) :is(p, li, pre, h3, h4, caption)[data-ch="del"], body:has(#cv-last:checked) :is(p, li, pre, h3, h4, caption)[data-chl="del"] { background-color: #ffebe9; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="add"] > td, body:has(#cv-last:checked) tr[data-chl="add"] > td { background-color: #e6ffec !important; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr[data-ch="del"] > td, body:has(#cv-last:checked) tr[data-chl="del"] > td { background-color: #ffebe9 !important; }
+table.steps > tbody > tr:is([data-ch], [data-chl]):not(.gt):not(.gs) > td:first-child { background-color: transparent !important; position: relative; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) table.steps > tbody > tr[data-ch="add"]:not(.gt):not(.gs) > td:first-child::before, body:has(#cv-last:checked) table.steps > tbody > tr[data-chl="add"]:not(.gt):not(.gs) > td:first-child::before { content: "+"; position: absolute; left: 6px; color: #1a7f37; font-weight: 700; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) table.steps > tbody > tr[data-ch="del"]:not(.gt):not(.gs) > td:first-child::before, body:has(#cv-last:checked) table.steps > tbody > tr[data-chl="del"]:not(.gt):not(.gs) > td:first-child::before { content: "−"; position: absolute; left: 6px; color: #cf222e; font-weight: 700; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) tr.gs[data-ch="add"] .gb, body:has(#cv-last:checked) tr.gs[data-chl="add"] .gb { background: #e6ffec; }
+.chc { font: 600 12px Consolas, monospace; white-space: nowrap; }
+.chc .cp { color: #1a7f37; }
+.chc .cm { color: #cf222e; margin-left: 4px; }
+.gb .chc { display: none; }
+body:not(:has(#cv-last:checked, #cv-hide:checked)) .gb .chc.all, body:has(#cv-last:checked) .gb .chc.last { display: inline; }
+.sup { color: #6a3fb5; font-weight: 600; }
+nav.tabs .cvw { flex-basis: 100%; font-size: 12px; padding: 2px 0 3px; }
+nav.tabs .cvw .cvl { font-weight: 600; margin-right: 6px; }
+nav.tabs .cvw label { margin-right: 10px; cursor: pointer; }
+nav.tabs .cvw input { vertical-align: -2px; margin: 0 3px 0 0; }
+/* 変更のある行だけ */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-ch]):not([data-ctx]):not(.gt):not(.gs),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr:not([data-chl]):not([data-ctxl]):not(.gt):not(.gs),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.all)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp > tr.gs:not(:has(.chc.last)),
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.all)),
+body:has(#cv-last:checked):has(#cv-only:checked) .gsec table.steps > tbody.grp:not(:has(.chc.last)) { display: none; }
+
+/* 変更のある行だけ：行が隠れても、見えている最初の行に ▼、最後の行に ▲ を出す（印は build が付ける） */
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba1.gea1 { --gh1: calc(100% - 11px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba2.gea2 { --gh2: calc(100% - 11px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gea3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+body:not(:has(#cv-last:checked, #cv-hide:checked)):has(#cv-only:checked) td.gba3.gea3 { --gh3: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl1 { --gb1: 10px; --gy1: 6px; --gh1: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel1 { --ge1: 10px; --gh1: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl1.gel1 { --gh1: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2 { --gb2: 10px; --gy2: 6px; --gh2: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel2 { --ge2: 10px; --gh2: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl2.gel2 { --gh2: calc(100% - 11px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3 { --gb3: 10px; --gy3: 6px; --gh3: calc(100% - 6px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gel3 { --ge3: 10px; --gh3: calc(100% - 5px); }
+body:has(#cv-last:checked):has(#cv-only:checked) td.gbl3.gel3 { --gh3: calc(100% - 11px); }
+
+/* 推定・未確認 */
+.inf { color: var(--inf); font-weight: 600; }
+.uv { color: var(--mark); font-weight: 600; }
+
+/* 補足の表・SQL */
+table.sub { margin: 2px 0 3px; font-size: 12px; }
+table.sub th, table.sub td { padding: 2px 5px; }
+td table.sub, .db table.sub, .api table.sub, .box table.sub { width: auto; max-width: 100%; }
+.sqlh { font-size: 12px; color: var(--sub); margin: 0 0 1px; }
+.sqlh b { color: var(--fg); }
+pre.sql, pre.txt {
+  margin: 2px 0 3px; padding: 3px 6px; background: var(--code); border: 1px solid var(--line2);
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4;
+}
+pre.sql[data-kind="ref"] { background: #fff; }
+pre.sql[data-kind="design"] { background: #fff; border-color: #8f8f8f; }
+/* JSON の例（リクエスト・レスポンス・外部 API の送受信）：項目の表の前に置く */
+pre.json {
+  margin: 2px 0 3px; padding: 3px 8px; background: var(--code); border: 1px solid var(--line2);
+  font-size: 12px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; width: fit-content; max-width: 100%;
+}
+.jsons { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: flex-start; }  /* 形の違う JSON の例を横に並べる */
+.jsons > div { max-width: 100%; }
+.note { font-size: 12px; color: var(--sub); }
+
+/* 処理ごとのタブ：処理が 2 つ以上あると build が nav.tabs と .panel を作る（JavaScript なし。:target で切り替える） */
+nav.tabs { display: none; }
+body.tabs nav.tabs {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 14px;
+  position: sticky; top: 0; z-index: 3; background: #fff;
+  margin: 6px 0 8px; padding: 4px 0 0; border-bottom: 1px solid #555;
+}
+nav.tabs .tg { display: flex; flex-direction: column; }
+nav.tabs .tgl { font-size: 11px; color: var(--sub); padding: 0 3px 1px; margin: 0 0 3px; border-bottom: 1px solid #9a9a9a; white-space: nowrap; }
+nav.tabs .tgt { display: flex; }
+nav.tabs a.tab {
+  position: relative; display: block; padding: 2px 10px 3px; margin-right: -1px;
+  border: 1px solid var(--line); border-bottom: 0; background: var(--th); color: var(--fg);
+  font-size: 12.5px; text-decoration: none; white-space: nowrap;
+}
+nav.tabs a.tab:hover { background: #fff; }
+body.tabs .panel { display: none; }
+body.tabs .panel:target, body.tabs .panel:has(:target), body.tabs:not(:has(.panel:target, .panel :target)) .panel.default { display: block; }
+body.tabs .panel, body.tabs .panel [id] { scroll-margin-top: calc(var(--tabs-h, 48px) + 6px); }
+
+/* 検証 */
+.vstatus { font-weight: 600; }
+.vstatus[data-status="open"] { color: var(--mark); }
+
+/* 印刷：木の線・範囲の括弧・帯は背景で描いているので、ブラウザの「背景のグラフィックス」の設定によらず印刷する */
+table.steps td.c, table.steps td.c.gf::before, .gb, table.steps tr.gt > td, table.steps tr.gs > td, .sc.all { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@page { size: A4 landscape; margin: 9mm; }
+@media print {
+  body { padding: 0; font-size: 9.5pt; }
+  main, header.doc { max-width: none; }
+  a { color: inherit; }
+  h2, h3, h4 { break-after: avoid; }
+  tr { break-inside: avoid; }
+  tr.gt, tr.gs { break-after: avoid; }
+  tr:has(ol), tr.dt { break-inside: auto; }
+  thead { display: table-header-group; }
+  pre.sql, pre.txt, pre.json { background: #fafafa; }
+  nav.toc, .noprint, .gbar { display: none; }
+  .gl::before { content: none; }
+  /* タブのある文書はすべてのパネルを印刷し、処理ごとに改ページする */
+  body.tabs nav.tabs { display: none !important; }
+  body.tabs .panel { display: block !important; }
+  body.tabs section.proc.panel, body.tabs #doc-check { break-before: page; }
+  body.tabs #doc-guide { display: none !important; }
+}
+/* 処理ごとのタブ（build が生成） */
+body.tabs { --tabs-h: 76px; }
+@media screen and (max-width: 537px) { table.steps > tbody > tr.gt > td { position: static; } }
+body.tabs:has(#doc-history:target, #doc-history :target) nav.tabs a.tab[href="#doc-history"],
+body.tabs:has(#doc-check:target, #doc-check :target) nav.tabs a.tab[href="#doc-check"],
+body.tabs:has(#doc-guide:target, #doc-guide :target) nav.tabs a.tab[href="#doc-guide"],
+body.tabs:has(#p1:target, #p1 :target) nav.tabs a.tab[href="#p1"],
+body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { background: #fff; border-color: #555; color: var(--fg); font-weight: 700; top: 1px; }
+/* 処理のグループの開閉（build が生成） */
+@media screen {
+.gsec:has(.gv1:checked):not(:has(#p1-g1:checked)):not(:has(tr[data-in~="p1-g1"]:target, tr[data-in~="p1-g1"] :target)) tr[data-in~="p1-g1"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g1:checked):not(:has(tr[data-in~="p1-g1"]:target, tr[data-in~="p1-g1"] :target)) tr[data-in~="p1-g1"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g2:checked)):not(:has(tr[data-in~="p1-g2"]:target, tr[data-in~="p1-g2"] :target)) tr[data-in~="p1-g2"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g2:checked):not(:has(tr[data-in~="p1-g2"]:target, tr[data-in~="p1-g2"] :target)) tr[data-in~="p1-g2"],
+.gsec:has(.gv1:checked,.gv2:checked,.gv3:checked):not(:has(#p1-g3:checked)):not(:has(tr[data-in~="p1-g3"]:target, tr[data-in~="p1-g3"] :target)) tr[data-in~="p1-g3"],
+.gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)):has(#p1-g3:checked):not(:has(tr[data-in~="p1-g3"]:target, tr[data-in~="p1-g3"] :target)) tr[data-in~="p1-g3"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g4:checked)):not(:has(tr[data-in~="p1-g4"]:target, tr[data-in~="p1-g4"] :target)) tr[data-in~="p1-g4"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g4:checked):not(:has(tr[data-in~="p1-g4"]:target, tr[data-in~="p1-g4"] :target)) tr[data-in~="p1-g4"],
+.gsec:has(.gv1:checked,.gv2:checked,.gv3:checked):not(:has(#p1-g5:checked)):not(:has(tr[data-in~="p1-g5"]:target, tr[data-in~="p1-g5"] :target)) tr[data-in~="p1-g5"],
+.gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)):has(#p1-g5:checked):not(:has(tr[data-in~="p1-g5"]:target, tr[data-in~="p1-g5"] :target)) tr[data-in~="p1-g5"],
+.gsec:has(.gv1:checked,.gv2:checked,.gv3:checked):not(:has(#p1-g6:checked)):not(:has(tr[data-in~="p1-g6"]:target, tr[data-in~="p1-g6"] :target)) tr[data-in~="p1-g6"],
+.gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)):has(#p1-g6:checked):not(:has(tr[data-in~="p1-g6"]:target, tr[data-in~="p1-g6"] :target)) tr[data-in~="p1-g6"],
+.gsec:has(.gv1:checked):not(:has(#p1-g7:checked)):not(:has(tr[data-in~="p1-g7"]:target, tr[data-in~="p1-g7"] :target)) tr[data-in~="p1-g7"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g7:checked):not(:has(tr[data-in~="p1-g7"]:target, tr[data-in~="p1-g7"] :target)) tr[data-in~="p1-g7"],
+.gsec:has(.gv1:checked):not(:has(#p1-g8:checked)):not(:has(tr[data-in~="p1-g8"]:target, tr[data-in~="p1-g8"] :target)) tr[data-in~="p1-g8"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g8:checked):not(:has(tr[data-in~="p1-g8"]:target, tr[data-in~="p1-g8"] :target)) tr[data-in~="p1-g8"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g9:checked)):not(:has(tr[data-in~="p1-g9"]:target, tr[data-in~="p1-g9"] :target)) tr[data-in~="p1-g9"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g9:checked):not(:has(tr[data-in~="p1-g9"]:target, tr[data-in~="p1-g9"] :target)) tr[data-in~="p1-g9"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g10:checked)):not(:has(tr[data-in~="p1-g10"]:target, tr[data-in~="p1-g10"] :target)) tr[data-in~="p1-g10"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g10:checked):not(:has(tr[data-in~="p1-g10"]:target, tr[data-in~="p1-g10"] :target)) tr[data-in~="p1-g10"],
+.gsec:has(.gv1:checked,.gv2:checked,.gv3:checked):not(:has(#p1-g11:checked)):not(:has(tr[data-in~="p1-g11"]:target, tr[data-in~="p1-g11"] :target)) tr[data-in~="p1-g11"],
+.gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)):has(#p1-g11:checked):not(:has(tr[data-in~="p1-g11"]:target, tr[data-in~="p1-g11"] :target)) tr[data-in~="p1-g11"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g12:checked)):not(:has(tr[data-in~="p1-g12"]:target, tr[data-in~="p1-g12"] :target)) tr[data-in~="p1-g12"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g12:checked):not(:has(tr[data-in~="p1-g12"]:target, tr[data-in~="p1-g12"] :target)) tr[data-in~="p1-g12"],
+.gsec:has(.gv1:checked,.gv2:checked,.gv3:checked):not(:has(#p1-g13:checked)):not(:has(tr[data-in~="p1-g13"]:target, tr[data-in~="p1-g13"] :target)) tr[data-in~="p1-g13"],
+.gsec:not(:has(.gv1:checked,.gv2:checked,.gv3:checked)):has(#p1-g13:checked):not(:has(tr[data-in~="p1-g13"]:target, tr[data-in~="p1-g13"] :target)) tr[data-in~="p1-g13"],
+.gsec:has(.gv1:checked):not(:has(#p1-g14:checked)):not(:has(tr[data-in~="p1-g14"]:target, tr[data-in~="p1-g14"] :target)) tr[data-in~="p1-g14"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g14:checked):not(:has(tr[data-in~="p1-g14"]:target, tr[data-in~="p1-g14"] :target)) tr[data-in~="p1-g14"],
+.gsec:has(.gv1:checked):not(:has(#p1-g15:checked)):not(:has(tr[data-in~="p1-g15"]:target, tr[data-in~="p1-g15"] :target)) tr[data-in~="p1-g15"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g15:checked):not(:has(tr[data-in~="p1-g15"]:target, tr[data-in~="p1-g15"] :target)) tr[data-in~="p1-g15"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g16:checked)):not(:has(tr[data-in~="p1-g16"]:target, tr[data-in~="p1-g16"] :target)) tr[data-in~="p1-g16"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g16:checked):not(:has(tr[data-in~="p1-g16"]:target, tr[data-in~="p1-g16"] :target)) tr[data-in~="p1-g16"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g17:checked)):not(:has(tr[data-in~="p1-g17"]:target, tr[data-in~="p1-g17"] :target)) tr[data-in~="p1-g17"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g17:checked):not(:has(tr[data-in~="p1-g17"]:target, tr[data-in~="p1-g17"] :target)) tr[data-in~="p1-g17"],
+.gsec:has(.gv1:checked):not(:has(#p1-g18:checked)):not(:has(tr[data-in~="p1-g18"]:target, tr[data-in~="p1-g18"] :target)) tr[data-in~="p1-g18"],
+.gsec:not(:has(.gv1:checked)):has(#p1-g18:checked):not(:has(tr[data-in~="p1-g18"]:target, tr[data-in~="p1-g18"] :target)) tr[data-in~="p1-g18"],
+.gsec:has(.gv1:checked,.gv2:checked):not(:has(#p1-g19:checked)):not(:has(tr[data-in~="p1-g19"]:target, tr[data-in~="p1-g19"] :target)) tr[data-in~="p1-g19"],
+.gsec:not(:has(.gv1:checked,.gv2:checked)):has(#p1-g19:checked):not(:has(tr[data-in~="p1-g19"]:target, tr[data-in~="p1-g19"] :target)) tr[data-in~="p1-g19"] { display: none; }
+}
+</style>
+</head>
+<body class="tabs">
+<header class="doc">
+<h1>詳細設計書：タスクの更新に楽観ロックを入れる（PUT /api/tasks/:id）</h1>
+<p class="meta">版 v3 ／ 変更設計</p>
+</header>
+<main>
+<nav class="tabs" aria-label="処理の切り替え">
+<div class="tg"><div class="tgl">文書</div><div class="tgt"><a class="tab" href="#doc-history">変更履歴</a><a class="tab" href="#doc-check">未確認事項・検証記録</a><a class="tab" href="#doc-guide">見方</a></div></div>
+<div class="tg"><div class="tgl">タスクの変更</div><div class="tgt"><a class="tab default" href="#p1">更新 PUT /api/tasks/:id</a></div></div>
+<div class="cvw noprint"><span class="cvl">変更の表示</span><label><input type="radio" name="cv" id="cv-all" checked>すべての変更（v1 から）</label><label><input type="radio" name="cv" id="cv-last">今回の変更だけ（v3）</label><label><input type="radio" name="cv" id="cv-hide">隠す（確定後の姿）</label><label><input type="checkbox" id="cv-only">変更のある行だけ表示</label></div>
+</nav>
+<section class="proc panel default" id="p1" data-group="タスクの変更" data-tab="更新 PUT /api/tasks/:id">
+<h2>1. タスクの更新（PUT /api/tasks/:id）</h2>
+<section data-sec="overview">
+<h3>1.1 処理概要</h3>
+<table class="kv"><tbody>
+<tr><th>文書の種類</th><td><b>変更設計</b>（基準：現行コード task-api から書き起こした v1）</td></tr>
+<tr><th>対象処理</th><td>タスクを 1 件更新する</td></tr>
+<tr><th>種別</th><td>Web API（同期）</td></tr>
+<tr><th>HTTPメソッド</th><td>PUT</td></tr>
+<tr><th>エンドポイント</th><td><code>/api/tasks/:id</code></td></tr>
+<tr><th>入力</th><td>ヘッダー <code>X-API-Key</code>、パス <code>id</code>、ボディ <code>title</code>・<code>status</code>・<code>dueDate</code></td></tr>
+<tr data-ch="mod" data-chl="mod"><th>出力</th><td>200：更新後のタスク（JSON）／ 異常時 400・401・404・409<ins class="a l">（</ins><code><ins class="a l">VERSION_CONFLICT</ins></code><ins class="a l"> を追加）</ins>・500</td></tr>
+<tr><th>認証</th><td>API キー（ヘッダー <code>X-API-Key</code>。No.<a href="#p1-s04">04</a>〜11）</td></tr>
+<tr><th>トランザクション</th><td>明示的な開始なし（SQL は 1 文ごとに確定する<span class="inf">〔推定〕</span>）</td></tr>
+<tr><th>使用テーブル</th><td><code>api_clients</code>（参照）、<code>tasks</code>（更新）</td></tr>
+<tr><th>外部システム</th><td>なし</td></tr>
+<tr><th>起点（根拠）</th><td class="src">tasks.ts:63-80</td></tr>
+</tbody></table>
+</section>
+<section data-sec="input">
+<h3>1.2 入力項目</h3>
+<div class="sqlh"><b>リクエストボディの例（Content-Type: application/json）</b></div><pre class="json" data-title="リクエストボディの例（Content-Type: application/json）" data-labeled="1">{
+  "title": "  見積書を送付する  ",
+  "status": "DOING",
+  "dueDate": "2026-11-20"<ins class="a">,
+  "version": 4</ins>
+}</pre>
+<table class="sub"><thead><tr><th>項目</th><th>受け取り位置</th><th>型</th><th>必須</th><th>検証内容（コード上の条件）</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>X-API-Key</code></td><td>ヘッダー</td><td>string</td><td>必須</td><td>空でないこと（No.<a href="#p1-s05">05</a>）。SHA-256 が <code>api_clients.key_hash</code> と一致し、失効していないこと（No.<a href="#p1-s08">08</a>・09）</td><td><code>tk_live_7f3a9c…</code></td></tr>
+<tr><td><code>id</code></td><td>パス</td><td>string → number</td><td>必須</td><td>正の整数（No.<a href="#p1-s13">13</a>）</td><td>"42"</td></tr>
+<tr><td><code>title</code></td><td>ボディ（JSON）</td><td>string</td><td>必須</td><td>文字列で、前後の空白を除いて空でなく、100 文字以内（No.<a href="#p1-s16">16</a>・19）</td><td>"  見積書を送付する  "</td></tr>
+<tr><td><code>status</code></td><td>ボディ（JSON）</td><td>string</td><td>任意</td><td>TODO・DOING・DONE のいずれか（No.<a href="#p1-s23">23</a>）。省略時は TODO</td><td>"DOING"</td></tr>
+<tr><td><code>dueDate</code></td><td>ボディ（JSON）</td><td>string / null</td><td>任意</td><td>YYYY-MM-DD 形式（No.<a href="#p1-s28">28</a>）。省略・null は null</td><td>"2026-11-20"</td></tr>
+<tr data-ch="add"><td><code>version</code></td><td>ボディ（JSON）</td><td>number</td><td>必須</td><td>正の整数（No.<a href="#p1-s31b">31b</a>）。取得したときの値を送る</td><td>4</td></tr>
+</tbody></table>
+</section>
+<section data-sec="steps" class="gsec">
+<h3>1.3 逐次処理</h3>
+<p class="note">シナリオ：テナント 3 の API クライアント 12 が、タスク 42 のタイトルを「見積書を送付する」、状態を DOING、期限を 2026-11-20 に変更する。<ins class="a">取得したときの version 4 を送る。</ins></p>
+<p class="gbar"><span class="gbl">表示レベル</span><label><input type="radio" name="gv-p1-1" class="gv1">一番外側のグループだけ</label><label><input type="radio" name="gv-p1-1" class="gv2">2 階層目まで</label><label><input type="radio" name="gv-p1-1" class="gv3">3 階層目まで</label><label><input type="radio" name="gv-p1-1" class="gva" checked>すべての行</label></p><table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead>
+<tbody class="grp">
+<tr class="gt" data-key="common-validation" data-a="01" data-b="11" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g1" aria-label="全API共通バリデーション を開閉する"><b>全API共通バリデーション</b></label><span class="sc all">全API共通</span><span class="rng">No.<a href="#p1-s01">01</a>〜11</span><span class="gm">ボディの JSON を解析し、<code>X-API-Key</code> から呼び出し元のテナントを特定する。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E1">E1</a></span> ／ <span class="go">401 → <a href="#p1-E2">E2</a></span> ／ <span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td></tr>
+<tr class="gs" data-to="03c" data-in="p1-g1" data-a="01" data-b="03c" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g2" aria-label="ボディの JSON 解析 を開閉する"><b>ボディの JSON 解析</b></label><span class="rng">No.<a href="#p1-s01">01</a>〜03c</span><span class="gm">JSON のボディがあれば解析して <code>req.body</code> に入れる。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E1">E1</a></span> ／ <span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td><td></td></tr>
+<tr id="p1-s01" class="hd" data-in="p1-g1 p1-g2"><td class="no">01</td><td class="c gf gd1 gb1"><span class="k">分岐</span>リクエストに <code>Content-Type: application/json</code> のボディがあるか判定する（<code>express.json</code> の解析の対象か）<span class="inf">〔推定〕</span>。</td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g2"><td></td><td class="i1 c gf gd1">ボディがあるとき<span class="of">（No.<a href="#p1-s01">01</a> が成立）</span></td><td></td></tr>
+<tr class="gs n" data-to="03b" data-in="p1-g1 p1-g2" data-a="02" data-b="03b" data-lv="3"><td></td><td class="i2 gf gd1 c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g3" aria-label="大きさと形式の確認 を開閉する"><b>大きさと形式の確認</b></label><span class="rng">No.<a href="#p1-s02">02</a>〜03b</span><span class="gm">100kb 以下で、JSON として読めることを確かめる。</span></div></td><td></td></tr>
+<tr class="n hd" id="p1-s02" data-in="p1-g1 p1-g2 p1-g3"><td class="no">02</td><td class="i2 c gf gd1 gd2 gb2"><span class="k">分岐</span>ボディの大きさが 100kb を超えるか判定する（<code>limit: '100kb'</code>）。</td><td class="src">app.ts:8</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g2 p1-g3"><td></td><td class="i3 c gf gd1 gd2">100kb を超えるとき<span class="of">（No.<a href="#p1-s02">02</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s02a" data-in="p1-g1 p1-g2 p1-g3"><td class="no">02a</td><td class="i4 c gf gd1 gd2"><code>type: 'entity.too.large'</code> のエラーを <code>next</code> に渡す<span class="inf">〔推定〕</span>。→ <a href="#p1-E6">E6</a></td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm n" data-in="p1-g1 p1-g2 p1-g3"><td></td><td class="i3 c gf gd1 gd2">100kb 以下のとき<span class="of">（No.<a href="#p1-s02">02</a> が不成立）</span> → <a href="#p1-s03">03</a></td><td></td></tr>
+<tr class="n hd" id="p1-s03" data-in="p1-g1 p1-g2 p1-g3"><td class="no">03</td><td class="i2 c gf gd1 gd2"><span class="k">分岐</span>ボディを JSON として解析できるか判定する（既定の <code>strict</code> により、オブジェクトか配列だけを受け付ける）<span class="inf">〔推定〕</span>。</td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g2 p1-g3"><td></td><td class="i3 c gf gd1 gd2">解析できないとき<span class="of">（No.<a href="#p1-s03">03</a> が不成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s03a" data-in="p1-g1 p1-g2 p1-g3"><td class="no">03a</td><td class="i4 c gf gd1 gd2"><code>type: 'entity.parse.failed'</code> のエラーを <code>next</code> に渡す。→ <a href="#p1-E1">E1</a></td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g2 p1-g3"><td></td><td class="i3 c gf gd1 gd2">解析できるとき<span class="of">（No.<a href="#p1-s03">03</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s03b" data-in="p1-g1 p1-g2 p1-g3"><td class="no">03b</td><td class="i4 c gf gd1 gd2 ge2">解析結果を <code>req.body</code> に格納する。→ <a href="#p1-s04">04</a></td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g2"><td></td><td class="i1 c gf gd1">それ以外のとき<span class="of">（No.<a href="#p1-s01">01</a> が不成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s03c" data-in="p1-g1 p1-g2"><td class="no">03c</td><td class="i2 c gf gd1 ge1">解析せず、<code>req.body</code> を <code>{}</code> のままにする<span class="inf">〔推定〕</span>。→ <a href="#p1-s04">04</a></td><td class="src">app.ts:8<br>FW 仕様（express.json）</td></tr>
+<tr class="gs" data-to="11" data-in="p1-g1" data-a="04" data-b="11" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g4" aria-label="API キーの確認 を開閉する"><b>API キーの確認</b></label><span class="rng">No.<a href="#p1-s04">04</a>〜11</span><span class="gm">キーから呼び出し元を特定し、テナントを記録する。</span><span class="gx">失敗時：<span class="go">401 → <a href="#p1-E2">E2</a></span> ／ <span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td><td></td></tr>
+<tr class="gs" data-to="06" data-in="p1-g1 p1-g4" data-a="04" data-b="06" data-lv="3"><td></td><td class="gf gd1 gb1 c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g5" aria-label="キーの有無の確認 を開閉する"><b>キーの有無の確認</b></label><span class="rng">No.<a href="#p1-s04">04</a>〜06</span></div></td><td></td></tr>
+<tr id="p1-s04" data-in="p1-g1 p1-g4 p1-g5"><td class="no">04</td><td class="c gf gd1 gd2 gb2">ヘッダー <code>X-API-Key</code> の値を <code>apiKey</code> に格納する（例 <code>tk_live_7f3a9c…</code>。無ければ undefined）。</td><td class="src">apiKeyAuth.ts:8</td></tr>
+<tr id="p1-s05" class="hd" data-in="p1-g1 p1-g4 p1-g5"><td class="no">05</td><td class="c gf gd1 gd2"><span class="k">分岐</span><code>apiKey</code> が空（undefined または空文字）か判定する（<code>!apiKey</code>）。</td><td class="src">apiKeyAuth.ts:9</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g4 p1-g5"><td></td><td class="i1 c gf gd1 gd2"><code>apiKey</code> が空のとき<span class="of">（No.<a href="#p1-s05">05</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s06" data-in="p1-g1 p1-g4 p1-g5"><td class="no">06</td><td class="i2 c gf gd1 gd2"><span class="k x">例外</span><code>UnauthorizedError</code>（ステータス 401、コード <code>API_KEY_REQUIRED</code>）を送出する。→ <a href="#p1-E2">E2</a></td><td class="src">apiKeyAuth.ts:10<br>errors.ts:13-17</td></tr>
+<tr class="arm n" data-in="p1-g1 p1-g4 p1-g5"><td></td><td class="i1 c gf gd1 gd2 ge2"><code>apiKey</code> に値があるとき<span class="of">（No.<a href="#p1-s05">05</a> が不成立）</span> → <a href="#p1-s07">07</a></td><td></td></tr>
+<tr class="gs" data-to="10" data-in="p1-g1 p1-g4" data-a="07" data-b="10" data-lv="3"><td></td><td class="gf gd1 c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g6" aria-label="キーの照合 を開閉する"><b>キーの照合</b></label><span class="rng">No.<a href="#p1-s07">07</a>〜10</span><span class="gm">ハッシュが一致し、失効していないクライアントを探す。</span></div></td><td></td></tr>
+<tr id="p1-s07" data-in="p1-g1 p1-g4 p1-g6"><td class="no">07</td><td class="c gf gd1 gd2 gb2"><code>apiKey</code> の SHA-256 を 16 進文字列にして <code>keyHash</code> に格納する（例 <code>9c1e0b4d…</code>）。</td><td class="src">apiKeyAuth.ts:12</td></tr>
+<tr id="p1-s08" data-in="p1-g1 p1-g4 p1-g6"><td class="no">08</td><td class="c gf gd1 gd2"><span class="k">SQL</span><code>api_clients</code> から、<code>key_hash</code> が <code>keyHash</code> と一致し、失効していない行を取得し、<code>rows</code> に格納する。DB の例外 → <a href="#p1-E6">E6</a>
+<ol class="db">
+<li id="p1-s08-1"><div class="sqlh"><b>実行SQL</b> apiKeyAuth.ts:14-17</div><pre class="sql" data-kind="exec" data-src="apiKeyAuth.ts:14-17" data-labeled="1">SELECT id, tenant_id
+  FROM api_clients
+ WHERE key_hash = $1
+   AND revoked_at IS NULL</pre>
+<p class="note">常に実行する。接続・問い合わせのタイムアウトはコードに指定がない<span class="uv">〔未確認: U1〕</span>。</p></li>
+<li id="p1-s08-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>$1</code></td><td><code>keyHash</code>（No.<a href="#p1-s07">07</a>）</td><td>9c1e0b4d…</td></tr>
+</tbody></table></li>
+<li id="p1-s08-3"><b>取得データ</b>（1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>12</td><td><code>rows[0].id</code></td><td>No.<a href="#p1-s11">11</a></td></tr>
+<tr><td>tenant_id</td><td>number</td><td>3</td><td><code>rows[0].tenant_id</code></td><td>No.<a href="#p1-s11">11</a></td></tr>
+</tbody></table></li>
+<li id="p1-s08-4"><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ <a href="#p1-s09">09</a> で不成立 → <a href="#p1-s11">11</a></td></tr>
+<tr><td>0 件（未登録、または失効済み）</td><td class="go">→ <a href="#p1-s09">09</a> で成立 → <a href="#p1-s10">10</a></td></tr>
+<tr><td>2 件以上</td><td><code>key_hash</code> は UNIQUE のため発生しない（schema.sql:6）</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">apiKeyAuth.ts:13-19</td></tr>
+<tr id="p1-s09" class="hd" data-in="p1-g1 p1-g4 p1-g6"><td class="no">09</td><td class="c gf gd1 gd2"><span class="k">分岐</span><code>rows</code> が 0 件か判定する（<code>rows.length === 0</code>）。</td><td class="src">apiKeyAuth.ts:20</td></tr>
+<tr class="arm n hd" data-in="p1-g1 p1-g4 p1-g6"><td></td><td class="i1 c gf gd1 gd2"><code>rows</code> が 0 件のとき（キーが未登録、または失効済みのとき）<span class="of">（No.<a href="#p1-s09">09</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s10" data-in="p1-g1 p1-g4 p1-g6"><td class="no">10</td><td class="i2 c gf gd1 gd2"><span class="k x">例外</span><code>UnauthorizedError</code>（ステータス 401、コード <code>API_KEY_INVALID</code>）を送出する。→ <a href="#p1-E2">E2</a></td><td class="src">apiKeyAuth.ts:21<br>errors.ts:13-17</td></tr>
+<tr class="arm n" data-in="p1-g1 p1-g4 p1-g6"><td></td><td class="i1 c gf gd1 gd2 ge2"><code>rows</code> が 1 件のとき<span class="of">（No.<a href="#p1-s09">09</a> が不成立）</span> → <a href="#p1-s11">11</a></td><td></td></tr>
+<tr id="p1-s11" data-in="p1-g1 p1-g4"><td class="no">11</td><td class="c gf gd1 ge1"><code>rows[0].id</code> を <code>res.locals.clientId</code> に、<code>rows[0].tenant_id</code> を <code>res.locals.tenantId</code> に格納し（例 12、3）、次の処理へ進む（<code>next()</code>）。</td><td class="src">apiKeyAuth.ts:23-25</td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="path-id" data-a="12" data-b="14" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g7" aria-label="パスIDのバリデーション を開閉する"><b>パスIDのバリデーション</b></label><span class="sc part">取得・更新・削除 共通</span><span class="rng">No.<a href="#p1-s12">12</a>〜14</span><span class="gm">パスの <code>id</code> を正の整数に変換する。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td></tr>
+<tr id="p1-s12" data-in="p1-g7"><td class="no">12</td><td class="c">パスの <code>req.params.id</code>（例 "42"）を <code>Number</code> で数値にして <code>id</code> に格納する（例 42。数値にならなければ NaN）。</td><td class="src">tasks.ts:66<br>task.ts:14</td></tr>
+<tr id="p1-s13" class="hd" data-in="p1-g7"><td class="no">13</td><td class="c"><span class="k">分岐</span><code>id</code> が整数でない、または 0 以下か判定する（<code>!Number.isInteger(id) || id &lt;= 0</code>。左が成立すると右は評価しない）。</td><td class="src">task.ts:15, 18</td></tr>
+<tr class="arm n hd" data-in="p1-g7"><td></td><td class="i1 c">整数でない、または 0 以下のとき<span class="of">（No.<a href="#p1-s13">13</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s14" data-in="p1-g7"><td class="no">14</td><td class="i2 c"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>id</code>、メッセージ「id は正の整数で指定してください」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">task.ts:16<br>errors.ts:19-26</td></tr>
+<tr class="arm n" data-in="p1-g7"><td></td><td class="i1 c">正の整数のとき<span class="of">（No.<a href="#p1-s13">13</a> が不成立）</span> → <a href="#p1-s15">15</a></td><td></td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="body" data-a="15" data-b="31" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g8" aria-label="ボディのバリデーション を開閉する"><b>ボディのバリデーション</b></label><span class="sc part">登録・更新 共通</span><span class="rng">No.<a href="#p1-s15">15</a>〜31</span><span class="gm"><code>title</code>・<code>status</code>・<code>dueDate</code> を検証し、<code>input</code> にまとめる。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td></tr>
+<tr id="p1-s15" data-in="p1-g8"><td class="no">15</td><td class="c"><code>req.body</code> を <code>b</code> に格納する（null・undefined なら <code>{}</code>）。</td><td class="src">tasks.ts:67<br>task.ts:23</td></tr>
+<tr class="gs" data-to="20" data-in="p1-g8" data-a="16" data-b="20" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g9" aria-label="title の検証 を開閉する"><b>title の検証</b></label><span class="rng">No.<a href="#p1-s16">16</a>〜20</span><span class="gm">空でない 100 文字以内の文字列に整える。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td><td></td></tr>
+<tr id="p1-s16" class="hd" data-in="p1-g8 p1-g9"><td class="no">16</td><td class="c gf gd1 gb1"><span class="k">分岐</span><code>b.title</code> が文字列でない、または前後の空白を除くと空文字か判定する（左が成立すると右は評価しない）。</td><td class="src">task.ts:25</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g9"><td></td><td class="i1 c gf gd1">文字列でない、または空のとき<span class="of">（No.<a href="#p1-s16">16</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s17" data-in="p1-g8 p1-g9"><td class="no">17</td><td class="i2 c gf gd1"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>title</code>、メッセージ「title は必須です」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">task.ts:26</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g9"><td></td><td class="i1 c gf gd1">空でない文字列のとき<span class="of">（No.<a href="#p1-s16">16</a> が不成立）</span> → <a href="#p1-s18">18</a></td><td></td></tr>
+<tr id="p1-s18" data-in="p1-g8 p1-g9"><td class="no">18</td><td class="c gf gd1"><code>b.title</code> の前後の空白を除いて <code>title</code> に格納する（例 "見積書を送付する"）。</td><td class="src">task.ts:28</td></tr>
+<tr id="p1-s19" class="hd" data-in="p1-g8 p1-g9"><td class="no">19</td><td class="c gf gd1"><span class="k">分岐</span><code>title.length</code> が 100 より大きいか判定する。</td><td class="src">task.ts:29</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g9"><td></td><td class="i1 c gf gd1">100 文字を超えるとき<span class="of">（No.<a href="#p1-s19">19</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s20" data-in="p1-g8 p1-g9"><td class="no">20</td><td class="i2 c gf gd1"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>title</code>、メッセージ「title は 100 文字以内で指定してください」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">task.ts:30</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g9"><td></td><td class="i1 c gf gd1 ge1">100 文字以内のとき<span class="of">（No.<a href="#p1-s19">19</a> が不成立）</span> → <a href="#p1-s21">21</a></td><td></td></tr>
+<tr class="gs" data-to="25" data-in="p1-g8" data-a="21" data-b="25" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g10" aria-label="status の検証 を開閉する"><b>status の検証</b></label><span class="rng">No.<a href="#p1-s21">21</a>〜25</span><span class="gm">省略時は TODO。指定があれば許可された値か確かめる。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td><td></td></tr>
+<tr id="p1-s21" data-in="p1-g8 p1-g10"><td class="no">21</td><td class="c gf gd1 gb1"><code>status</code> に既定値 <code>"TODO"</code> を格納する。</td><td class="src">task.ts:33</td></tr>
+<tr id="p1-s22" class="hd" data-in="p1-g8 p1-g10"><td class="no">22</td><td class="c gf gd1"><span class="k">分岐</span><code>b.status</code> が undefined でないか判定する。</td><td class="src">task.ts:34</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g10"><td></td><td class="i1 c gf gd1">undefined でないとき（null を含む）<span class="of">（No.<a href="#p1-s22">22</a> が成立）</span></td><td></td></tr>
+<tr class="gs n" data-to="25" data-in="p1-g8 p1-g10" data-a="23" data-b="25" data-lv="3"><td></td><td class="i2 gf gd1 c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g11" aria-label="指定された値の確認と採用 を開閉する"><b>指定された値の確認と採用</b></label><span class="rng">No.<a href="#p1-s23">23</a>〜25</span></div></td><td></td></tr>
+<tr class="n hd" id="p1-s23" data-in="p1-g8 p1-g10 p1-g11"><td class="no">23</td><td class="i2 c gf gd1 gd2 gb2"><span class="k">分岐</span><code>b.status</code> が <code>TODO</code>・<code>DOING</code>・<code>DONE</code> のいずれでもないか判定する。</td><td class="src">task.ts:3, 35</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g10 p1-g11"><td></td><td class="i3 c gf gd1 gd2">いずれでもないとき<span class="of">（No.<a href="#p1-s23">23</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s24" data-in="p1-g8 p1-g10 p1-g11"><td class="no">24</td><td class="i4 c gf gd1 gd2"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>status</code>、メッセージ「status は TODO・DOING・DONE のいずれかです」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">task.ts:36</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g10 p1-g11"><td></td><td class="i3 c gf gd1 gd2">いずれかのとき<span class="of">（No.<a href="#p1-s23">23</a> が不成立）</span> → <a href="#p1-s25">25</a></td><td></td></tr>
+<tr class="n" id="p1-s25" data-in="p1-g8 p1-g10 p1-g11"><td class="no">25</td><td class="i2 c gf gd1 gd2 ge2"><code>b.status</code> を <code>status</code> に格納する（例 "DOING"）。</td><td class="src">task.ts:38</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g10"><td></td><td class="i1 c gf gd1 ge1">undefined のとき<span class="of">（No.<a href="#p1-s22">22</a> が不成立）</span> → <a href="#p1-s26">26</a></td><td></td></tr>
+<tr class="gs" data-to="30" data-in="p1-g8" data-a="26" data-b="30" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g12" aria-label="dueDate の検証 を開閉する"><b>dueDate の検証</b></label><span class="rng">No.<a href="#p1-s26">26</a>〜30</span><span class="gm">省略・null は null。指定があれば YYYY-MM-DD 形式か確かめる。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td><td></td></tr>
+<tr id="p1-s26" data-in="p1-g8 p1-g12"><td class="no">26</td><td class="c gf gd1 gb1"><code>dueDate</code> に <code>null</code> を格納する。</td><td class="src">task.ts:41</td></tr>
+<tr id="p1-s27" class="hd" data-in="p1-g8 p1-g12"><td class="no">27</td><td class="c gf gd1"><span class="k">分岐</span><code>b.dueDate</code> が undefined でも null でもないか判定する。</td><td class="src">task.ts:42</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g12"><td></td><td class="i1 c gf gd1">値が指定されているとき<span class="of">（No.<a href="#p1-s27">27</a> が成立）</span></td><td></td></tr>
+<tr class="gs n" data-to="30" data-in="p1-g8 p1-g12" data-a="28" data-b="30" data-lv="3"><td></td><td class="i2 gf gd1 c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g13" aria-label="指定された値の確認と採用 を開閉する"><b>指定された値の確認と採用</b></label><span class="rng">No.<a href="#p1-s28">28</a>〜30</span></div></td><td></td></tr>
+<tr class="n hd" id="p1-s28" data-in="p1-g8 p1-g12 p1-g13"><td class="no">28</td><td class="i2 c gf gd1 gd2 gb2"><span class="k">分岐</span><code>b.dueDate</code> が文字列でない、または <code>/^\d{4}-\d{2}-\d{2}$/</code> に一致しないか判定する（左が成立すると右は評価しない）。</td><td class="src">task.ts:43</td></tr>
+<tr class="arm n hd" data-in="p1-g8 p1-g12 p1-g13"><td></td><td class="i3 c gf gd1 gd2">文字列でない、または形式が違うとき<span class="of">（No.<a href="#p1-s28">28</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-s29" data-in="p1-g8 p1-g12 p1-g13"><td class="no">29</td><td class="i4 c gf gd1 gd2"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>dueDate</code>、メッセージ「dueDate は YYYY-MM-DD 形式で指定してください」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">task.ts:44</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g12 p1-g13"><td></td><td class="i3 c gf gd1 gd2">形式が合うとき<span class="of">（No.<a href="#p1-s28">28</a> が不成立）</span> → <a href="#p1-s30">30</a></td><td></td></tr>
+<tr class="n" id="p1-s30" data-in="p1-g8 p1-g12 p1-g13"><td class="no">30</td><td class="i2 c gf gd1 gd2 ge2"><code>b.dueDate</code> を <code>dueDate</code> に格納する（例 "2026-11-20"）。</td><td class="src">task.ts:46</td></tr>
+<tr class="arm n" data-in="p1-g8 p1-g12"><td></td><td class="i1 c gf gd1 ge1">undefined または null のとき<span class="of">（No.<a href="#p1-s27">27</a> が不成立）</span> → <a href="#p1-s31">31</a></td><td></td></tr>
+<tr id="p1-s31" data-in="p1-g8"><td class="no">31</td><td class="c"><code>{ title, status, dueDate }</code> を <code>input</code> に格納する（例 title="見積書を送付する", status="DOING", dueDate="2026-11-20"）。</td><td class="src">task.ts:49</td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="version-check" data-ch="add" data-a="31a" data-b="31c" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g14" aria-label="version のバリデーション を開閉する"><b>version のバリデーション</b></label><span class="sc own">このAPI固有</span><span class="rng">No.<a href="#p1-s31a">31a</a>〜31c</span><span class="chc all"><span class="cp">+5</span></span><span class="gm">楽観ロックに使う <code>version</code> を受け取り、正の整数であることを確かめる。</span><span class="gx">失敗時：<span class="go">400 → <a href="#p1-E3">E3</a></span></span></div></td></tr>
+<tr data-ch="add" id="p1-s31a" data-in="p1-g14"><td class="no">31a</td><td class="c"><code>req.body.version</code> を <code>version</code> に格納する（例 4）。</td><td class="src">指示 1</td></tr>
+<tr data-ch="add" id="p1-s31b" class="hd" data-in="p1-g14"><td class="no">31b</td><td class="c"><span class="k">分岐</span><code>version</code> が整数でない、または 0 以下か判定する。</td><td class="src">指示 1</td></tr>
+<tr class="arm n hd" data-ch="add" data-in="p1-g14"><td></td><td class="i1 c">整数でない、または 0 以下のとき<span class="of">（No.<a href="#p1-s31b">31b</a> が成立）</span></td><td></td></tr>
+<tr data-ch="add" class="n" id="p1-s31c" data-in="p1-g14"><td class="no">31c</td><td class="i2 c"><span class="k x">例外</span><code>ValidationError</code>（ステータス 400、コード <code>VALIDATION_ERROR</code>、項目 <code>version</code>、メッセージ「version は正の整数で指定してください」）を送出する。→ <a href="#p1-E3">E3</a></td><td class="src">指示 1</td></tr>
+<tr class="arm n" data-ch="add" data-in="p1-g14"><td></td><td class="i1 c">正の整数のとき<span class="of">（No.<a href="#p1-s31b">31b</a> が不成立）</span> → <a href="#p1-s32">32</a></td><td></td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="main" data-ch="mod" data-chl="mod" data-a="32" data-b="33d" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g15" aria-label="タスクの更新 を開閉する"><b>タスクの更新</b></label><span class="sc own">このAPI固有</span><span class="rng">No.<a href="#p1-s32">32</a>〜33d</span><span class="chc all"><span class="cp">+8</span><span class="cm">−3</span></span><span class="chc last"><span class="cp">+7</span><span class="cm">−2</span></span><span class="gm"><code>input</code> の値で対象の行を更新する。</span><span class="gx">失敗時：<span class="go">404 → <a href="#p1-E4">E4</a></span> ／ <span class="go">409 → <a href="#p1-E5">E5</a></span> ／ <span class="go"><ins class="a l">409 → <a href="#p1-E7">E7</a></ins></span><ins class="a l"> ／ </ins><span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td></tr>
+<tr class="gs" data-to="32" data-in="p1-g15" data-a="32" data-b="32" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g16" aria-label="行の更新 を開閉する"><b>行の更新</b></label><span class="rng">No.<a href="#p1-s32">32</a></span><span class="chc all"><span class="cp">+1</span><span class="cm">−1</span></span><span class="chc last"><span class="cp">+1</span><span class="cm">−1</span></span><span class="gm">対象の行を <code>input</code> の値で更新し、更新後の行を受け取る。</span><span class="gx">失敗時：<span class="go">409 → <a href="#p1-E5">E5</a></span> ／ <span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td><td></td></tr>
+<tr data-ch="mod" data-chl="mod" id="p1-s32" data-in="p1-g15 p1-g16"><td class="no">32</td><td class="c gf gd1 gb1 ge1 gba1 gea1 gbl1 gel1"><span class="k">SQL</span><code>tasks</code> の、<code>id</code> と <code>tenant_id</code><ins class="a">と </ins><code><ins class="a">version</ins></code> が一致する行を更新し、更新後の行を <code>rows</code> に格納する。一意制約の違反 → <a href="#p1-E5">E5</a> ／ それ以外の DB の例外 → <a href="#p1-E6">E6</a>
+<ol class="db">
+<li id="p1-s32-1"><div class="sqlh"><b>設計SQL</b> tasks.ts:69-72 を変更</div><pre class="sql" data-kind="design" data-src="tasks.ts:69-72 を変更" data-labeled="1">UPDATE tasks
+   SET title = $1, status = $2, due_date = $3, updated_at = now()<ins class="a">, version = version + 1</ins>
+ WHERE id = $4 AND tenant_id = $5<ins class="a"> AND version = $6</ins>
+ RETURNING id, title, status, due_date, created_at, updated_at<ins class="a">, version</ins></pre>
+<p class="note">ほかの行と <code>(tenant_id, title)</code> が重なると、一意制約の違反（コード 23505）になる（schema.sql:18）。</p></li>
+<li id="p1-s32-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>$1</code></td><td><code>input.title</code>（No.<a href="#p1-s31">31</a>）</td><td>見積書を送付する</td></tr>
+<tr><td><code>$2</code></td><td><code>input.status</code>（No.<a href="#p1-s31">31</a>）</td><td>DOING</td></tr>
+<tr><td><code>$3</code></td><td><code>input.dueDate</code>（No.<a href="#p1-s31">31</a>）</td><td>2026-11-20</td></tr>
+<tr><td><code>$4</code></td><td><code>id</code>（No.<a href="#p1-s13">13</a> で確認）</td><td>42</td></tr>
+<tr><td><code>$5</code></td><td><code>res.locals.tenantId</code>（No.<a href="#p1-s11">11</a>）</td><td>3</td></tr>
+<tr data-ch="add"><td><code>$6</code></td><td><code>version</code>（No.<a href="#p1-s31a">31a</a>）</td><td>4</td></tr>
+</tbody></table></li>
+<li id="p1-s32-3"><b>更新列</b>
+<table class="sub upd"><thead><tr><th>列</th><th>更新前</th><th>更新後</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>title</td><td>見積書を作成する</td><td>見積書を送付する</td><td><code>$1</code></td></tr>
+<tr><td>status</td><td>TODO</td><td>DOING</td><td><code>$2</code></td></tr>
+<tr><td>due_date</td><td>NULL</td><td>2026-11-20</td><td><code>$3</code></td></tr>
+<tr><td>updated_at</td><td>2026-10-30 01:00:00+00</td><td>2026-11-02 03:15:00+00</td><td><code>now()</code></td></tr>
+<tr data-ch="add"><td>version</td><td>4</td><td>5</td><td><code>version + 1</code><span class="uv">〔未確認: U4〕</span></td></tr>
+</tbody></table></li>
+<li id="p1-s32-4"><b>RETURNING で取得するデータ</b>（1 行）
+<table class="sub rows"><thead><tr><th>列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>42</td><td><code>rows[0].id</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr><td>title</td><td>string</td><td>見積書を送付する</td><td><code>rows[0].title</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr><td>status</td><td>string</td><td>DOING</td><td><code>rows[0].status</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr><td>due_date</td><td>DATE</td><td>2026-11-20</td><td><code>rows[0].due_date</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr><td>created_at</td><td>Date</td><td>2026-10-30 01:00:00+00</td><td><code>rows[0].created_at</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr><td>updated_at</td><td>Date</td><td>2026-11-02 03:15:00+00</td><td><code>rows[0].updated_at</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+<tr data-ch="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td><td>No.<a href="#p1-s35">35</a></td></tr>
+</tbody></table></li>
+<li id="p1-s32-5"><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件</td><td class="go">→ <a href="#p1-s33">33</a> で不成立 → <a href="#p1-s35">35</a></td></tr>
+<tr data-ch="mod" data-chl="mod"><td>0 件（ID が無い、<del class="a">または</del>他テナント<ins class="a">、または </ins><code><ins class="a">version</ins></code><ins class="a"> が違う</ins>）</td><td class="go">→ <a href="#p1-s33">33</a> で成立 → <del class="a l">34</del><ins class="a l">33a</ins></td></tr>
+</tbody></table></li>
+</ol></td><td class="src">tasks.ts:68-74<br>指示 1</td></tr>
+<tr class="gs" data-to="33d" data-ch="mod" data-chl="mod" data-in="p1-g15" data-a="33" data-b="33d" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g17" aria-label="件数と競合の確認 を開閉する"><b>件数<ins class="a l">と競合</ins>の確認</b></label><span class="rng">No.<a href="#p1-s33">33</a>〜33d</span><span class="chc all"><span class="cp">+7</span><span class="cm">−2</span></span><span class="chc last"><span class="cp">+6</span><span class="cm">−1</span></span><span class="gx">失敗時：<span class="go">404 → <a href="#p1-E4">E4</a></span> ／ <span class="go"><ins class="a l">409 → <a href="#p1-E7">E7</a></ins></span><ins class="a l"> ／ </ins><span class="go">500 → <a href="#p1-E6">E6</a></span></span></div></td><td></td></tr>
+<tr id="p1-s33" class="hd" data-in="p1-g15 p1-g17" data-ctx="" data-ctxl=""><td class="no">33</td><td class="c gf gd1 gb1 gba1 gbl1"><span class="k">分岐</span><code>rows</code> が 0 件か判定する（<code>rows.length === 0</code>）。</td><td class="src">tasks.ts:75</td></tr>
+<tr class="arm n hd" data-ch="mod" data-in="p1-g15 p1-g17" data-ctxl=""><td></td><td class="i1 c gf gd1"><code>rows</code> が 0 件のとき（ID が無い、<del class="a">または</del>他テナント<del class="a">とき</del><ins class="a">、または </ins><code><ins class="a">version</ins></code><ins class="a"> が違うとき</ins>）<span class="of">（No.<a href="#p1-s33">33</a> が成立）</span></td><td></td></tr><tr class="n" data-ch="del" data-chl="del" data-in="p1-g15 p1-g17"><td class="no">34</td><td class="c i2 gf gd1"><span class="k x">例外</span><code>NotFoundError</code>（ステータス 404、コード <code>NOT_FOUND</code>、メッセージ「task 42 not found」）を送出する。</td><td class="src">tasks.ts:76<br>errors.ts:28-32</td></tr>
+
+<tr data-ch="add" data-chl="add" class="n" id="p1-s33a" data-in="p1-g15 p1-g17"><td class="no">33a</td><td class="i2 c gf gd1"><span class="k">SQL</span><code>tasks</code> に、<code>id</code> と <code>tenant_id</code> が一致する行があるかを取得し、<code>found</code> に格納する。DB の例外 → <a href="#p1-E6">E6</a><span class="sup" data-why="UPDATE の 0 件だけでは、404 と 409 を区別できないため">〔補完〕</span>
+<ol class="db">
+<li id="p1-s33a-1"><div class="sqlh"><b>設計SQL</b> AI の補完</div><pre class="sql" data-kind="design" data-src="AI の補完" data-labeled="1">SELECT 1
+  FROM tasks
+ WHERE id = $1 AND tenant_id = $2</pre></li>
+<li id="p1-s33a-2"><b>バインド変数</b>
+<table class="sub bind"><thead><tr><th>バインド変数</th><th>値の取得元</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>$1</code></td><td><code>id</code>（No.<a href="#p1-s13">13</a> で確認）</td><td>42</td></tr>
+<tr><td><code>$2</code></td><td><code>res.locals.tenantId</code>（No.<a href="#p1-s11">11</a>）</td><td>3</td></tr>
+</tbody></table></li>
+<li id="p1-s33a-3"><b>取得データ</b>（0 件または 1 行）
+<table class="sub rows"><thead><tr><th>取得列</th><th>型</th><th>値の例</th><th>格納先</th><th>後続の利用箇所</th></tr></thead><tbody>
+<tr><td>1</td><td>number</td><td>1</td><td><code>found</code></td><td>No.<a href="#p1-s33b">33b</a></td></tr>
+</tbody></table></li>
+<li id="p1-s33a-4"><b>件数ごとの処理</b>
+<table class="sub cnt"><thead><tr><th>件数</th><th>処理</th></tr></thead><tbody>
+<tr><td>1 件（行はあるが version が違う）</td><td class="go">→ <a href="#p1-s33b">33b</a> で不成立 → <a href="#p1-s33d">33d</a></td></tr>
+<tr><td>0 件（ID が無い、または他テナント）</td><td class="go">→ <a href="#p1-s33b">33b</a> で成立 → <a href="#p1-s33c">33c</a></td></tr>
+</tbody></table></li>
+</ol></td><td class="src">指示 2</td></tr>
+<tr data-ch="add" data-chl="add" class="n hd" id="p1-s33b" data-in="p1-g15 p1-g17"><td class="no">33b</td><td class="i2 c gf gd1"><span class="k">分岐</span><code>found</code> が 0 件か判定する。</td><td class="src">指示 2</td></tr>
+<tr class="arm n hd" data-ch="add" data-chl="add" data-in="p1-g15 p1-g17"><td></td><td class="i3 c gf gd1"><code>found</code> が 0 件のとき（ID が無い、または他テナントのとき）<span class="of">（No.<a href="#p1-s33b">33b</a> が成立）</span></td><td></td></tr>
+<tr data-ch="add" data-chl="add" class="n" id="p1-s33c" data-in="p1-g15 p1-g17"><td class="no">33c</td><td class="i4 c gf gd1"><span class="k x">例外</span><code>NotFoundError</code>（ステータス 404、コード <code>NOT_FOUND</code>、メッセージ「task 42 not found」）を送出する。→ <a href="#p1-E4">E4</a></td><td class="src">指示 2<br>errors.ts:28-32</td></tr>
+<tr class="arm n" data-ch="add" data-chl="add" data-in="p1-g15 p1-g17"><td></td><td class="i3 c gf gd1"><code>found</code> が 1 件のとき（version だけが違うとき）<span class="of">（No.<a href="#p1-s33b">33b</a> が不成立）</span> → <a href="#p1-s33d">33d</a></td><td></td></tr>
+<tr data-ch="add" data-chl="add" class="n" id="p1-s33d" data-in="p1-g15 p1-g17"><td class="no">33d</td><td class="i2 c gf gd1 gea1 gel1"><span class="k x">例外</span><code>VersionConflictError</code>（ステータス 409、コード <code>VERSION_CONFLICT</code>、メッセージ「他の更新と競合しました」）を送出する。→ <a href="#p1-E7">E7</a></td><td class="src">指示 2</td></tr>
+<tr class="arm n" data-in="p1-g15 p1-g17"><td></td><td class="i1 c gf gd1 ge1"><code>rows</code> が 1 件のとき<span class="of">（No.<a href="#p1-s33">33</a> が不成立）</span> → <a href="#p1-s35">35</a></td><td></td></tr>
+</tbody>
+<tbody class="grp">
+<tr class="gt" data-key="resp-200" data-a="35" data-b="36" data-lv="1"><td colspan="3"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g18" aria-label="応答の返却 を開閉する"><b>応答の返却</b></label><span class="sc part">取得・更新 共通</span><span class="rng">No.<a href="#p1-s35">35</a>〜36</span><span class="chc all"><span class="cp">+1</span><span class="cm">−1</span></span><span class="gm">行を応答の形にして 200 で返す。</span></div></td></tr>
+<tr class="gs" data-key="to-response" data-to="35" data-in="p1-g18" data-a="35" data-b="35" data-lv="2"><td></td><td class="c"><div class="gb"><label class="gl"><input type="checkbox" class="gc" id="p1-g19" aria-label="応答の形への変換 を開閉する"><b>応答の形への変換</b></label><span class="sc part">取得・登録・更新 共通</span><span class="rng">No.<a href="#p1-s35">35</a></span><span class="chc all"><span class="cp">+1</span><span class="cm">−1</span></span></div></td><td></td></tr>
+<tr data-ch="mod" id="p1-s35" data-in="p1-g18 p1-g19"><td class="no">35</td><td class="c gf gd1 gb1 ge1 gba1 gea1"><code>rows[0]</code> を次の対応で応答の形に変換する（<code>toResponse</code>）。<ins class="a">この変換は取得・登録と共通なので、取得・登録の応答にも </ins><code><ins class="a">version</ins></code><ins class="a"> が増える。</ins><span class="sup" data-why="応答の変換が 3 つの API で共通のため">〔補完〕</span><ol>
+<li id="p1-s35-1"><b>変換の対応</b>
+<table class="sub map"><thead><tr><th>変換元</th><th>変換先</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>row.id</code></td><td><code>id</code></td><td>42</td></tr>
+<tr><td><code>row.title</code></td><td><code>title</code></td><td>"見積書を送付する"</td></tr>
+<tr><td><code>row.status</code></td><td><code>status</code></td><td>"DOING"</td></tr>
+<tr><td><code>row.due_date</code></td><td><code>dueDate</code></td><td>"2026-11-20"<span class="uv">〔未確認: U2〕</span></td></tr>
+<tr><td><code>row.created_at.toISOString()</code></td><td><code>createdAt</code></td><td>"2026-10-30T01:00:00.000Z"</td></tr>
+<tr><td><code>row.updated_at.toISOString()</code></td><td><code>updatedAt</code></td><td>"2026-11-02T03:15:00.000Z"</td></tr>
+<tr data-ch="add"><td><code>row.version</code></td><td><code>version</code></td><td>5</td></tr>
+</tbody></table></li>
+</ol></td><td class="src">tasks.ts:20-29<br>tasks.ts:78</td></tr>
+<tr id="p1-s36" data-in="p1-g18"><td class="no">36</td><td class="c"><span class="k">応答</span>ステータス 200、ボディを JSON にして応答する（項目はレスポンス節の表）。200 応答で<span class="end">終了</span></td><td class="src">tasks.ts:78</td></tr>
+</tbody>
+</table>
+</section>
+<section data-sec="exceptions">
+<h3>1.4 例外発生時の処理</h3>
+<section data-path="E1" id="p1-E1">
+<h4>E1：No.<a href="#p1-s03">03</a> でボディを JSON として解析できなかった場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE1-01"><td class="no">E1-01</td><td class="c"><code>express.json</code> がエラーを <code>next</code> に渡し、<code>errorHandler</code> へ進む。API キーの確認（No.<a href="#p1-s04">04</a> 以降）は実行されない<span class="inf">〔推定〕</span>。</td><td class="src">app.ts:8-11<br>FW 仕様</td></tr>
+<tr id="p1-sE1-02" class="hd"><td class="no">E1-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE1-02">E1-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE1-02">E1-02</a> が不成立）</span> → <a href="#p1-sE1-03">E1-03</a></td><td></td></tr>
+<tr id="p1-sE1-03" class="hd"><td class="no">E1-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE1-03">E1-03</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE1-03">E1-03</a> が不成立）</span> → <a href="#p1-sE1-04">E1-04</a></td><td></td></tr>
+<tr id="p1-sE1-04"><td class="no">E1-04</td><td class="c"><code>err.code</code> を <code>pgCode</code> に格納する（無ければ undefined）。</td><td class="src">errors.ts:44</td></tr>
+<tr id="p1-sE1-05" class="hd"><td class="no">E1-05</td><td class="c"><span class="k">分岐</span><code>pgCode</code> が <code>'23505'</code> か判定する。</td><td class="src">errors.ts:45</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> のとき<span class="of">（No.<a href="#p1-sE1-05">E1-05</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> でないとき<span class="of">（No.<a href="#p1-sE1-05">E1-05</a> が不成立）</span> → <a href="#p1-sE1-06">E1-06</a></td><td></td></tr>
+<tr id="p1-sE1-06" class="hd"><td class="no">E1-06</td><td class="c"><span class="k">分岐</span><code>err.type</code> が <code>'entity.parse.failed'</code> か判定する。</td><td class="src">errors.ts:49</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><code>err.type</code> が <code>'entity.parse.failed'</code> のとき<span class="of">（No.<a href="#p1-sE1-06">E1-06</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sE1-07"><td class="no">E1-07</td><td class="i2 c"><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"INVALID_JSON","message":"リクエストボディが JSON ではありません"}</code> で応答する。400 応答で<span class="end">終了</span></td><td class="src">errors.ts:50-51</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>err.type</code> が <code>'entity.parse.failed'</code> でないとき<span class="of">（No.<a href="#p1-sE1-06">E1-06</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E2" id="p1-E2">
+<h4>E2：No.<a href="#p1-s06">06</a>・10 で <code>UnauthorizedError</code> が送出された場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE2-01"><td class="no">E2-01</td><td class="c"><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td class="src">asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr id="p1-sE2-02" class="hd"><td class="no">E2-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE2-02">E2-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE2-02">E2-02</a> が不成立）</span> → <a href="#p1-sE2-03">E2-03</a></td><td></td></tr>
+<tr id="p1-sE2-03" class="hd"><td class="no">E2-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE2-03">E2-03</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sE2-04"><td class="no">E2-04</td><td class="i2 c"><span class="k">応答</span>ステータス 401、ボディ <code>{"code":"API_KEY_REQUIRED","message":"API_KEY_REQUIRED"}</code>（No.<a href="#p1-s10">10</a> のときは <code>API_KEY_INVALID</code>。メッセージはコードと同じ）で応答する。401 応答で<span class="end">終了</span></td><td class="src">errors.ts:9, 41-42</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE2-03">E2-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E3" id="p1-E3">
+<h4>E3：No.<a href="#p1-s14">14</a>・17・20・24・29<ins class="a">・31c</ins> で <code>ValidationError</code> が送出された場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE3-01"><td class="no">E3-01</td><td class="c"><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td class="src">asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr id="p1-sE3-02" class="hd"><td class="no">E3-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE3-02">E3-02</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sE3-03"><td class="no">E3-03</td><td class="i2 c"><span class="k">応答</span>ステータス 400、ボディ <code>{"code":"VALIDATION_ERROR","field":…,"message":…}</code>（<code>field</code>・<code>message</code> は送出した行の値）で応答する。400 応答で<span class="end">終了</span></td><td class="src">errors.ts:37-38</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE3-02">E3-02</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E4" id="p1-E4">
+<h4>E4：<del class="a l">No.34</del><ins class="a l">No.<a href="#p1-s33c">33c</a></ins> で <code>NotFoundError</code> が送出された場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE4-01"><td class="no">E4-01</td><td class="c"><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td class="src">asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr id="p1-sE4-02" class="hd"><td class="no">E4-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE4-02">E4-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE4-02">E4-02</a> が不成立）</span> → <a href="#p1-sE4-03">E4-03</a></td><td></td></tr>
+<tr id="p1-sE4-03" class="hd"><td class="no">E4-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE4-03">E4-03</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sE4-04"><td class="no">E4-04</td><td class="i2 c"><span class="k">応答</span>ステータス 404、ボディ <code>{"code":"NOT_FOUND","message":"task 42 not found"}</code> で応答する。404 応答で<span class="end">終了</span></td><td class="src">errors.ts:29-31, 41-42</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE4-03">E4-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E5" id="p1-E5">
+<h4>E5：No.<a href="#p1-s32">32</a> で一意制約 <code>(tenant_id, title)</code> の違反が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE5-01"><td class="no">E5-01</td><td class="c"><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。SQL は 1 文だけで、その文の変更は確定しない。</td><td class="src">asyncHandler.ts:7<br>schema.sql:18</td></tr>
+<tr id="p1-sE5-02" class="hd"><td class="no">E5-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE5-02">E5-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE5-02">E5-02</a> が不成立）</span> → <a href="#p1-sE5-03">E5-03</a></td><td></td></tr>
+<tr id="p1-sE5-03" class="hd"><td class="no">E5-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE5-03">E5-03</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE5-03">E5-03</a> が不成立）</span> → <a href="#p1-sE5-04">E5-04</a></td><td></td></tr>
+<tr id="p1-sE5-04"><td class="no">E5-04</td><td class="c"><code>err.code</code> を <code>pgCode</code> に格納する（無ければ undefined）。</td><td class="src">errors.ts:44</td></tr>
+<tr id="p1-sE5-05" class="hd"><td class="no">E5-05</td><td class="c"><span class="k">分岐</span><code>pgCode</code> が <code>'23505'</code> か判定する。</td><td class="src">errors.ts:45</td></tr>
+<tr class="arm n hd"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> のとき<span class="of">（No.<a href="#p1-sE5-05">E5-05</a> が成立）</span></td><td></td></tr>
+<tr class="n" id="p1-sE5-06"><td class="no">E5-06</td><td class="i2 c"><span class="k">応答</span>ステータス 409、ボディ <code>{"code":"DUPLICATE_TITLE","message":"同じタイトルのタスクが既にあります"}</code> で応答する。409 応答で<span class="end">終了</span></td><td class="src">errors.ts:46-47</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> でないとき<span class="of">（No.<a href="#p1-sE5-05">E5-05</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+<section data-path="E6" id="p1-E6">
+<h4>E6：No.<a href="#p1-s02">02</a>・08・32 で想定外のエラー（DB の接続失敗・ボディの大きさの超過など）が発生した場合</h4>
+<table class="steps"><thead><tr><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr id="p1-sE6-01"><td class="no">E6-01</td><td class="c">エラーが <code>next</code> で <code>errorHandler</code> へ渡される（ミドルウェア・ハンドラーの中の例外は <code>asyncHandler</code> の <code>.catch(next)</code>）。</td><td class="src">asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr id="p1-sE6-02" class="hd"><td class="no">E6-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE6-02">E6-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE6-02">E6-02</a> が不成立）</span> → <a href="#p1-sE6-03">E6-03</a></td><td></td></tr>
+<tr id="p1-sE6-03" class="hd"><td class="no">E6-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE6-03">E6-03</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE6-03">E6-03</a> が不成立）</span> → <a href="#p1-sE6-04">E6-04</a></td><td></td></tr>
+<tr id="p1-sE6-04"><td class="no">E6-04</td><td class="c"><code>err.code</code> を <code>pgCode</code> に格納する（無ければ undefined）。</td><td class="src">errors.ts:44</td></tr>
+<tr id="p1-sE6-05" class="hd"><td class="no">E6-05</td><td class="c"><span class="k">分岐</span><code>pgCode</code> が <code>'23505'</code> か判定する。</td><td class="src">errors.ts:45</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> のとき<span class="of">（No.<a href="#p1-sE6-05">E6-05</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>pgCode</code> が <code>'23505'</code> でないとき<span class="of">（No.<a href="#p1-sE6-05">E6-05</a> が不成立）</span> → <a href="#p1-sE6-06">E6-06</a></td><td></td></tr>
+<tr id="p1-sE6-06" class="hd"><td class="no">E6-06</td><td class="c"><span class="k">分岐</span><code>err.type</code> が <code>'entity.parse.failed'</code> か判定する。</td><td class="src">errors.ts:49</td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>err.type</code> が <code>'entity.parse.failed'</code> のとき<span class="of">（No.<a href="#p1-sE6-06">E6-06</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n"><td></td><td class="i1 c"><code>err.type</code> が <code>'entity.parse.failed'</code> でないとき<span class="of">（No.<a href="#p1-sE6-06">E6-06</a> が不成立）</span> → <a href="#p1-sE6-07">E6-07</a></td><td></td></tr>
+<tr id="p1-sE6-07"><td class="no">E6-07</td><td class="c"><code>console.error(err)</code> を出力する。</td><td class="src">errors.ts:53</td></tr>
+<tr id="p1-sE6-08"><td class="no">E6-08</td><td class="c"><span class="k">応答</span>ステータス 500、ボディ <code>{"code":"INTERNAL_ERROR","message":"内部エラーが発生しました"}</code> で応答する。500 応答で<span class="end">終了</span></td><td class="src">errors.ts:54</td></tr>
+</tbody></table>
+</section>
+<section data-path="E7" data-ch="add" data-chl="add" id="p1-E7">
+<h4 data-ch="add" data-chl="add">E7：No.<a href="#p1-s33d">33d</a> で <code>VersionConflictError</code> が送出された場合</h4>
+<table class="steps"><thead><tr data-ch="add" data-chl="add"><th>No.</th><th>処理内容</th><th>根拠</th></tr></thead><tbody>
+<tr data-ch="add" data-chl="add" id="p1-sE7-01"><td class="no">E7-01</td><td class="c"><code>asyncHandler</code> の <code>.catch(next)</code> が例外を <code>next</code> に渡し、登録された最後のミドルウェア <code>errorHandler</code> へ進む。</td><td class="src">asyncHandler.ts:7<br>app.ts:11</td></tr>
+<tr data-ch="add" data-chl="add" id="p1-sE7-02" class="hd"><td class="no">E7-02</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>ValidationError</code> か判定する（<code>err instanceof ValidationError</code>）。</td><td class="src">errors.ts:36</td></tr>
+<tr class="arm n" data-ch="add" data-chl="add"><td></td><td class="i1 c"><code>ValidationError</code> のとき<span class="of">（No.<a href="#p1-sE7-02">E7-02</a> が成立。この経路では到達しない）</span></td><td></td></tr>
+<tr class="arm n" data-ch="add" data-chl="add"><td></td><td class="i1 c"><code>ValidationError</code> でないとき<span class="of">（No.<a href="#p1-sE7-02">E7-02</a> が不成立）</span> → <a href="#p1-sE7-03">E7-03</a></td><td></td></tr>
+<tr data-ch="add" data-chl="add" id="p1-sE7-03" class="hd"><td class="no">E7-03</td><td class="c"><span class="k">分岐</span><code>err</code> が <code>HttpError</code> か判定する（<code>err instanceof HttpError</code>。<code>VersionConflictError</code> は <code>HttpError</code> <span class="sup" data-why="既存の例外と同じ形にするため">を継承する〔補完〕</span>）。</td><td class="src">errors.ts:40</td></tr>
+<tr class="arm n hd" data-ch="add" data-chl="add"><td></td><td class="i1 c"><code>HttpError</code> のとき<span class="of">（No.<a href="#p1-sE7-03">E7-03</a> が成立）</span></td><td></td></tr>
+<tr data-ch="add" data-chl="add" class="n" id="p1-sE7-04"><td class="no">E7-04</td><td class="i2 c"><span class="k">応答</span>ステータス 409、ボディ <code>{"code":"VERSION_CONFLICT","message":"他の更新と競合しました"}</code> で応答する。409 応答で<span class="end">終了</span></td><td class="src">errors.ts:41-42<br>指示 2</td></tr>
+<tr class="arm n" data-ch="add" data-chl="add"><td></td><td class="i1 c"><code>HttpError</code> でないとき<span class="of">（No.<a href="#p1-sE7-03">E7-03</a> が不成立。この経路では到達しない）</span></td><td></td></tr>
+</tbody></table>
+</section>
+</section>
+<section data-sec="response">
+<h3>1.5 レスポンス</h3>
+<p>正常時は No.<a href="#p1-s35">35</a> で応答の形に変換し、No.<a href="#p1-s36">36</a> で返す（200 OK、<code>application/json</code>）。</p>
+<div class="sqlh"><b>正常時のボディ（toResponse の項目の順）</b></div><pre class="json" data-title="正常時のボディ（toResponse の項目の順）" data-labeled="1">{
+  "id": 42,
+  "title": "見積書を送付する",
+  "status": "DOING",
+  "dueDate": "2026-11-20",
+  "createdAt": "2026-10-30T01:00:00.000Z",
+  "updatedAt": "2026-11-02T03:15:00.000Z"<ins class="a">,
+  "version": 5</ins>
+}</pre>
+<table class="sub resp auto"><caption>正常時のボディの項目</caption><thead><tr><th>項目</th><th>型</th><th>設定する値（例）</th><th>値の取得元</th></tr></thead><tbody>
+<tr><td>id</td><td>number</td><td>42</td><td><code>rows[0].id</code></td></tr>
+<tr><td>title</td><td>string</td><td>"見積書を送付する"</td><td><code>rows[0].title</code></td></tr>
+<tr><td>status</td><td>string</td><td>"DOING"</td><td><code>rows[0].status</code></td></tr>
+<tr><td>dueDate</td><td>string / null</td><td>"2026-11-20"</td><td><code>rows[0].due_date</code><span class="uv">〔未確認: U2〕</span></td></tr>
+<tr><td>createdAt</td><td>string</td><td>"2026-10-30T01:00:00.000Z"</td><td><code>rows[0].created_at</code></td></tr>
+<tr><td>updatedAt</td><td>string</td><td>"2026-11-02T03:15:00.000Z"</td><td><code>rows[0].updated_at</code></td></tr>
+<tr data-ch="add"><td>version</td><td>number</td><td>5</td><td><code>rows[0].version</code></td></tr>
+</tbody></table>
+<div class="jsons">
+<div><div class="sqlh"><b>異常時のボディ：入力検証の違反（400、errors.ts:37）</b></div><pre class="json" data-title="異常時のボディ：入力検証の違反（400、errors.ts:37）" data-labeled="1">{
+  "code": "VALIDATION_ERROR",
+  "field": "id",
+  "message": "id は正の整数で指定してください"
+}</pre></div>
+<div><div class="sqlh"><b>異常時のボディ：それ以外（errors.ts:41・46・50・54）</b></div><pre class="json" data-title="異常時のボディ：それ以外（errors.ts:41・46・50・54）" data-labeled="1">{
+  "code": "NOT_FOUND",
+  "message": "task 42 not found"
+}</pre></div>
+</div>
+<table class="sub errs"><caption>異常時</caption><thead><tr><th>発生条件（No.）</th><th>ステータス</th><th>応答ボディの <code>code</code>（<code>message</code> は各経路、<code>field</code> は VALIDATION_ERROR だけ）</th><th>その時点のデータの状態</th></tr></thead><tbody>
+<tr><td>ボディを JSON として解析できない（No.<a href="#p1-s03">03</a>）</td><td>400</td><td>INVALID_JSON</td><td>変更なし</td></tr>
+<tr><td>API キーが無い・無効（No.<a href="#p1-s06">06</a>・10）</td><td>401</td><td>API_KEY_REQUIRED / API_KEY_INVALID</td><td>変更なし</td></tr>
+<tr data-ch="mod"><td>パスの <code>id</code>・ボディの検証の違反（No.<a href="#p1-s14">14</a>・17・20・24・29<ins class="a">・31c</ins>）</td><td>400</td><td>VALIDATION_ERROR</td><td>変更なし</td></tr>
+<tr data-ch="mod" data-chl="mod"><td>タスクが無い、または他テナント（<del class="a l">No.34</del><ins class="a l">No.<a href="#p1-s33c">33c</a></ins>）</td><td>404</td><td>NOT_FOUND</td><td>変更なし</td></tr>
+<tr data-ch="add" data-chl="add"><td><code>version</code> が違う（No.<a href="#p1-s33d">33d</a>）</td><td>409</td><td>VERSION_CONFLICT</td><td>変更なし</td></tr>
+<tr><td>ほかの行と <code>title</code> が重なる（No.<a href="#p1-s32">32</a>）</td><td>409</td><td>DUPLICATE_TITLE</td><td>変更なし</td></tr>
+<tr><td>ボディの大きさの超過（No.<a href="#p1-s02">02</a>）、DB の例外（No.<a href="#p1-s08">08</a> など）</td><td>500</td><td>INTERNAL_ERROR</td><td>変更なし</td></tr>
+</tbody></table>
+</section>
+<section data-sec="data">
+<h3>1.6 データ変更とトランザクション</h3>
+<table class="sub"><thead><tr><th>トランザクション</th><th>範囲（No.）</th><th>含まれる操作（No.）</th><th>正常終了時</th><th>例外発生時</th></tr></thead><tbody>
+<tr><td>明示的な開始なし<span class="inf">〔推定〕</span></td><td>No.<a href="#p1-s32">32</a> の 1 文</td><td><code>tasks</code> の更新（No.<a href="#p1-s32">32</a>）</td><td>文の完了で確定</td><td>文の変更は確定しない（E5・E6）</td></tr>
+</tbody></table>
+</section>
+</section><div class="panel" id="doc-history"><h2>変更履歴</h2><table class="sub"><thead><tr><th>版</th><th>日付</th><th>きっかけ</th><th>コミット</th><th>内容</th><th>変更した行</th></tr></thead><tbody><tr><td>v1</td><td>2026-11-02</td><td>基準</td><td></td><td>現行コード（task-api）の更新 PUT から書き起こした</td><td>—</td></tr><tr><td>v2</td><td>2026-11-02</td><td>指示</td><td></td><td>指示 1「更新に楽観ロックを入れたい。クライアントが version を送り、違っていたら拒否して」</td><td>更新 PUT：<span class="chc"><span class="cp">+8</span><span class="cm">−3</span></span></td></tr><tr><td>v3</td><td>2026-11-02</td><td>指示＋補完</td><td></td><td>指示 2「タスクが無いときの 404 と、競合の 409 は分けて」<br>AI の補完：404 と 409 を区別するための再確認の SQL</td><td>更新 PUT：<span class="chc"><span class="cp">+15</span><span class="cm">−2</span></span></td></tr></tbody></table><h2>変更した行の一覧</h2><table class="sub"><thead><tr><th>版</th><th>処理</th><th>No.</th><th>種類</th><th>内容（複数なら最初の行）</th></tr></thead><tbody><tr><td>v3</td><td>更新 PUT</td><td>34</td><td>削除</td><td>[例外] NotFoundError（ステータス 404、コード NOT_FOUND、メッセ…</td></tr><tr><td>v3</td><td>更新 PUT</td><td><a href="#p1-s32">32</a></td><td>変更</td><td>[SQL] tasks の、id と tenant_idと version が一致する行を更…</td></tr><tr><td>v3</td><td>更新 PUT</td><td><a href="#p1-s33a">33a</a>・<a href="#p1-s33b">33b</a>・<a href="#p1-s33c">33c</a>・<a href="#p1-s33d">33d</a>・<a href="#p1-sE7-01">E7-01</a>・<a href="#p1-sE7-02">E7-02</a>・<a href="#p1-sE7-03">E7-03</a>・<a href="#p1-sE7-04">E7-04</a></td><td>追加</td><td>[SQL] tasks に、id と tenant_id が一致する行があるかを取得し、fo…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p1-s32">32</a>・<a href="#p1-s35">35</a></td><td>変更</td><td>[SQL] tasks の、id と tenant_idと version が一致する行を更…</td></tr><tr><td>v2</td><td>更新 PUT</td><td><a href="#p1-s31a">31a</a>・<a href="#p1-s31b">31b</a>・<a href="#p1-s31c">31c</a></td><td>追加</td><td>req.body.version を version に格納する（例 4）。…</td></tr></tbody></table><h2>AI が補った所（確認待ち）</h2><table class="sub"><thead><tr><th>処理</th><th>No.</th><th>内容</th><th>理由</th></tr></thead><tbody><tr><td>更新 PUT</td><td><a href="#p1-s33a">33a</a></td><td>[SQL] tasks に、id と tenant_id が一致する行があるかを取得し、found に格納する。DB の</td><td>UPDATE の 0 件だけでは、404 と 409 を区別できないため</td></tr><tr><td>更新 PUT</td><td><a href="#p1-s35">35</a></td><td>rows[0] を次の対応で応答の形に変換する（toResponse）。この変換は取得・登録と共通なので、取得・登録の応</td><td>応答の変換が 3 つの API で共通のため</td></tr><tr><td>更新 PUT</td><td><a href="#p1-sE7-03">E7-03</a></td><td>[分岐] err が HttpError か判定する（err instanceof HttpError。VersionC</td><td>既存の例外と同じ形にするため</td></tr></tbody></table></div><div class="panel" id="doc-check">
+
+<section data-sec="unconfirmed">
+<h2>未確認事項</h2>
+<table class="sub uvlist"><thead><tr><th>ID</th><th>内容</th><th>影響する処理（No.）</th><th>確認方法</th></tr></thead><tbody>
+<tr><td>U1</td><td>DB の接続・問い合わせのタイムアウトがコードに指定されていない</td><td><a href="#p1-s08">p1 No.08</a></td><td>接続先の設定を確認する</td></tr>
+<tr><td>U2</td><td><code>due_date</code> の型変換で、応答の <code>dueDate</code> の形が例と違う場合がある</td><td><a href="#p1-s35">p1 No.35</a></td><td>実行して応答を確認する</td></tr>
+<tr><td>U4</td><td>（未決）<code>tasks.version</code> 列の追加方法と、既存の行の初期値</td><td><a href="#p1-s32">p1 No.32</a></td><td>利用者に確認する</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（設計の途中。未確認事項 3 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td>基準 v1 は現行コードの書き起こし（crud-tasks-express の例）。変更する行は指示 1・2 を反映</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>version の確認 → UPDATE → 件数の確認 → 応答の順。実装はまだ無い</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>追加した分岐（No.31b・33b）に結果ごとの行あり</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>追加した例外（No.31c・33c・33d）の行き先を記載</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>version 4 → 5 が入力・バインド変数・更新列・応答で一致</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>設計SQL の列とバインド変数が表と一致（check）</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>E7 を追加。既存の HttpError の経路と同じ形</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>明示的なトランザクションは使わない設計のまま</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>ABSTRACT 警告 0 件</td></tr>
+<tr><td>グループの整合</td><td>OK</td><td>check と outline で確認</td></tr>
+<tr><td>視認性</td><td>OK</td><td>render：問題 0 件</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1, U2, U4）</td><td>変えない行は現行コードの行、変える行は指示の番号。独立レビューは未実施</td></tr>
+</tbody></table>
+</section>
+</div><div class="panel" id="doc-guide"><h2>見方</h2><table class="sub auto"><thead><tr><th>分類</th><th>表記</th><th>意味</th></tr></thead><tbody><tr><td rowspan="5">逐次処理</td><td>No.</td><td>実行順。行き先の書かれていない行は、次の番号の行へ進む。<code>31a</code> のような枝番は後から足した行で、既存の No. は振り直さない</td></tr><tr><td>→ 12</td><td>12 へ進む</td></tr><tr><td>No.29.3</td><td>No.29 の中の項目 3</td></tr><tr><td>字下げ・縦の線・├─・└─</td><td>ブロック（分岐・繰り返し・try）の内側、結果ごとの始まり、ブロックの終わり</td></tr><tr><td>E1・A1</td><td>例外経路・非同期経路</td></tr><tr><td rowspan="4">グループ</td><td>灰色の帯</td><td>意味の近い行のまとまり。行の中身は省略していない</td></tr><tr><td>右側の線と ▼ ▲</td><td>入れ子のグループの範囲。▼ が開始、▲ が終了</td></tr><tr><td>全API共通 など</td><td>同じコードを同じ順で通り、行も同じ処理の範囲</td></tr><tr><td>帯の左の ▼ ▶・表示レベル</td><td>開閉と、畳む深さの切り替え。リンクで移った先のグループは自動で開く。印刷ではすべての行が出る</td></tr><tr><td rowspan="3">SQL</td><td>実行SQL</td><td>コードに書かれている SQL</td></tr><tr><td>参考SQL</td><td>ORM・ライブラリの操作から推定した SQL。実行される SQL そのものとしては確認していない</td></tr><tr><td>設計SQL</td><td>この設計で発行する SQL。まだ実装していない</td></tr><tr><td rowspan="3">確かさ</td><td><span class="inf">〔推定〕</span></td><td>コードに直接書かれていない動作（フレームワークの仕様などからの推定）</td></tr><tr><td><span class="uv">〔未確認〕</span></td><td>確定できない事項・未決の事項（未確認事項を参照）</td></tr><tr><td><span class="sup">〔補完〕</span></td><td>指示に無いことを AI が補った内容。確認して問題なければ印を消す</td></tr><tr><td rowspan="4">変更</td><td><ins class="a l">緑</ins>・<del class="a l">赤の取り消し線</del></td><td>追加・削除。文中は変えた語だけ、行ごとの追加・削除は処理内容と根拠の欄に色が付く。番号の欄の <code>+</code> <code>−</code> は行ごとの追加・削除</td></tr><tr><td><span class="chc"><span class="cp">+3</span><span class="cm">−1</span></span></td><td>範囲の中で追加・削除した行の数（文中の変更は +1 −1 と数える）</td></tr><tr><td>v1・v2・v3</td><td>版。指示・AI の補完・コミットごとに増える。v1 は変更の基準で、印は付かない</td></tr><tr><td>変更の表示</td><td>すべての変更（v1 から）／今回の変更だけ／隠す（確定後の姿）。「変更のある行だけ表示」は変更の無い行を畳む。変更のある行の親（分岐・「〜のとき」行など）は、字下げの関係が分かるように色なしで残す</td></tr><tr><td rowspan="2">その他</td><td>タブの上の小さな文字</td><td>処理の分類</td></tr><tr><td>値の例</td><td>すべて説明用の架空の値</td></tr></tbody></table></div>
+</main>
+</body>
+</html>

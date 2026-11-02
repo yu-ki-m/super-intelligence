@@ -1,0 +1,9 @@
+<section data-sec="unconfirmed">
+<h2>未確認事項</h2>
+<table class="sub uvlist"><thead><tr><th>ID</th><th>内容</th><th>影響する処理（No.）</th><th>確認方法</th></tr></thead><tbody>
+<tr><td>U1</td><td><code>AppModule</code>（<code>app.module.ts</code>）が提供されていないため、DB の種類（SQL の方言・採番値の受け取り方）、TypeORM の設定、BullMQ の Redis 接続、メール送信の設定を確認できない</td><td>p1 No.13・No.18・No.19・No.23、A1-03・A1-06・A1-07</td><td><code>app.module.ts</code> と環境変数を確認する</td></tr>
+<tr><td>U2</td><td>テーブル定義（DDL）が提供されていない。<code>members.email</code> の一意制約・<code>member_profiles.member_id</code> の外部キーが DB に実在するかは、エンティティの定義からの推定</td><td>p1 No.18・No.19、E5</td><td>マイグレーション・DDL を確認する</td></tr>
+<tr><td>U3</td><td>Redis に接続できないときに <code>queue.add</code> が例外になるか、待ち続けるか（接続の再試行・タイムアウトの設定による）</td><td>p1 No.23・No.24</td><td>BullMQ・ioredis の接続設定を確認する</td></tr>
+<tr><td>U4</td><td>ワーカーが API とは別のプロセスで動くこと（コードのコメントによる。起動構成は提供されていない）</td><td>A1</td><td>ワーカーの起動方法（エントリーポイント・デプロイ構成）を確認する</td></tr>
+</tbody></table>
+</section>

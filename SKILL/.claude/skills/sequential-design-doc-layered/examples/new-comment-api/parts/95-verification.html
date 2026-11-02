@@ -1,0 +1,18 @@
+<section data-sec="verification">
+<h2>検証記録</h2>
+<p class="vstatus" data-status="open">検証状態：未完了（設計の途中。未確認事項 2 件）</p>
+<table class="sub verify"><thead><tr><th>検証観点</th><th>結果</th><th>確認した内容</th></tr></thead><tbody>
+<tr><td>処理網羅性</td><td>OK</td><td>要件 R1〜R3 と指示 3 の内容が行に入っていることを確認。全API共通バリデーションとパスIDのバリデーションは現行コードの行と同じ</td></tr>
+<tr><td>実行順序</td><td>OK</td><td>バリデーション → 存在確認 → 登録 → 応答の順</td></tr>
+<tr><td>分岐網羅性</td><td>OK</td><td>すべての分岐に結果ごとの行あり（check）</td></tr>
+<tr><td>終了条件</td><td>OK</td><td>例外の行き先と 201 応答を記載</td></tr>
+<tr><td>データ整合性</td><td>OK</td><td>シナリオの値が入力・バインド変数・応答で一致</td></tr>
+<tr><td>SQL整合性</td><td>OK</td><td>設計SQL の列とバインド変数が表と一致（check）</td></tr>
+<tr><td>例外処理</td><td>OK</td><td>現行の errorHandler の経路に合わせた</td></tr>
+<tr><td>トランザクション</td><td>OK</td><td>SQL は 1 文ずつ。明示的なトランザクションは使わない設計</td></tr>
+<tr><td>共通化の排除</td><td>OK</td><td>ABSTRACT 警告 0 件</td></tr>
+<tr><td>グループの整合</td><td>OK</td><td>check と outline で確認</td></tr>
+<tr><td>視認性</td><td>OK</td><td>render：問題 0 件</td></tr>
+<tr><td>根拠</td><td>未確認あり（U1, U3）</td><td>要件・指示の番号と、現行コードの行。独立レビューは未実施</td></tr>
+</tbody></table>
+</section>

@@ -1,0 +1,40 @@
+<section class="proc" id="p1" data-title="チケットのステータス変更">
+<h2>1. チケットのステータス変更（PATCH /api/tickets/{ticketId}）</h2>
+
+<section data-sec="overview">
+<h3>1.1 処理概要</h3>
+<table class="kv"><tbody>
+<tr><th>対象処理</th><td>脆弱性チケットのステータスを変更し、変更履歴を登録する</td></tr>
+<tr><th>種別</th><td>Web API（同期）</td></tr>
+<tr><th>HTTPメソッド</th><td>PATCH</td></tr>
+<tr><th>エンドポイント</th><td><code>/api/tickets/{ticketId}</code></td></tr>
+<tr><th>入力</th><td>パス <code>ticketId</code>、ヘッダー <code>Authorization</code>（Bearer トークン）、ボディ <code>status</code>・<code>comment</code></td></tr>
+<tr><th>出力</th><td>200：変更後のステータス・バージョン・変更前のステータス（JSON）／ 異常時 400・401・403・404・409・500</td></tr>
+<tr><th>認証</th><td>JWT（HS256）を <code>JwtAuthenticationFilter</code> で検証（No.01〜14）</td></tr>
+<tr><th>トランザクション</th><td>あり（1 つ。No.22 で開始、No.44 で COMMIT、例外時は ROLLBACK）</td></tr>
+<tr><th>使用テーブル</th><td><code>vulnerability_ticket</code>（参照・行ロック・更新）、<code>project_member</code>（参照）、<code>ticket_status_history</code>（登録）</td></tr>
+<tr><th>外部システム</th><td>なし</td></tr>
+<tr><th>起点（根拠）</th><td class="src">TicketController.java:24-30 updateStatus</td></tr>
+</tbody></table>
+</section>
+
+<section data-sec="input">
+<h3>1.2 入力項目</h3>
+<pre class="json" data-title="リクエストボディの例（PATCH /api/tickets/5012、Content-Type: application/json）">{
+  "status": "in_progress",
+  "comment": "調査を開始します"
+}</pre>
+<table class="sub"><thead><tr><th>項目</th><th>受け取り位置</th><th>型</th><th>必須</th><th>検証内容（コード上の条件）</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>ticketId</code></td><td>パス</td><td>long</td><td>必須</td><td>long に変換できること（No.16）</td><td>5012</td></tr>
+<tr><td><code>Authorization</code></td><td>ヘッダー</td><td>string</td><td>必須</td><td><code>Bearer </code> で始まり、続くトークンが有効な JWT であること（No.03・07）</td><td><code>Bearer eyJhbGciOiJIUzI1NiJ9.…</code></td></tr>
+<tr><td><code>status</code></td><td>ボディ（JSON）</td><td>string</td><td>必須</td><td><code>@NotBlank</code>（No.18）。前後の空白を除き大文字にして <code>OPEN</code>・<code>IN_PROGRESS</code>・<code>RESOLVED</code>・<code>CLOSED</code>・<code>REJECTED</code> のいずれか（No.24）</td><td>"in_progress"</td></tr>
+<tr><td><code>comment</code></td><td>ボディ（JSON）</td><td>string</td><td>任意</td><td><code>@Size(max = 500)</code>（No.19）。<code>status</code> が RESOLVED の場合は空白以外の文字を含むこと（No.36）</td><td>"調査を開始します"</td></tr>
+</tbody></table>
+<table class="sub auto"><caption>JWT のクレーム（No.07〜12 で使用）</caption><thead><tr><th>クレーム</th><th>使い方</th><th>値の例</th></tr></thead><tbody>
+<tr><td><code>sub</code></td><td>long に変換して <code>userId</code></td><td>"205"</td></tr>
+<tr><td><code>tid</code></td><td>long として <code>tenantId</code></td><td>3</td></tr>
+<tr><td><code>roles</code></td><td>文字列の配列として <code>roles</code>（無ければ空）</td><td>["TICKET_MEMBER"]</td></tr>
+<tr><td><code>iss</code></td><td>"ticket-auth" と一致すること</td><td>"ticket-auth"</td></tr>
+<tr><td><code>exp</code></td><td>有効期限（過ぎていないこと）</td><td>1793000000</td></tr>
+</tbody></table>
+</section>
