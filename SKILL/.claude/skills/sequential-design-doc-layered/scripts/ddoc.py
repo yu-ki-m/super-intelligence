@@ -435,6 +435,28 @@ def arm_inline(text):
     return re.sub(r"→.*$", "", t[i + 2:]).strip(" 　：:、。,.")
 
 
+INLINE_COND = re.compile(r"れば|なら(?![なびず])|場合[はに]|とき[はに]|時は|たら|(?:違反|不一致|失敗|エラー|不正な値)は|(?:する|なる|無い|ない|終わる)と")
+INLINE_ACT = re.compile(r"(?:記録|格納|代入|設定|上書き|追加|削除|更新|登録|送信|呼び出|計算|置き換|書き込|保存|加算|減算|発行|集計|実行)(?:し(?![たな])|する)|にする|にして|を返(?:す|し)|を使(?:う|い)")
+INLINE_OK = re.compile(r"[A-Za-z]*(?:Exception|Error)\b|例外|→\s*[EA]\d")
+
+
+def inline_condition(text):
+    """処理の行の文で、条件の後に別の処理を続けている文を返す。無ければ空文字。
+    例外の経路へ進むだけの文（「数字でない場合は NumberFormatException → E1」）と、括弧の中の補足は対象外。
+    例外経路の行は失敗後の状態の説明が多く、誤検出になるので、呼び出し側で除く。"""
+    t = text
+    while True:
+        t2 = re.sub(r"（[^（）]*）|〔[^〔〕]*〕", "", t)
+        if t2 == t:
+            break
+        t = t2
+    for sent in t.split("。"):
+        m = INLINE_COND.search(sent)
+        if m and not INLINE_OK.search(sent) and INLINE_ACT.search(sent[m.end():]):
+            return sent.strip()
+    return ""
+
+
 def main_text(cell):
     """処理内容の欄の本文（項目の <ol> を除く）。"""
     out = []
@@ -2063,6 +2085,58 @@ def kinds_of(line):
     return ks
 
 
+def comment_lines(path, lines):
+    """複数行にまたがるコメントと docstring の行番号（1 始まり）。kinds_of は 1 行ずつ見るので、説明文の「SELECT」などをここで除く。
+    Python の代入や引数の三重引用符（sql = \"\"\"SELECT…）は実行される文字列なので除かない。"""
+    ext = Path(path).suffix.lower()
+    skip = set()
+    if ext == ".py":
+        state, is_doc, prev = None, False, ""
+        for no, line in enumerate(lines, 1):
+            s = line.strip()
+            pos = 0
+            hit_doc = state is not None and is_doc
+            while True:
+                if state is None:
+                    found = [(line.find(q, pos), q) for q in ('"""', "'''") if line.find(q, pos) >= 0]
+                    if not found:
+                        break
+                    at, q = min(found)
+                    if "#" in line[pos:at]:
+                        break
+                    head = line[:at].strip()
+                    is_doc = (head == "" or re.fullmatch(r"[rRuUbBfF]{1,2}", head) is not None) and not re.search(r"[(\[{,=+%\\]$", prev)
+                    state, pos = q, at + 3
+                    hit_doc = hit_doc or is_doc
+                else:
+                    at = line.find(state, pos)
+                    if at < 0:
+                        break
+                    state, pos = None, at + 3
+            if hit_doc:
+                skip.add(no)
+            if state is None and s and not s.startswith("#"):
+                prev = s
+        return skip
+    if ext in BRACE_EXTS or ext == ".sql":
+        opener, closer = "/*", "*/"
+    elif ext == ".xml":
+        opener, closer = "<!--", "-->"
+    else:
+        return skip
+    inside = False
+    for no, line in enumerate(lines, 1):
+        s = line.strip()
+        if not inside and s.startswith(opener):
+            inside = True
+            s = s[len(opener):]
+        if inside:
+            skip.add(no)
+            if closer in s:
+                inside = False
+    return skip
+
+
 def _brace_blocks(text):
     """波かっこのブロック（開始行, 終了行）を返す。文字列・コメントは読み飛ばす（簡易）。"""
     blocks, stack = [], []
@@ -2405,7 +2479,43 @@ def _norm_row(tr, base):
     return ("〜のとき" if tr.has_class("arm") else "処理", d, t)
 
 
-CONTROL_LINE = re.compile(r"^\s*(?:\}\s*)?(?:else|elif|if|for|foreach|while|do|try|catch|except|finally|switch|case|with|match)\b")
+CONTROL_LINE = re.compile(
+    r"^\s*(?:\}\s*)?(?:(?:async|await)\s+)?"
+    r"(?:(?:else|elif|elsif|elseif|if|unless|for|foreach|while|until|do|loop|repeat|try|begin|catch|except|rescue|finally|ensure"
+    r"|switch|case|default|when|with|match)\b"
+    r"|(?:using|lock|synchronized)\s*\(|select\s*\{)")
+BLOCK_END = re.compile(r"(?:[{(\[]|=>|->|\bdo(?:\s*\|[^|]*\|)?)\s*$")
+_CONT_HEAD = re.compile(r"^\s*(?:\}\s*)?(?:else|elif|elsif|elseif|except|catch|rescue|finally|ensure|case|default)\b")
+
+
+def is_block_head(line):
+    """中に処理を持つブロックの先頭の行か。if などのキーワードのほか、繰り返し・トランザクション・非同期を引数で書く形
+    （items.forEach(x => {、ds.transaction(async (m) => {、await asyncio.gather(）も含める。
+    関数の定義やルーターへの登録は、中の行を字下げしない書き方なので含めない。"""
+    if CONTROL_LINE.match(line):
+        return True
+    return bool(BLOCK_END.search(line)) and bool(set(kinds_of(line)) & {"繰返", "TX", "非同期"})
+
+
+def enclosing_heads(lines, ln):
+    """ln の行を囲むブロックの先頭の行番号を、内側から順に返す。ソースの字下げを上へたどって決める。
+    except・else の中の行は、対応する try・if の中でもあるので、続けて探す。"""
+    out = []
+    limit = _src_indent(lines[ln - 1])
+    for k in range(ln - 1, 0, -1):
+        s = lines[k - 1].strip()
+        if not s or s.startswith(("#", "//", "/*", "*")):
+            continue
+        if re.match(r"[)\]}]", s) and not _CONT_HEAD.match(lines[k - 1]):
+            continue
+        y = _src_indent(lines[k - 1])
+        if y < limit:
+            if is_block_head(lines[k - 1]):
+                out.append(k)
+            limit = y + 1 if _CONT_HEAD.match(lines[k - 1]) else y
+            if limit == 0:
+                break
+    return out
 
 
 def _src_indent(line):
@@ -2415,15 +2525,20 @@ def _src_indent(line):
 
 def check_nest_src(procs, idx, rep):
     """文書の字下げとソースの構造を突き合わせる。字下げだけで構造を読めることが、この文書の前提なので確かめる。
-    - ソースで if・for・try などの中にある行が、文書で字下げされていない（ツリーの外に出ている）
+    - ソースで if・for・try・with などの中にある行が、そのブロックの行より深く字下げされていない（ツリーの外に出ている）
     - ソースでは前の行と同じ深さに戻っているのに、文書で深いまま（枝の中に入っている）
-    根拠の行番号から調べる。根拠が無い行（設計だけの行など）と、別のファイルをまたぐ入れ子は対象外。"""
+    囲むブロックはソースの字下げから決めるので、同じファイルのヘルパーを先に展開した行があっても見失わない。
+    根拠が無い行（設計だけの行など）と、別のファイルへ展開した行と展開元のブロックの関係は対象外。
+    ブロックの終わりの行（繰返終端・try終端・待機）は、根拠がブロックの中を指すのが正しいので比べない。
+    比べた行数を INFO で示す。比べられなかった行の字下げは目視する。"""
     for proc in procs:
         pid = proc.get("id")
+        n_inside = n_block = 0
         for t in steps_tables(proc):
             hist = []
+            seen, seen2 = {}, {}  # (ファイル, 行) → その行を主な根拠にした文書の行／ついでに挙げた最初の行（コミットの行が with の行を挙げるなど）
             for kind, _tr, cs, d in table_rows(t):
-                if kind != "step" or len(cs) < 3:
+                if kind != "step" or len(cs) < 3 or set(kinds_in(cs[1])) & CLOSERS:
                     continue
                 cites = parse_citations(cs[-1].text())
                 if not cites:
@@ -2441,39 +2556,37 @@ def check_nest_src(procs, idx, rep):
                 text = lines[ln - 1]
                 no = cs[0].text().strip()
                 where = "%s No.%s" % (pid, no)
-                before = [h for h in hist if h["path"] == path and h["ln"] < ln]
-                if any(h["path"] == path and h["ln"] == ln for h in hist):  # 同じ文を分解した行（フレームワークが行う判定と、その結果など）
-                    hist.append({"path": path, "ln": ln, "ind": ind, "d": d, "no": no, "text": text})
-                    continue
+                me = {"path": path, "ln": ln, "ind": ind, "d": d, "no": no, "text": text}
+                repeated = any(h["path"] == path and h["ln"] == ln for h in hist)  # 同じ文を分解した行（フレームワークが行う判定と、その結果など）
+                if not repeated:
+                    heads = enclosing_heads(lines, ln)
+                    if heads:
+                        n_inside += 1
+                    parent = next((seen.get((path, k)) or seen2[(path, k)] for k in heads if (path, k) in seen or (path, k) in seen2), None)
+                    if parent is not None:
+                        n_block += 1
 
-                def closed(frm, limit, strict):
-                    """frm の行より後、ln より前に、limit より浅い（strict でなければ limit 以下の）行があるか。あればブロックが閉じている。"""
-                    for k in range(frm, ln - 1):
-                        x = lines[k]
-                        if not x.strip() or x.strip().startswith(")"):
-                            continue
-                        y = _src_indent(x)
-                        if y < limit or (not strict and y == limit):
-                            return True
-                    return False
+                    def closed(frm):
+                        """frm の行より後、ln より前に ind より浅い行があるか。あればブロックが閉じている。"""
+                        for k in range(frm, ln - 1):
+                            x = lines[k]
+                            if x.strip() and not x.strip().startswith(")") and _src_indent(x) < ind:
+                                return True
+                        return False
 
-                parent = next((h for h in reversed(before) if h["ind"] < ind), None)
-                if parent is not None and (closed(parent["ln"], parent["ind"], False) or not CONTROL_LINE.match(parent["text"])):
-                    parent = None
-                sib = None
-                for h in reversed(before):
-                    if h["ind"] < ind:
-                        break
-                    if h["ind"] == ind:
-                        sib = h
-                        break
-                if sib is not None and closed(sib["ln"], ind, True):
-                    sib = None
-                if parent is not None and d <= parent["d"]:
-                    rep.warn("NESTSRC", where, "ソースでは No.%s（%s）の中にある行が、文書で字下げされていない（ツリーの外に出ている）" % (parent["no"], parent["text"].strip()[:40]))
-                elif sib is not None and d > sib["d"] and not re.match(r"\s*(?:\}|\)|else\b|elif\b|except\b|catch\b|finally\b)", text):
-                    rep.warn("NESTSRC", where, "ソースでは No.%s と同じ深さの行が、文書で深くなっている（ソースでは枝の外にある。→ NN で進め、分岐と同じ字下げに書く）" % sib["no"])
-                hist.append({"path": path, "ln": ln, "ind": ind, "d": d, "no": no, "text": text})
+                    sibs = [h for h in hist if h["path"] == path and h["ln"] < ln and h["ind"] == ind and not closed(h["ln"])]
+                    sib = max(sibs, key=lambda h: h["ln"]) if sibs else None
+                    if parent is not None and d <= parent["d"]:
+                        rep.warn("NESTSRC", where, "ソースでは No.%s（%s）の中にある行が、文書で字下げされていない（ツリーの外に出ている）" % (parent["no"], parent["text"].strip()[:40]))
+                    elif sib is not None and d > sib["d"] and not re.match(r"\s*(?:\}|\)|else\b|elif\b|except\b|catch\b|finally\b)", text):
+                        rep.warn("NESTSRC", where, "ソースでは No.%s と同じ深さの行が、文書で深くなっている（ソースでは枝の外にある。→ NN で進め、分岐と同じ字下げに書く）" % sib["no"])
+                hist.append(me)
+                seen[(path, ln)] = me
+                for f, x, _b in cites:
+                    if f == cites[0][0]:
+                        seen2.setdefault((path, x), me)
+        if n_inside:
+            rep.info("NESTSRC", pid, "字下げの照合：ソースのブロックの中の行 %d 行のうち、%d 行をブロックの行と比べた（残りはブロックの行が文書に無く比べていない。別のファイルへ展開した行は、展開元のブロックと比べない。比べていない行は目視する）" % (n_inside, n_block))
 
 
 def check_groups(procs, rep):
@@ -2624,6 +2737,10 @@ def check_doc(text, src_root=None, coverage=False, refs=False, git_base=None, gi
                     where = "%s No.%s" % (pid, no or "?")
                     if len(cs) != 3:
                         rep.err("STEP", where, "処理行の列数が %d（No.・処理内容・根拠の 3 列にする）" % len(cs))
+                    elif not no.startswith("E") and not set(kinds_in(cs[1])) & (CLOSERS | {"例外"}):
+                        inline = inline_condition(main_text(cs[1]))
+                        if inline:
+                            rep.warn("INLINECOND", where, "処理の行の文中に条件と処理を書いている：「%s」（判定の行と「〜のとき」行に分け、処理は 1 段下の行に書く。補足なら括弧の中に書く）" % inline[:50])
                     if not STEP_NO_RE.match(no):
                         rep.err("STEP", where, "No. の形式が不正（01・001・E1-01・A1-01 の形）")
                     else:
@@ -2890,9 +3007,10 @@ def check_doc(text, src_root=None, coverage=False, refs=False, git_base=None, gi
                     if ef:
                         funcs[(ef[0], ef[1])] = ef[2]
                 rel = p.relative_to(idx.root).as_posix()
+                not_code = comment_lines(p, lines)
                 for (a, b), name in sorted(funcs.items()):
                     for ln in range(a, b + 1):
-                        if ln in lines_cited:
+                        if ln in lines_cited or ln in not_code:
                             continue
                         ks = [k for k in kinds_of(lines[ln - 1]) if k not in ("分岐(else)",)]
                         if not ks:
@@ -3175,7 +3293,8 @@ def cmd_inventory(a):
         lines = read_lines(p)
         fr = function_ranges(p, lines)
         rel = p.resolve().relative_to(root).as_posix() if root and str(p.resolve()).startswith(str(root)) else p.as_posix()
-        hits = [(i + 1, kinds_of(s), s) for i, s in enumerate(lines)]
+        not_code = comment_lines(p, lines)
+        hits = [(i + 1, kinds_of(s), s) for i, s in enumerate(lines) if i + 1 not in not_code]
         hits = [h for h in hits if h[1]]
         if not hits:
             continue
@@ -3366,7 +3485,7 @@ def cmd_render(a):
                     warns.append("%s：h2 の上余白が %spx と大きい" % (label, h2["top"]))
                 if m.get("decorated"):
                     warns.append("%s：影・大きな角丸の装飾が %d 要素にある" % (label, m["decorated"]))
-        shots = []
+        shots, ranges = [], []
         if a.shots:
             sd = Path(a.shots)
             sd.mkdir(parents=True, exist_ok=True)
@@ -3377,6 +3496,7 @@ def cmd_render(a):
                 if a.tab or a.level:  # 1 つのタブ・表示レベルで表示したときの高さ・位置で撮る
                     m = _measure(browser, src_html, base_dir, w, tmp, a.focus, panels=_tab_style(a.tab), level=a.level)
                 tops = [i * a.seg for i in range(max(1, min(a.parts, (m["height"] + a.seg - 1) // a.seg)))]
+                ranges.append({"width": w, "screens": len(tops), "need": (m["height"] + a.seg - 1) // a.seg, "height": m["height"], "seg": a.seg})
                 for f in m.get("focus") or []:
                     if f["top"] is not None:
                         tops.append(max(0, f["top"] - 40))
@@ -3399,7 +3519,7 @@ def cmd_render(a):
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     if a.json:
-        print(json.dumps({"browser": browser, "results": results, "problems": problems, "warnings": warns, "files": shots}, ensure_ascii=False, indent=1))
+        print(json.dumps({"browser": browser, "results": results, "problems": problems, "warnings": warns, "files": shots, "ranges": ranges}, ensure_ascii=False, indent=1))
     else:
         print("ブラウザ: %s" % browser)
         for m in results:
@@ -3413,6 +3533,10 @@ def cmd_render(a):
             print("WARN  " + w)
         if shots:
             print("出力: " + ", ".join(shots))
+        for r in ranges:
+            if r["screens"] < r["need"]:
+                print("撮影範囲: %dpx は上から %d 画面だけ（高さ %dpx のうち %dpx）。残りを見るには --parts %d（全体）か --focus \"#p1-s22\"（その行の位置）" % (
+                    r["width"], r["screens"], r["height"], r["screens"] * r["seg"], r["need"]))
         print("---- 問題 %d 件 / 警告 %d 件" % (len(problems), len(warns)))
     return 1 if problems else 0
 
