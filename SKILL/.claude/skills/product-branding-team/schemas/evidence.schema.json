@@ -1,0 +1,55 @@
+{
+  "title": "根拠と主張。保存先は state.db の evidence、claims、links",
+  "type": "object",
+  "properties": {
+    "evidence": {
+      "type": "object",
+      "required": ["evidence_id", "product_id", "kind"],
+      "properties": {
+        "evidence_id": {"type": "string"},
+        "product_id": {"type": "string", "description": "別の製品の根拠は使えない"},
+        "source_id": {"type": ["string", "null"]},
+        "source_version": {"type": ["integer", "null"]},
+        "url": {"type": ["string", "null"]},
+        "locator": {"type": ["string", "null"]},
+        "quote": {"type": ["string", "null"]},
+        "kind": {"type": "string", "enum": ["document_fact", "customer_statement", "customer_behavior", "public_web", "general_knowledge", "ai_inference", "requester_wish"]},
+        "retrieved_at": {"type": ["string", "null"]},
+        "verified": {"type": "string", "enum": ["quote_found", "url_not_machine_checked", "no_source"]},
+        "state": {"type": "string", "enum": ["current", "stale"]}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["artifact_id", "version", "local_id", "text", "type", "status"],
+      "properties": {
+        "artifact_id": {"type": "string"},
+        "version": {"type": "integer"},
+        "local_id": {"type": "string"},
+        "text": {"type": "string"},
+        "type": {"type": "string"},
+        "status": {"type": "string", "enum": ["confirmed", "hypothesis", "unverified", "planned", "retracted"]},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "target_customer": {"type": ["string", "null"]},
+        "audience": {"type": ["string", "null"]},
+        "situation": {"type": ["string", "null"]},
+        "conditions": {"type": "array", "items": {"type": "string"}},
+        "reason": {"type": ["string", "null"]},
+        "derived_from": {"type": "array", "items": {"type": "object"}},
+        "metric": {"type": ["object", "null"]}
+      }
+    },
+    "link": {
+      "type": "object",
+      "description": "根拠・成果物グラフの辺",
+      "required": ["from_kind", "from_id", "to_kind", "to_id", "relation"],
+      "properties": {
+        "from_kind": {"type": "string"},
+        "from_id": {"type": "string"},
+        "to_kind": {"type": "string"},
+        "to_id": {"type": "string"},
+        "relation": {"type": "string", "enum": ["references", "supports", "refutes", "derives", "inspects", "responds", "replies", "evaluates", "reference", "summary", "inference", "decision", "media_translation"]}
+      }
+    }
+  }
+}

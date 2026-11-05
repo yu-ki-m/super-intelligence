@@ -1,0 +1,49 @@
+{
+  "title": "検査の記録と欠陥。保存先は state.db の reviews、defects。エージェントの出力形式は output_review.schema.json",
+  "type": "object",
+  "properties": {
+    "review": {
+      "type": "object",
+      "required": ["review_id", "artifact_id", "version", "sha256", "contract_id", "contract_sha", "reviewer", "gate_verdict", "state", "kind"],
+      "properties": {
+        "review_id": {"type": "string"},
+        "artifact_id": {"type": "string"},
+        "version": {"type": "integer"},
+        "sha256": {"type": "string"},
+        "contract_id": {"type": "string"},
+        "contract_sha": {"type": "string"},
+        "reviewer": {"type": "string", "description": "役割ID、machine、または cross_reference"},
+        "reviewer_instance": {"type": ["string", "null"]},
+        "verdict": {"type": ["string", "null"], "description": "検査担当の判定"},
+        "gate_verdict": {"type": "string", "enum": ["pass", "fail", "hold", "invalid_review", "needs_second_check", "superseded"]},
+        "gate_reasons": {"type": "string"},
+        "state": {"type": "string", "enum": ["current", "invalidated"]},
+        "kind": {"type": "string", "enum": ["machine", "content", "upstream"]}
+      }
+    },
+    "defect": {
+      "type": "object",
+      "required": ["defect_id", "artifact_id", "severity", "category", "reason", "state"],
+      "properties": {
+        "defect_id": {"type": "string"},
+        "review_id": {"type": "string"},
+        "artifact_id": {"type": "string"},
+        "version": {"type": "integer"},
+        "severity": {"type": "string", "enum": ["major", "minor"]},
+        "category": {"type": "string", "enum": ["info_missing", "inference_error", "target_selection", "production_gap", "cross_doc", "review_error"]},
+        "criterion": {"type": ["string", "null"]},
+        "location": {"type": ["string", "null"]},
+        "quote": {"type": ["string", "null"]},
+        "reason": {"type": "string"},
+        "fix_condition": {"type": ["string", "null"]},
+        "fix_target": {"type": ["string", "null"]},
+        "signature": {"type": "string", "description": "同じ欠陥が続いているかの判定に使う"},
+        "occurrences": {"type": "integer"},
+        "state": {"type": "string", "enum": ["open", "resolved"]},
+        "resolution": {"type": ["string", "null"]},
+        "resolved_in": {"type": ["integer", "null"]},
+        "origin": {"type": "string", "enum": ["machine", "content", "upstream"]}
+      }
+    }
+  }
+}

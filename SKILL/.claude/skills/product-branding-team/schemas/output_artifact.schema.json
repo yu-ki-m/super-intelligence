@@ -1,0 +1,121 @@
+{
+  "title": "成果物を作る作業の出力",
+  "type": "object",
+  "required": ["document", "claims"],
+  "properties": {
+    "document": {"type": "string", "description": "成果物の本文（Markdown）。次の担当が補足なしで読める完成した文章にする"},
+    "structured": {"type": "object", "description": "品質契約が求める整理項目"},
+    "claims": {
+      "type": "array",
+      "description": "判断に影響する主要な主張。すべての文に付ける必要はない",
+      "items": {
+        "type": "object",
+        "required": ["id", "text", "type", "status"],
+        "properties": {
+          "id": {"type": "string", "description": "成果物の中で一意。版が変わっても同じ主張なら同じID"},
+          "text": {"type": "string"},
+          "type": {"type": "string", "enum": ["fact", "customer_statement", "inference", "assumption", "decision", "promise", "metric", "demand", "customer_reaction", "competitor", "planned", "value", "difference"]},
+          "status": {"type": "string", "enum": ["confirmed", "hypothesis", "unverified", "planned", "retracted"]},
+          "evidence": {"type": "array", "description": "根拠のIDだけを書く（E1 や仮ID N1）。引用文は書かない", "items": {"type": "string"}},
+          "target_customer": {"type": "string"},
+          "audience": {"type": "string", "description": "戦略の対象と異なる読み手へ向けた主張のとき、その読み手"},
+          "situation": {"type": "string"},
+          "conditions": {"type": "array", "items": {"type": "string"}},
+          "reason": {"type": "string"},
+          "derived_from": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["ref", "relation"],
+              "properties": {
+                "ref": {"type": "string", "description": "成果物ID#主張ID"},
+                "relation": {"type": "string", "enum": ["reference", "summary", "inference", "decision", "media_translation"]}
+              }
+            }
+          },
+          "metric": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"}, "value": {"type": "string"}, "unit": {"type": "string"},
+              "period": {"type": "string"}, "population": {"type": "string"}, "method": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "new_evidence": {
+      "type": "array",
+      "description": "新しく登録する根拠。資料の文言をそのまま引用する",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": {"type": "string", "description": "この出力の中だけの仮ID（N1など）"},
+          "source_id": {"type": "string"},
+          "url": {"type": "string"},
+          "locator": {"type": "string"},
+          "quote": {"type": "string"},
+          "kind": {"type": "string", "enum": ["document_fact", "customer_statement", "customer_behavior", "public_web", "general_knowledge", "ai_inference", "requester_wish"]},
+          "retrieved_at": {"type": "string"}
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": {"type": "string"}, "why_it_matters": {"type": "string"}, "obtainable": {"type": "boolean"}
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "description": "修正のとき、欠陥IDごとに何を変えたか",
+      "items": {
+        "type": "object",
+        "required": ["defect_id", "what_changed", "why_resolved"],
+        "properties": {
+          "defect_id": {"type": "string"}, "what_changed": {"type": "string"}, "why_resolved": {"type": "string"}
+        }
+      }
+    },
+    "rebuttals": {
+      "type": "array",
+      "description": "検査の指摘が誤っていると考えるとき、その根拠",
+      "items": {
+        "type": "object",
+        "required": ["defect_id", "argument"],
+        "properties": {
+          "defect_id": {"type": "string"}, "argument": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "requested_tasks": {
+      "type": "array",
+      "description": "追加が必要な仕事の申請。ハーネスが検査してから台帳へ登録する",
+      "items": {
+        "type": "object",
+        "required": ["purpose", "role", "contract", "done_when"],
+        "properties": {
+          "purpose": {"type": "string"}, "role": {"type": "string"}, "contract": {"type": "string"},
+          "done_when": {"type": "string"}, "inputs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "handoffs": {
+      "type": "array",
+      "description": "他業務へ引き渡す事項",
+      "items": {
+        "type": "object",
+        "required": ["to", "customer_value", "gap", "acceptance"],
+        "properties": {
+          "to": {"type": "string"}, "customer_value": {"type": "string"}, "gap": {"type": "string"},
+          "acceptance": {"type": "string"}, "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

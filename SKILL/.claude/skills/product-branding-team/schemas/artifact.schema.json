@@ -1,0 +1,19 @@
+{
+  "title": "成果物の版。保存先は state.db の artifacts と artifacts/<ID>/v<版>.md",
+  "type": "object",
+  "required": ["artifact_id", "version", "path", "sha256", "status"],
+  "properties": {
+    "artifact_id": {"type": "string"},
+    "version": {"type": "integer"},
+    "path": {"type": "string"},
+    "sha256": {"type": "string", "description": "検査の合格はこの値に結びつく"},
+    "task_id": {"type": "string"},
+    "attempt_id": {"type": "string", "description": "同じ試行から二重に版を作らない"},
+    "status": {"type": "string", "enum": ["draft", "accepted", "rejected", "superseded", "invalidated", "on_hold"]},
+    "delivery_class": {"type": ["string", "null"], "description": "fact_checked、hypothesis、candidate、および契約変更後の *_changed_contract"},
+    "input_manifest": {"type": "string", "description": "入力の種類、ID、版、ハッシュの一覧（JSON）"},
+    "structured": {"type": "string"},
+    "unknowns": {"type": "string"},
+    "handoffs": {"type": "string"}
+  }
+}

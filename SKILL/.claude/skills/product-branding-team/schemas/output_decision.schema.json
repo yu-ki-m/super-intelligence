@@ -1,0 +1,20 @@
+{
+  "title": "判断ノードの出力",
+  "type": "object",
+  "required": ["branch", "reason"],
+  "properties": {
+    "branch": {"type": "string"},
+    "reason": {"type": "string"},
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question", "obtainable"],
+        "properties": {
+          "question": {"type": "string"}, "why_it_matters": {"type": "string"},
+          "obtainable": {"type": "boolean"}, "how": {"type": "string"}
+        }
+      }
+    }
+  }
+}

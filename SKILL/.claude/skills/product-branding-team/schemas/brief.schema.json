@@ -1,0 +1,53 @@
+{
+  "title": "依頼の整理（ハーネスの入力）",
+  "type": "object",
+  "required": ["product", "goal", "stage", "materials"],
+  "properties": {
+    "product": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "enum": ["B2B", "B2C", "internal", "other"]},
+        "summary": {"type": "string"}
+      }
+    },
+    "goal": {"type": "string", "minLength": 1},
+    "stage": {"type": "string", "enum": ["concept", "pilot", "offering", "redefine"]},
+    "trigger": {"type": "string"},
+    "decision_maker": {"type": "string"},
+    "constraints": {"type": "array", "items": {"type": "string"}},
+    "deliverables": {"type": "array", "items": {"type": "string"}},
+    "allow_research": {"type": "boolean"},
+    "allow_web": {"type": "boolean"},
+    "planned_features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "keywords"],
+        "properties": {
+          "name": {"type": "string"},
+          "keywords": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string"},
+          "text": {"type": "string"},
+          "title": {"type": "string"},
+          "kind": {"type": "string"},
+          "product_id": {"type": "string"},
+          "retrieved_at": {"type": "string"}
+        }
+      }
+    },
+    "unknowns": {"type": "array", "items": {"type": "string"}}
+  }
+}

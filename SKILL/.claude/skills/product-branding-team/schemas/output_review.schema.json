@@ -1,0 +1,57 @@
+{
+  "title": "内容検査の出力",
+  "type": "object",
+  "required": ["verdict", "contract_results", "defects", "resolved_defects"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["pass", "fail", "hold"]},
+    "contract_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "met", "reason"],
+        "properties": {
+          "criterion": {"type": "string"}, "met": {"type": "boolean"},
+          "location": {"type": "string"}, "reason": {"type": "string"}
+        }
+      }
+    },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "location", "reason", "fix_condition"],
+        "properties": {
+          "severity": {"type": "string", "enum": ["major", "minor"]},
+          "category": {"type": "string", "enum": ["info_missing", "inference_error", "target_selection", "production_gap", "cross_doc", "review_error"]},
+          "criterion": {"type": "string"},
+          "location": {"type": "string"},
+          "quote": {"type": "string"},
+          "reason": {"type": "string"},
+          "fix_condition": {"type": "string"},
+          "fix_target": {"type": "string"}
+        }
+      }
+    },
+    "resolved_defects": {
+      "type": "array",
+      "description": "渡された未解決の欠陥それぞれへの判定",
+      "items": {
+        "type": "object",
+        "required": ["defect_id", "resolved", "how"],
+        "properties": {
+          "defect_id": {"type": "string"}, "resolved": {"type": "boolean"}, "how": {"type": "string"}
+        }
+      }
+    },
+    "strengths": {
+      "type": "array",
+      "description": "具体的に認める点。無理に作らない",
+      "items": {
+        "type": "object",
+        "required": ["location", "reason"],
+        "properties": {"location": {"type": "string"}, "reason": {"type": "string"}}
+      }
+    },
+    "usable_by_next": {"type": "string", "description": "次の担当がこの成果物で何を判断できるか"}
+  }
+}

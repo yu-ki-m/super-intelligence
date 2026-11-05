@@ -1,0 +1,42 @@
+flowchart TD
+  evidence["evidence<br/>資料を根拠として参照できる形に整理する"]
+  customer["customer<br/>利用者の業務と困りごとを整理し、対象の優先順位を判断でき"]
+  alternatives["alternatives<br/>現状維持や手作業を含む代替手段を比較する"]
+  product["product<br/>製品で確認できる能力と、価値が生じる操作と運用を整理する"]
+  info_gate{"info_gate<br/>候補を作る判断に必要な情報がそろっているかを判断する"}
+  research["research<br/>不足資料を追加で調査する"]
+  cand_a["cand_a<br/>ブランドの仮説の候補を独立して作る"]
+  cand_b["cand_b<br/>別の対象または価値に基づく候補を独立して作る"]
+  debate_strategy[/"debate_strategy<br/>現在の方法から変える理由は十分か、その約束を提供できるか"/]
+  select["select<br/>暫定案を選び、選定理由と残る異論を記録する"]
+  intro_page["intro_page<br/>採用された戦略から紹介ページの本文案を作る"]
+  validation_plan["validation_plan<br/>未確認の主張を30日間の確認計画へ変換する"]
+  final_check{{"final_check<br/>資料一式の縦と横の論理を検査する"}}
+  T_complete(["T_complete<br/>品質契約充足または仮説案の契約充足"])
+  T_hold(["T_hold<br/>資料不足による保留"])
+  T_budget(["T_budget<br/>予算上限による未達"])
+  T_failed(["T_failed<br/>実行失敗"])
+  T_abort(["T_abort<br/>中止"])
+  evidence --> customer
+  evidence --> alternatives
+  evidence --> product
+  customer --> info_gate
+  alternatives --> info_gate
+  product --> info_gate
+  info_gate -.->|obtainable 上限1| research
+  research -.->|accepted 上限1| info_gate
+  info_gate -->|sufficient/unobtainable| cand_a
+  info_gate -->|sufficient/unobtainable| cand_b
+  cand_a --> debate_strategy
+  cand_b --> debate_strategy
+  debate_strategy --> select
+  select --> intro_page
+  select --> validation_plan
+  intro_page --> final_check
+  validation_plan --> final_check
+  final_check -.->|accepted| T_complete
+  final_check -.->|inconsistent 上限2| final_check
+  any((全ノード)) -.->|全体の呼び出し上限に到達、または修正・循環の上限| T_budget
+  any((全ノード)) -.->|必須の成果物が保留で、外部の情報なしには進めない| T_hold
+  any((全ノード)) -.->|エージェントの失敗が再試行後も解消しない| T_failed
+  any((全ノード)) -.->|依頼者の中止指示| T_abort

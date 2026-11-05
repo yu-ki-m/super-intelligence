@@ -1,0 +1,31 @@
+{
+  "title": "相互批評の発言",
+  "type": "object",
+  "required": ["messages"],
+  "properties": {
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "to_role", "target_artifact", "body", "reason"],
+        "properties": {
+          "kind": {"type": "string", "enum": ["critique", "support", "question", "propose"]},
+          "to_role": {"type": "string"},
+          "target_artifact": {"type": "string"},
+          "target_claim": {"type": "string"},
+          "quote": {"type": "string", "description": "対象となる主張の引用または正確な要約"},
+          "body": {"type": "string", "description": "自然な文章の発言"},
+          "reason": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "conditions": {"type": "string"},
+          "counterexample": {"type": "string"},
+          "requested_fix": {"type": "string"},
+          "keep_strength": {"type": "string", "description": "修正しても残すべき長所"},
+          "flips_if": {"type": "string", "description": "判断が変わる条件"},
+          "severity": {"type": "string", "enum": ["major", "minor"]},
+          "dispute_type": {"type": "string", "enum": ["fact", "inference", "criteria", "info_missing"]}
+        }
+      }
+    }
+  }
+}

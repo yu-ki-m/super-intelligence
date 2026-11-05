@@ -1,0 +1,212 @@
+flowchart TD
+  evidence["evidence<br/>根拠管理：主張と資料の対応表を提出する"]
+  work_plan["work_plan<br/>今回の依頼範囲で実施する仕事と実施しない仕事を判断する"]
+  C01["C01<br/>顧客区分：状況別の候補群を提出する"]
+  C02["C02<br/>利用者業務：業務と困りごとの対応を提出する"]
+  C03["C03<br/>購入判断：決定者と選択条件を提出する"]
+  C04["C04<br/>導入関係者：審査・運用条件を提出する"]
+  C05["C05<br/>顧客発言分析：実発言と文脈の整理を提出する"]
+  C06["C06<br/>利用開始：導入時の期待と負担を提出する"]
+  C07["C07<br/>継続・離脱：既存資料からの理由分析を提出する"]
+  M01["M01<br/>直接競合：同用途の比較を提出する"]
+  M02["M02<br/>間接競合：別の方法による解決を提出する"]
+  M03["M03<br/>内製・手作業：現状維持の理由を提出する"]
+  M04["M04<br/>市場カテゴリー：顧客が理解する分類の候補を提出する"]
+  M05["M05<br/>公開価格・提供条件：条件をそろえた比較資料を提出する"]
+  M06["M06<br/>競合の訴求：表現と根拠の比較を提出する"]
+  M07["M07<br/>導入変更負担：移行・教育・運用の障壁を提出する"]
+  P01["P01<br/>現行機能：確認済みの能力と制約を提出する"]
+  P02["P02<br/>業務適合：顧客業務と機能の対応を提出する"]
+  P03["P03<br/>導入設定：利用開始の条件を提出する"]
+  P04["P04<br/>日常利用：価値が生じる操作と運用を提出する"]
+  P05["P05<br/>支援体制：サポートで提供できることを提出する"]
+  P06["P06<br/>信頼条件：提示可能な品質・安全性の根拠と不足を提出する"]
+  P07["P07<br/>計画と実態：開発予定の分離・期待との差を提出する"]
+  info_gate{"info_gate<br/>候補を作る判断に必要な情報がそろっているかを判断する"}
+  research["research<br/>不足資料を追加で調査する"]
+  B01["B01<br/>対象の優先順位：優先対象と対象外条件を提出する"]
+  B02["B02<br/>提供価値：機能から価値までの説明を提出する"]
+  B03["B03<br/>選択理由：代替から変更する理由を提出する"]
+  B04["B04<br/>約束と証拠：主張・根拠・条件を提出する"]
+  B05["B05<br/>目指す認識：何として記憶されたいかを提出する"]
+  B06["B06<br/>ブランドの関係：企業・製品・機能の位置付けを提出する"]
+  B07["B07<br/>表現姿勢：語調と避ける表現を提出する"]
+  cand_a["cand_a<br/>ブランドの仮説の候補を独立して作る"]
+  cand_b["cand_b<br/>ブランドの仮説の候補を独立して作る"]
+  issue_plan["issue_plan<br/>候補の違いから争点と参加者を決める"]
+  debate_target[/"debate_target<br/>誰を優先するか"/]
+  debate_change[/"debate_change<br/>現在の方法から変える理由は十分か"/]
+  debate_promise[/"debate_promise<br/>その約束を提供できるか"/]
+  compare["compare<br/>共通の基準で候補を比較する"]
+  select["select<br/>暫定案を選び、選定理由と残る異論を記録する"]
+  debate_integration[/"debate_integration<br/>統合した暫定案に異論や反映漏れはないか"/]
+  D01["D01<br/>短い紹介文：1文と30秒の説明を提出する"]
+  D02["D02<br/>紹介ページ：構成・本文案を提出する"]
+  D03["D03<br/>営業資料：説明の順序・原稿を提出する"]
+  D04["D04<br/>デモ：利用場面と実演シナリオを提出する"]
+  D05["D05<br/>事例：実績に基づく構成案・不足資料を提出する"]
+  D06["D06<br/>よくある質問：疑問・回答・提供条件を提出する"]
+  D07["D07<br/>視覚表現：名称・図・デザインへの指示案を提出する"]
+  D08["D08<br/>接点の統一：媒体間の表現・約束の対応表を提出する"]
+  V01["V01<br/>出典確認：主張と資料の照合を提出する"]
+  V02["V02<br/>因果関係：成果に必要な条件・反例を提出する"]
+  V03["V03<br/>変更理由：現状維持を選ぶ理由からの批判を提出する"]
+  V04["V04<br/>説明の解釈：誤解される可能性を提出する"]
+  V05["V05<br/>体験との整合：期待と実態の不一致を提出する"]
+  C08["C08<br/>調査設計：未確認事項に対応する質問案を提出する"]
+  validation_plan["validation_plan<br/>検証設計：仮説・方法・判断条件を提出する"]
+  final_check{{"final_check<br/>資料一式の縦と横の論理を検査する"}}
+  final_report["final_report<br/>依頼者に提出する推奨をまとめる"]
+  T_complete(["T_complete<br/>品質契約充足または仮説案の契約充足"])
+  T_hold(["T_hold<br/>資料不足による保留"])
+  T_budget(["T_budget<br/>予算上限による未達"])
+  T_failed(["T_failed<br/>実行失敗"])
+  T_abort(["T_abort<br/>中止"])
+  evidence --> work_plan
+  work_plan --> info_gate
+  evidence --> C01
+  C01 --> info_gate
+  evidence --> C02
+  C02 --> info_gate
+  evidence --> C03
+  C03 --> info_gate
+  evidence --> C04
+  C04 --> info_gate
+  evidence --> C05
+  C05 --> info_gate
+  evidence --> C06
+  C06 --> info_gate
+  evidence --> C07
+  C07 --> info_gate
+  evidence --> M01
+  M01 --> info_gate
+  evidence --> M02
+  M02 --> info_gate
+  evidence --> M03
+  M03 --> info_gate
+  evidence --> M04
+  M04 --> info_gate
+  evidence --> M05
+  M05 --> info_gate
+  evidence --> M06
+  M06 --> info_gate
+  evidence --> M07
+  M07 --> info_gate
+  evidence --> P01
+  P01 --> info_gate
+  evidence --> P02
+  P02 --> info_gate
+  evidence --> P03
+  P03 --> info_gate
+  evidence --> P04
+  P04 --> info_gate
+  evidence --> P05
+  P05 --> info_gate
+  evidence --> P06
+  P06 --> info_gate
+  evidence --> P07
+  P07 --> info_gate
+  info_gate -.->|obtainable 上限1| research
+  research -.->|accepted 上限1| info_gate
+  info_gate -->|sufficient/unobtainable| B01
+  info_gate -->|sufficient/unobtainable| B02
+  info_gate -->|sufficient/unobtainable| B03
+  info_gate -->|sufficient/unobtainable| B04
+  info_gate -->|sufficient/unobtainable| B05
+  info_gate -->|sufficient/unobtainable| B06
+  info_gate -->|sufficient/unobtainable| B07
+  B01 --> cand_a
+  B02 --> cand_a
+  B03 --> cand_a
+  B04 --> cand_a
+  B05 --> cand_a
+  B06 --> cand_a
+  B07 --> cand_a
+  B01 --> cand_b
+  B02 --> cand_b
+  B03 --> cand_b
+  B04 --> cand_b
+  B05 --> cand_b
+  B06 --> cand_b
+  B07 --> cand_b
+  cand_a --> issue_plan
+  cand_b --> issue_plan
+  issue_plan --> debate_target
+  debate_target --> debate_change
+  debate_change --> debate_promise
+  debate_promise --> compare
+  compare --> select
+  select --> debate_integration
+  debate_integration --> D01
+  debate_integration --> D02
+  debate_integration --> D03
+  debate_integration --> D04
+  debate_integration --> D05
+  debate_integration --> D06
+  debate_integration --> D07
+  D01 --> D08
+  D02 --> D08
+  D03 --> D08
+  D04 --> D08
+  D06 --> D08
+  debate_integration --> D08
+  D01 --> V01
+  D02 --> V01
+  D03 --> V01
+  D04 --> V01
+  D05 --> V01
+  D06 --> V01
+  D07 --> V01
+  D08 --> V01
+  debate_integration --> V01
+  D01 --> V02
+  D02 --> V02
+  D03 --> V02
+  D04 --> V02
+  D05 --> V02
+  D06 --> V02
+  D07 --> V02
+  D08 --> V02
+  debate_integration --> V02
+  D01 --> V03
+  D02 --> V03
+  D03 --> V03
+  D04 --> V03
+  D05 --> V03
+  D06 --> V03
+  D07 --> V03
+  D08 --> V03
+  debate_integration --> V03
+  D01 --> V04
+  D02 --> V04
+  D03 --> V04
+  D04 --> V04
+  D05 --> V04
+  D06 --> V04
+  D07 --> V04
+  D08 --> V04
+  debate_integration --> V04
+  D01 --> V05
+  D02 --> V05
+  D03 --> V05
+  D04 --> V05
+  D05 --> V05
+  D06 --> V05
+  D07 --> V05
+  D08 --> V05
+  debate_integration --> V05
+  debate_integration --> C08
+  C08 --> validation_plan
+  V01 --> final_check
+  V02 --> final_check
+  V03 --> final_check
+  V04 --> final_check
+  V05 --> final_check
+  validation_plan --> final_check
+  final_check -.->|accepted| final_report
+  final_report -.->|accepted| T_complete
+  final_check -.->|inconsistent 上限2| final_check
+  any((全ノード)) -.->|全体の呼び出し上限に到達、または修正・循環の上限| T_budget
+  any((全ノード)) -.->|必須の成果物が保留で、外部の情報なしには進めない| T_hold
+  any((全ノード)) -.->|エージェントの失敗が再試行後も解消しない| T_failed
+  any((全ノード)) -.->|依頼者の中止指示| T_abort

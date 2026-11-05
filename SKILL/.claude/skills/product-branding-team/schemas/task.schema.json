@@ -1,0 +1,32 @@
+{
+  "title": "作業（作業台帳の1行）。保存先は state.db の tasks",
+  "type": "object",
+  "required": ["task_id", "kind", "state"],
+  "properties": {
+    "task_id": {"type": "string", "description": "同じIDの再登録は無視される"},
+    "node_id": {"type": "string"},
+    "iter": {"type": "integer", "description": "テンプレートの循環を実行するときの試行番号"},
+    "kind": {"type": "string", "enum": ["work", "research", "revise", "review", "critique", "respond", "reeval", "decide", "crosscheck", "diagnose", "debate"]},
+    "role": {"type": ["string", "null"]},
+    "purpose": {"type": "string"},
+    "instructions": {"type": "string"},
+    "inputs": {"type": "array", "items": {"type": "object"}},
+    "depends_on": {"type": "array", "items": {"type": "object"}},
+    "output_artifact": {"type": ["string", "null"]},
+    "contract_id": {"type": ["string", "null"]},
+    "contract_sha": {"type": ["string", "null"], "description": "開始時に固定した品質契約のハッシュ"},
+    "reviewer_role": {"type": ["string", "null"]},
+    "state": {"type": "string", "enum": ["pending", "ready", "running", "awaiting_review", "revising", "done", "on_hold", "failed", "out_of_scope"]},
+    "outcome": {"type": ["string", "null"]},
+    "priority": {"type": "integer"},
+    "budget_calls": {"type": "integer"},
+    "calls_used": {"type": "integer"},
+    "retries_used": {"type": "integer"},
+    "revisions_used": {"type": "integer"},
+    "failure_policy": {"type": ["string", "null"]},
+    "deadline": {"type": ["string", "null"]},
+    "parent_task": {"type": ["string", "null"]},
+    "data": {"type": "object"},
+    "note": {"type": ["string", "null"]}
+  }
+}

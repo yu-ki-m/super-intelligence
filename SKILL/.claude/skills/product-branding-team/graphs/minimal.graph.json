@@ -1,0 +1,723 @@
+{
+ "graph_id": "minimal",
+ "version": "1.0",
+ "description": "一つの利用場面について調査から提出までをつなぐ最小の実行系",
+ "nodes": [
+  {
+   "id": "evidence",
+   "kind": "work",
+   "role": "G03",
+   "output": "evidence_register",
+   "contract": "evidence_register",
+   "reviewer": "V01",
+   "purpose": "資料を根拠として参照できる形に整理する",
+   "instructions": "渡された資料から、判断に使える事実・顧客の発言を引用で取り出し new_evidence に登録する。資料から分からないことは未確認事項に書く。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence"
+   ],
+   "output_type": "evidence_register",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "priority": 90
+  },
+  {
+   "id": "customer",
+   "kind": "work",
+   "role": "C02",
+   "output": "customer_analysis",
+   "contract": "customer_analysis",
+   "reviewer": "V01",
+   "purpose": "利用者の業務と困りごとを整理し、対象の優先順位を判断できるようにする",
+   "instructions": "資料から、誰のどの業務・状況で何が負担になっているか、現在どう対処しているかを整理する。利用者、購入決定者、導入関係者の判断の違いも書く。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "evidence_register"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "evidence_register"
+   ],
+   "output_type": "customer_analysis",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   }
+  },
+  {
+   "id": "alternatives",
+   "kind": "work",
+   "role": "M03",
+   "output": "alternatives",
+   "contract": "competitive_comparison",
+   "reviewer": "V03",
+   "purpose": "現状維持や手作業を含む代替手段を比較する",
+   "instructions": "競合製品だけでなく、手作業、内製、現状維持を同じ観点で比較する。自社が不利な条件と変更負担も書く。未確認の特徴は未確認と書く。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "evidence_register"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "evidence_register"
+   ],
+   "output_type": "competitive_comparison",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   }
+  },
+  {
+   "id": "product",
+   "kind": "work",
+   "role": "P04",
+   "output": "product_facts",
+   "contract": "product_fact_sheet",
+   "reviewer": "V05",
+   "purpose": "製品で確認できる能力と、価値が生じる操作と運用を整理する",
+   "instructions": "現在の機能と開発予定を分け、価値が生じるために人が行う操作と運用の条件を書く。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "evidence_register"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "evidence_register"
+   ],
+   "output_type": "product_fact_sheet",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   }
+  },
+  {
+   "id": "info_gate",
+   "kind": "decide",
+   "role": "G03",
+   "outcomes": [
+    "sufficient",
+    "obtainable",
+    "unobtainable"
+   ],
+   "outcome_notes": {
+    "sufficient": "候補を作る判断に必要な情報がそろっている",
+    "obtainable": "判断に必要な情報が不足しているが、渡された資料や公開情報から取得できる",
+    "unobtainable": "判断に必要な情報が不足し、ここでは取得できない。仮説の範囲に限定して進める"
+   },
+   "purpose": "候補を作る判断に必要な情報がそろっているかを判断する",
+   "instructions": "顧客分析、代替比較、製品の整理を読み、候補の比較に必要な情報の有無を判断する。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "budget": {
+    "calls": 2
+   },
+   "retry": {
+    "same_failure": 1
+   },
+   "max_iterations": 3,
+   "priority": 70
+  },
+  {
+   "id": "research",
+   "kind": "work",
+   "role": "G03",
+   "output": "research_note",
+   "contract": "research_note",
+   "reviewer": "V01",
+   "purpose": "不足資料を追加で調査する",
+   "instructions": "判断ノードが示した不足について、渡された資料を確かめ直す。取得できなければ取得できないと書く。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence"
+   ],
+   "output_type": "research_note",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "activation": "on_edge",
+   "review_mode": "machine",
+   "priority": 70
+  },
+  {
+   "id": "cand_a",
+   "kind": "work",
+   "role": "B08",
+   "output": "candidate_a",
+   "contract": "brand_strategy",
+   "reviewer": "V06",
+   "purpose": "ブランドの仮説の候補を独立して作る",
+   "instructions": "顧客分析、代替比較、製品の整理に基づき、対象と提供価値を定めた候補を一つ作る。他の担当の案は見せていない。提供価値は機能の働きと人の行動を介して説明する。優先する対象は、課題の切実さ、提供できる価値、根拠の強さを理由に選ぶ。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "customer_analysis",
+    "alternatives",
+    "product_facts"
+   ],
+   "output_type": "brand_strategy",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "isolation_group": "strategy",
+   "review_mode": "machine",
+   "priority": 60
+  },
+  {
+   "id": "cand_b",
+   "kind": "work",
+   "role": "B08",
+   "output": "candidate_b",
+   "contract": "brand_strategy",
+   "reviewer": "V06",
+   "purpose": "別の対象または価値に基づく候補を独立して作る",
+   "instructions": "顧客分析、代替比較、製品の整理に基づき、候補を一つ作る。他の担当の案は見せていない。資料から読み取れる二番目に有力な対象または価値を優先し、言葉だけを変えた案にしない。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "customer_analysis",
+    "alternatives",
+    "product_facts"
+   ],
+   "output_type": "brand_strategy",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "isolation_group": "strategy",
+   "review_mode": "machine",
+   "priority": 60
+  },
+  {
+   "id": "debate_strategy",
+   "kind": "debate",
+   "title": "現在の方法から変える理由は十分か、その約束を提供できるか",
+   "why": "変更する理由が弱いまま制作へ進むと、説明を理解されても選ばれない。提供できない約束は、利用開始後の期待との不一致になる",
+   "proposers": [
+    {
+     "artifact": "candidate_a",
+     "role": "B08"
+    },
+    {
+     "artifact": "candidate_b",
+     "role": "B08"
+    }
+   ],
+   "critics": [
+    "V03",
+    "P04"
+   ],
+   "max_rounds": 3,
+   "budget": {
+    "calls": 18
+   },
+   "retry": {
+    "same_failure": 1
+   },
+   "inputs": [
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "priority": 60
+  },
+  {
+   "id": "select",
+   "kind": "work",
+   "role": "G01",
+   "output": "adopted_strategy",
+   "contract": "adopted_strategy",
+   "reviewer": "V06",
+   "purpose": "暫定案を選び、選定理由と残る異論を記録する",
+   "instructions": "相互批評の結果を読み、暫定案を選ぶ。選定理由、採用しなかった案の長所と棄却理由、少数意見、推奨を変更すべき条件を書く。調査の結果と、提供可能性や事業上の優先順位による意思決定を区別する。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "candidate_a",
+     "state": "latest"
+    },
+    {
+     "kind": "artifact",
+     "id": "candidate_b",
+     "state": "latest"
+    },
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "candidate_a",
+    "candidate_b",
+    "customer_analysis",
+    "alternatives",
+    "product_facts"
+   ],
+   "output_type": "adopted_strategy",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "priority": 55
+  },
+  {
+   "id": "intro_page",
+   "kind": "work",
+   "role": "D02",
+   "output": "intro_page",
+   "contract": "landing_page",
+   "reviewer": "V05",
+   "purpose": "採用された戦略から紹介ページの本文案を作る",
+   "instructions": "採用された戦略の対象・約束・提供条件を保ち、紹介ページの本文を完成した草案として書く。具体的な利用場面、根拠、提供条件、次の行動を含める。実績がなければ実績を書かない。主張には戦略の主張を derived_from で記録する。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "adopted_strategy"
+    },
+    {
+     "kind": "artifact",
+     "id": "product_facts"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "adopted_strategy",
+    "product_facts"
+   ],
+   "output_type": "landing_page",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "deliverable": "紹介ページ",
+   "priority": 50
+  },
+  {
+   "id": "validation_plan",
+   "kind": "work",
+   "role": "V07",
+   "output": "validation_plan",
+   "contract": "validation_plan",
+   "reviewer": "V08",
+   "purpose": "未確認の主張を30日間の確認計画へ変換する",
+   "instructions": "未確認の主張のうち、誤りが判断を変えるものを選び、確認する仮説と観察方法を対応させる。実行はしない。",
+   "inputs": [
+    {
+     "kind": "sources"
+    },
+    {
+     "kind": "evidence"
+    },
+    {
+     "kind": "artifact",
+     "id": "adopted_strategy"
+    },
+    {
+     "kind": "artifact",
+     "id": "customer_analysis"
+    },
+    {
+     "kind": "artifact",
+     "id": "alternatives"
+    }
+   ],
+   "input_type": [
+    "sources",
+    "evidence",
+    "adopted_strategy",
+    "customer_analysis",
+    "alternatives"
+   ],
+   "output_type": "validation_plan",
+   "start_condition": "必須の入力がすべて合格している",
+   "end_condition": "別担当の検査とハーネスの判定で合格している",
+   "budget": {
+    "calls": 6
+   },
+   "retry": {
+    "same_failure": 1,
+    "on_exhausted": "fail"
+   },
+   "deliverable": "検証計画",
+   "priority": 50
+  },
+  {
+   "id": "final_check",
+   "kind": "crosscheck",
+   "role": "V08",
+   "outcomes": [
+    "accepted",
+    "inconsistent"
+   ],
+   "artifacts": [
+    "customer_analysis",
+    "alternatives",
+    "product_facts",
+    "adopted_strategy",
+    "intro_page",
+    "validation_plan"
+   ],
+   "purpose": "資料一式の縦と横の論理を検査する",
+   "budget": {
+    "calls": 3
+   },
+   "retry": {
+    "same_failure": 1
+   },
+   "max_iterations": 2,
+   "priority": 45
+  },
+  {
+   "id": "T_complete",
+   "kind": "terminal",
+   "status": "contract_met",
+   "label": "品質契約充足または仮説案の契約充足"
+  },
+  {
+   "id": "T_hold",
+   "kind": "terminal",
+   "status": "on_hold_missing_info",
+   "label": "資料不足による保留"
+  },
+  {
+   "id": "T_budget",
+   "kind": "terminal",
+   "status": "budget_unmet",
+   "label": "予算上限による未達"
+  },
+  {
+   "id": "T_failed",
+   "kind": "terminal",
+   "status": "execution_failed",
+   "label": "実行失敗"
+  },
+  {
+   "id": "T_abort",
+   "kind": "terminal",
+   "status": "aborted",
+   "label": "中止"
+  }
+ ],
+ "edges": [
+  {
+   "from": "evidence",
+   "to": "customer",
+   "type": "requires"
+  },
+  {
+   "from": "evidence",
+   "to": "alternatives",
+   "type": "requires"
+  },
+  {
+   "from": "evidence",
+   "to": "product",
+   "type": "requires"
+  },
+  {
+   "from": "customer",
+   "to": "info_gate",
+   "type": "requires"
+  },
+  {
+   "from": "alternatives",
+   "to": "info_gate",
+   "type": "requires"
+  },
+  {
+   "from": "product",
+   "to": "info_gate",
+   "type": "requires"
+  },
+  {
+   "from": "info_gate",
+   "to": "research",
+   "type": "on",
+   "when": [
+    "obtainable"
+   ],
+   "max_traversals": 1,
+   "on_limit_outcome": "unobtainable"
+  },
+  {
+   "from": "research",
+   "to": "info_gate",
+   "type": "on",
+   "when": [
+    "accepted"
+   ],
+   "max_traversals": 1,
+   "on_limit_outcome": null
+  },
+  {
+   "from": "info_gate",
+   "to": "cand_a",
+   "type": "requires",
+   "outcomes": [
+    "sufficient",
+    "unobtainable"
+   ]
+  },
+  {
+   "from": "info_gate",
+   "to": "cand_b",
+   "type": "requires",
+   "outcomes": [
+    "sufficient",
+    "unobtainable"
+   ]
+  },
+  {
+   "from": "cand_a",
+   "to": "debate_strategy",
+   "type": "requires"
+  },
+  {
+   "from": "cand_b",
+   "to": "debate_strategy",
+   "type": "requires"
+  },
+  {
+   "from": "debate_strategy",
+   "to": "select",
+   "type": "requires"
+  },
+  {
+   "from": "select",
+   "to": "intro_page",
+   "type": "requires"
+  },
+  {
+   "from": "select",
+   "to": "validation_plan",
+   "type": "requires"
+  },
+  {
+   "from": "intro_page",
+   "to": "final_check",
+   "type": "requires"
+  },
+  {
+   "from": "validation_plan",
+   "to": "final_check",
+   "type": "requires"
+  },
+  {
+   "from": "final_check",
+   "to": "T_complete",
+   "type": "on",
+   "when": [
+    "accepted"
+   ]
+  },
+  {
+   "from": "final_check",
+   "to": "final_check",
+   "type": "on",
+   "when": [
+    "inconsistent"
+   ],
+   "max_traversals": 2,
+   "on_limit_terminal": "budget_unmet"
+  }
+ ],
+ "exits": [
+  {
+   "when": "全体の呼び出し上限に到達、または修正・循環の上限に到達",
+   "to": "T_budget"
+  },
+  {
+   "when": "必須の成果物が保留で、外部の情報なしには進めない",
+   "to": "T_hold"
+  },
+  {
+   "when": "エージェントの失敗が再試行後も解消しない",
+   "to": "T_failed"
+  },
+  {
+   "when": "依頼者の中止指示",
+   "to": "T_abort"
+  }
+ ]
+}

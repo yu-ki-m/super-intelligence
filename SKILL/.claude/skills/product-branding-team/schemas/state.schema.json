@@ -1,0 +1,75 @@
+{
+  "title": "実行全体の状態。保存先は state.db の meta、attempts、instances、events",
+  "type": "object",
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": ["status", "brief", "graph", "budget", "settings", "adapter", "simulated", "capability"],
+      "properties": {
+        "status": {"type": "string", "enum": ["created", "running", "paused", "contract_met", "hypothesis_contract_met", "on_hold_missing_info", "budget_unmet", "execution_failed", "aborted"]},
+        "status_reason": {"type": "string"},
+        "brief": {"type": "object"},
+        "graph": {"type": "object"},
+        "graph_id": {"type": "string"},
+        "budget": {"type": "object"},
+        "settings": {"type": "object"},
+        "adapter": {"type": "string"},
+        "simulated": {"type": "boolean"},
+        "design_only": {"type": "boolean"},
+        "capability": {"type": "object"},
+        "roles_defined": {"type": "integer"},
+        "roles_not_activated": {"type": "object"},
+        "peak_concurrency": {"type": "integer"},
+        "traversals": {"type": "object"}
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "required": ["attempt_id", "task_id", "instance_id", "lease_token", "status"],
+      "properties": {
+        "attempt_id": {"type": "string"},
+        "task_id": {"type": "string"},
+        "seq": {"type": "integer"},
+        "instance_id": {"type": "string"},
+        "lease_token": {"type": "string", "description": "この札が一致しない結果は現行版へ反映しない"},
+        "lease_expires": {"type": "number"},
+        "input_manifest": {"type": "string"},
+        "status": {"type": "string", "enum": ["running", "succeeded", "invalid", "failed", "timed_out", "interrupted", "env_limit"]},
+        "error_class": {"type": ["string", "null"]},
+        "session_id": {"type": ["string", "null"]},
+        "raw_path": {"type": ["string", "null"]},
+        "tokens_in": {"type": ["integer", "null"]},
+        "tokens_out": {"type": ["integer", "null"]},
+        "cost_delta": {"type": ["number", "null"]},
+        "cost_basis": {"type": ["string", "null"]},
+        "simulated": {"type": ["integer", "null"]}
+      }
+    },
+    "instance": {
+      "type": "object",
+      "required": ["instance_id", "role", "adapter", "state"],
+      "properties": {
+        "instance_id": {"type": "string"},
+        "role": {"type": "string"},
+        "session_id": {"type": ["string", "null"]},
+        "adapter": {"type": "string"},
+        "state": {"type": "string", "enum": ["idle", "running", "lost"]},
+        "created_for": {"type": "string"},
+        "continuation_of": {"type": ["string", "null"], "description": "新しいインスタンスで継続した場合の前のインスタンス"},
+        "calls": {"type": "integer"}
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["seq", "ts", "type"],
+      "properties": {
+        "seq": {"type": "integer"},
+        "ts": {"type": "number"},
+        "type": {"type": "string"},
+        "task_id": {"type": ["string", "null"]},
+        "attempt_id": {"type": ["string", "null"]},
+        "data": {"type": "object"}
+      }
+    }
+  }
+}

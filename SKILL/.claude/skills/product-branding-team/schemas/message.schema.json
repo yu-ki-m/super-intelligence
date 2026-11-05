@@ -1,0 +1,57 @@
+{
+  "title": "発言と論点。保存先は state.db の messages、issues。エージェントの出力形式は output_critique、output_response、output_reeval",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "object",
+      "required": ["message_id", "issue_id", "round", "from_role", "from_instance", "to_role", "kind", "body", "delivery", "attempt_id"],
+      "properties": {
+        "message_id": {"type": "string"},
+        "issue_id": {"type": "string"},
+        "round": {"type": "integer"},
+        "from_role": {"type": "string"},
+        "from_instance": {"type": "string"},
+        "to_role": {"type": "string"},
+        "kind": {"type": "string", "enum": ["critique", "support", "question", "propose", "respond", "reevaluate"]},
+        "target_artifact": {"type": ["string", "null"]},
+        "target_version": {"type": ["integer", "null"]},
+        "target_claim": {"type": ["string", "null"]},
+        "quote": {"type": ["string", "null"]},
+        "body": {"type": "string"},
+        "reason": {"type": ["string", "null"]},
+        "evidence": {"type": "string"},
+        "conditions": {"type": ["string", "null"]},
+        "counterexample": {"type": ["string", "null"]},
+        "requested_fix": {"type": ["string", "null"]},
+        "keep_strength": {"type": ["string", "null"]},
+        "flips_if": {"type": ["string", "null"]},
+        "in_reply_to": {"type": ["string", "null"]},
+        "about_critique": {"type": ["string", "null"]},
+        "severity": {"type": ["string", "null"], "enum": ["major", "minor", null]},
+        "dispute_type": {"type": ["string", "null"], "enum": ["fact", "inference", "criteria", "info_missing", null]},
+        "disposition": {"type": "string", "description": "批判：open、answered、resolved、partially_resolved、unresolved、withdrawn、external。応答：accept_revise、limit_condition、counter、withdraw、hold_insufficient"},
+        "new_version": {"type": ["integer", "null"]},
+        "delivery": {"type": "string", "enum": ["queued", "delivered"]},
+        "delivered_attempt": {"type": ["string", "null"]},
+        "attempt_id": {"type": "string", "description": "実行の証跡。この試行の raw/ に実行基盤の応答がある"},
+        "session_id": {"type": ["string", "null"]},
+        "simulated": {"type": "integer", "enum": [0, 1]}
+      }
+    },
+    "issue": {
+      "type": "object",
+      "required": ["issue_id", "title", "state", "round", "max_rounds"],
+      "properties": {
+        "issue_id": {"type": "string"},
+        "node_id": {"type": "string"},
+        "title": {"type": "string"},
+        "why": {"type": "string"},
+        "state": {"type": "string", "enum": ["open", "closed"]},
+        "round": {"type": "integer"},
+        "max_rounds": {"type": "integer"},
+        "outcome": {"type": ["string", "null"], "enum": ["resolved", "unresolved", "unanswered", null]},
+        "note": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

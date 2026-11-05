@@ -1,0 +1,10 @@
+{
+  "title": "同じ重大欠陥が続いたときの原因診断",
+  "type": "object",
+  "required": ["cause", "route", "instructions"],
+  "properties": {
+    "cause": {"type": "string"},
+    "route": {"type": "string", "enum": ["revise", "research", "strategy", "hold"]},
+    "instructions": {"type": "string", "description": "別の担当へ渡す、前回と異なる具体的な修正の方法"}
+  }
+}

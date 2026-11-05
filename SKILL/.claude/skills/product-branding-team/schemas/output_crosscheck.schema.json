@@ -1,0 +1,62 @@
+{
+  "title": "資料横断の内容検査の出力",
+  "type": "object",
+  "required": ["verdict", "vertical", "horizontal", "defects"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["consistent", "inconsistent"]},
+    "vertical": {
+      "type": "array",
+      "description": "各資料を原資料と比較した結果",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "result", "note"],
+        "properties": {
+          "artifact_id": {"type": "string"}, "result": {"type": "string", "enum": ["ok", "problem"]}, "note": {"type": "string"}
+        }
+      }
+    },
+    "horizontal": {
+      "type": "array",
+      "description": "資料同士を比較した結果",
+      "items": {
+        "type": "object",
+        "required": ["pair", "result", "note"],
+        "properties": {
+          "pair": {"type": "string"},
+          "result": {"type": "string", "enum": ["ok", "problem", "condition_difference"]},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "flag_rulings": {
+      "type": "array",
+      "description": "機械検査からの確認依頼それぞれへの判断",
+      "items": {
+        "type": "object",
+        "required": ["flag_id", "ruling", "reason"],
+        "properties": {
+          "flag_id": {"type": "string"},
+          "ruling": {"type": "string", "enum": ["confirmed", "dismissed"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "location", "reason", "fix_condition", "fix_target"],
+        "properties": {
+          "severity": {"type": "string", "enum": ["major", "minor"]},
+          "category": {"type": "string"},
+          "check_type": {"type": "string"},
+          "location": {"type": "string"},
+          "quote": {"type": "string"},
+          "reason": {"type": "string"},
+          "fix_condition": {"type": "string"},
+          "fix_target": {"type": "string", "description": "修正する成果物のID"}
+        }
+      }
+    }
+  }
+}

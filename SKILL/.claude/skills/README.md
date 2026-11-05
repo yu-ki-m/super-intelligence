@@ -1,6 +1,6 @@
 # スキル一覧
 
-このディレクトリに収録している22種類のスキルについて、用途・主な成果物・依頼例をまとめています。詳細な実行手順、入力条件、検証方法は、各リンク先の `SKILL.md` を参照してください。
+このディレクトリに収録している25種類のスキルについて、用途と主な成果物をまとめています。詳細な実行手順、入力条件、検証方法は、各リンク先の `SKILL.md` を参照してください。
 
 ## 一覧
 
@@ -14,6 +14,7 @@
 | 業務・システム設計 | [business-model-to-system-spec](business-model-to-system-spec/SKILL.md) | 現状業務を分析し、将来の業務モデルを比較して実装可能なシステム仕様を作る | AS-IS分析、TO-BE比較、システム仕様、根拠・追跡用台帳 |
 | 業務モデル設計 | [system-driven-business-model](system-driven-business-model/SKILL.md) | 既存システムの実装能力を起点に、KPI・責任分界・業務プロセスを設計する | 能力マップ、業務モデル、KPI、運用・検証資料 |
 | 市場・成長戦略 | [category-creation-growth-marketing](category-creation-growth-marketing/SKILL.md) | 未開拓領域の探索から市場定義、製品の普及、成長、競争への備えまで検討する | 戦略分析のMarkdown、図解付きHTMLレポート |
+| ブランド戦略 | [product-branding-team](product-branding-team/SKILL.md) | プロダクト・サービスのブランドの仮説（誰のどの状況で選ばれたいか、提供価値と根拠、伝え方、利用体験、30日間の検証計画）を、複数のAIサブエージェントが調査・提案・相互批評・制作・検査・修正して作る。ハーネス（`pbteam.py`）がサブエージェントを実際に起動し、止まっても続きから再開できる。B2B・B2C・社内向けに対応する | 要点の1ページ、ブランド提案書、紹介ページ・営業資料・FAQなどの草案、討論・検査・根拠の記録のMarkdown |
 | SaaS事業レビュー | [saas-business-owner-accountability-review](saas-business-owner-accountability-review/.claude/skills/saas-business-owner-accountability-review/SKILL.md) | 事業計画・KPI・意思決定に残る説明不足や矛盾を経営視点で検出する | 重要論点、確認質問、必要な証拠、判断事項 |
 | AWS構成設計 | [aws-architecture-pattern-svg](aws-architecture-pattern-svg/SKILL.md) | AWSサービス間の経路や境界を明示した構成パターンを図解する | 編集可能なSVG構成図、技術解説 |
 | 画面モックアップ | [capture-screen-mockup](capture-screen-mockup/SKILL.md) | 操作中の既存Web画面を単一HTMLへ保存し、UI変更や注釈を加えた画面案を作る | 原本・画面案・注釈付きのHTML／PNG、変更記録JSON |
@@ -29,3 +30,4 @@
 | 汎用HTML出力 | [universal-html-output](universal-html-output/SKILL.md) | 文章・コード・差分・データなどを目的に合うHTMLにまとめる | HTML成果物、生成用JSON |
 | スキル設計・可視化 | [flowts-skill-designer](flowts-skill-designer/SKILL.md) | スキル（SKILL.md）の手順をFlowTSで書き、分岐・繰り返し・担当を図にして、スキルの可視化・作成・改善と手順の抜けの検出を行う | `.flow.ts`、フロー図のHTML、検査結果（Findings） |
 | コーチング | [trust-coach](trust-coach/SKILL.md) | 難しい会話や報告、失敗後の信頼回復を、状況把握から壁打ち・ロールプレイ・振り返りで練習する | 状況整理、推奨方針と行動計画、言い方の例、反応別の次の一手 |
+| 音声での報告 | [windows-speak](windows-speak/SKILL.md) | Windows標準の音声合成で、タスクの完了・失敗、説明、ユーザーへの質問を声でも伝える。Claudeが画面の文章とは別に、耳で聞いて分かる読み上げ用の文章を作って話す。指定した文章の読み上げにも使える。CLAUDE.mdへ追記する指示と、話し忘れを差し戻すStop hookの設定方法は同じフォルダーの `README.md` にある | 音声による読み上げ（ファイルは残さない） |

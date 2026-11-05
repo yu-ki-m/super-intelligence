@@ -1,0 +1,27 @@
+{
+  "title": "批判を受けた提案者の応答",
+  "type": "object",
+  "required": ["responses"],
+  "properties": {
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["in_reply_to", "action", "body", "reason"],
+        "properties": {
+          "in_reply_to": {"type": "string"},
+          "action": {"type": "string", "enum": ["accept_revise", "limit_condition", "counter", "withdraw", "hold_insufficient"]},
+          "body": {"type": "string"},
+          "reason": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}},
+          "flips_if": {"type": "string"}
+        }
+      }
+    },
+    "revised_document": {"type": "string", "description": "案を変更するときの新しい本文全体。変更しないときは空"},
+    "revised_structured": {"type": "object"},
+    "revised_claims": {"type": "array", "items": {"type": "object"}},
+    "new_evidence": {"type": "array", "items": {"type": "object"}},
+    "kept": {"type": "string", "description": "批判を受けても維持した長所とその理由"}
+  }
+}

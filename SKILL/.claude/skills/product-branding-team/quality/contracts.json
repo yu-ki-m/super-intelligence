@@ -1,0 +1,254 @@
+{
+  "criteria_version": "1.1",
+  "note": "品質契約は作業の開始時にハッシュ付きで固定される。この版を変更しても、開始済みの作業の基準は変わらない。",
+  "contracts": {
+    "evidence_register": {
+      "id": "evidence_register", "version": "1.0", "review": "content",
+      "purpose": "渡された資料から判断に使える事実・顧客の発言・未確認事項を取り出し、後続の担当が同じ根拠を参照できるようにする",
+      "readers": "顧客・市場・製品・戦略の担当", "required_decisions": ["どの主張に使える根拠があるか", "何が未確認か"],
+      "required_evidence": "資料の文言をそのまま引用した根拠", "provision_conditions": "資料の確認日と適用範囲を付ける", "out_of_scope": "戦略の判断",
+      "pass_criteria": [
+        {"id": "ER-1", "text": "各根拠が資料の特定の箇所へたどれる", "must": true},
+        {"id": "ER-2", "text": "確認された事実、顧客の発言、一般的な考え方、推論を区別している", "must": true},
+        {"id": "ER-3", "text": "判断に影響する未確認事項を、資料から分からないと明示している", "must": true}
+      ],
+      "reject_examples": ["資料にない数値を要約として書く", "顧客の発言を客観的な事実として扱う"],
+      "inspection_method": "引用の実在は機械で確かめ、適用範囲と区別は別担当が確かめる",
+      "downstream_use": "全担当が根拠IDとして参照する", "machine_checks": [],
+      "required_headings": ["未確認事項"], "delivery": {"allows_hypothesis": true}
+    },
+    "customer_analysis": {
+      "id": "customer_analysis", "version": "1.0", "review": "content",
+      "purpose": "誰のどの困りごとを扱うかを具体的にし、製品の特徴がその人にとって価値になるかを判断できるようにする",
+      "readers": "ブランド戦略の担当", "required_decisions": ["対象の優先順位", "現在の対処", "利用者・購入決定者・導入関係者の判断の違い"],
+      "required_evidence": "顧客の発言または資料の事実。なければ未確認と明示する", "provision_conditions": "一般化できる範囲を書く", "out_of_scope": "訴求表現の作成",
+      "pass_criteria": [
+        {"id": "CA-1", "text": "誰のどの業務・状況を対象とするかが具体的で、年齢や企業規模だけで終わっていない", "must": true},
+        {"id": "CA-2", "text": "現在どう対処しているか、何が負担や不安かが、情報源つきで書かれている", "must": true},
+        {"id": "CA-3", "text": "利用者、購入決定者、導入関係者の判断の違いが示されている。同一人物ならその旨が書かれている", "must": true},
+        {"id": "CA-4", "text": "未確認の部分と、一般化できない範囲が明示されている", "must": true},
+        {"id": "CA-5", "text": "これを読んで対象の優先順位を判断できる", "must": true}
+      ],
+      "reject_examples": ["「中小企業は効率化したい」とだけ書く", "大企業の担当者への調査だけから、小規模事業者にも同じ課題があると断定する"],
+      "inspection_method": "受け取る戦略担当の視点で、対象を選べるかを判定する", "downstream_use": "候補の対象と価値の根拠にする",
+      "machine_checks": [], "required_structured": {"situations": "list", "decision_roles": "list"},
+      "structured_example": {"situations": [{"who": "架空：小規模な受付窓口の担当者", "trigger": "担当者が休みの日に問い合わせの続きが来る", "current_handling": "共有表とメールで引き継ぐ", "burden": "経緯を確認できない", "source": "E1"}], "decision_roles": [{"role": "利用者", "decides": "日常の確認方法", "criteria": "入力の手間"}, {"role": "購入決定者", "decides": "導入の可否", "criteria": "費用と定着の見込み"}]},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "competitive_comparison": {
+      "id": "competitive_comparison", "version": "1.0", "review": "content",
+      "purpose": "現在の対処を含む選択肢を比べ、どの条件で自社製品を選ぶ理由が成立するかを整理する",
+      "readers": "ブランド戦略の担当", "required_decisions": ["選ぶ理由の有無", "変更負担", "自社が不利な条件"],
+      "required_evidence": "情報源と確認時点。不明なら未確認と書く", "provision_conditions": "同じ利用状況・条件で比較する", "out_of_scope": "価格の決定",
+      "pass_criteria": [
+        {"id": "CC-1", "text": "競合製品だけでなく、手作業・内製・外注・現状維持を比較に含めている", "must": true},
+        {"id": "CC-2", "text": "同じ利用状況・条件で比較し、情報源と時点を示している", "must": true},
+        {"id": "CC-3", "text": "変更負担と、自社が不利な条件を含めている", "must": true},
+        {"id": "CC-4", "text": "利用の前提となる条件と、候補の中から選ぶ理由を分けている", "must": true},
+        {"id": "CC-5", "text": "優位性がない・不明な場合に、その状態を保持している", "must": true}
+      ],
+      "reject_examples": ["機能名を並べて「自社は使いやすい」と結論づける", "同業製品しか挙げない"],
+      "inspection_method": "現状維持を選ぶ理由の立場から批判して判定する", "downstream_use": "選択理由と差別化の根拠にする",
+      "machine_checks": ["alternatives_include_status_quo", "stale_competitor_info"], "max_evidence_age_days": 365,
+      "required_structured": {"alternatives": "list"},
+      "structured_example": {"alternatives": [{"name": "架空：共有表", "type": "manual", "why_chosen": "追加費用がない", "shortfall": "更新が止まると経緯が分からない", "possible_difference": "担当者不在時の確認", "when_matters": "複数人で受付する場合", "switching_burden": "入力の習慣を変える", "evidence": ["E1"], "unknowns": "変更を決める人の判断基準"}]},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "product_fact_sheet": {
+      "id": "product_fact_sheet", "version": "1.0", "review": "content",
+      "purpose": "現在確認できる能力と制約を、開発予定と分けて示し、約束できる範囲を判断できるようにする",
+      "readers": "ブランド戦略と制作の担当", "required_decisions": ["現在提供できること", "提供条件", "開発予定との区別"],
+      "required_evidence": "製品資料の引用。なければ未確認と書く", "provision_conditions": "価値が生じるために必要な操作と運用を書く", "out_of_scope": "機能の追加提案",
+      "pass_criteria": [
+        {"id": "PF-1", "text": "現在の機能と開発予定を明確に分けている", "must": true},
+        {"id": "PF-2", "text": "価値が生じるために人が行う操作と運用の条件を示している", "must": true},
+        {"id": "PF-3", "text": "制約、できないこと、未確認の品質・安全性を示している", "must": true}
+      ],
+      "reject_examples": ["実装予定を実装済みとして書く", "機能の存在から成果を断定する"],
+      "inspection_method": "製品資料と照合して判定する", "downstream_use": "約束と提供条件の根拠にする",
+      "machine_checks": ["planned_capability_status"], "required_structured": {"capabilities": "list"},
+      "structured_example": {"capabilities": [{"name": "架空：対応履歴の一覧", "status": "current", "conditions": "担当者が履歴を入力していること", "evidence": ["E2"]}]},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "research_note": {
+      "id": "research_note", "version": "1.0", "review": "machine_only",
+      "purpose": "不足事項について取得できた情報と取得できなかった事実を記録する",
+      "readers": "不足を指摘された担当", "required_decisions": ["不足が解消したか"], "required_evidence": "資料の引用または確認日のある公開情報",
+      "provision_conditions": "取得できなければ未確認のまま残す", "out_of_scope": "判断の変更",
+      "pass_criteria": [{"id": "RN-1", "text": "不足事項ごとに、取得できた根拠か、取得できなかったことを示している", "must": true}],
+      "reject_examples": ["推測で埋める"], "inspection_method": "機械検査のみ。主張は利用先の検査で確かめる", "downstream_use": "修正の根拠にする",
+      "machine_checks": [], "delivery": {"allows_hypothesis": true}
+    },
+    "brand_strategy": {
+      "id": "brand_strategy", "version": "1.0", "review": "content",
+      "purpose": "調査結果に基づくブランドの仮説の候補を作り、誰に何を約束でき、どのように認識されたいかを比較できるようにする",
+      "readers": "相互批評の参加者と統括", "required_decisions": ["優先対象", "提供価値", "選ぶ理由", "約束しないこと"],
+      "required_evidence": "顧客分析・比較・製品の主張への参照", "provision_conditions": "価値を実現する条件を書く", "out_of_scope": "事業計画全体、詳細な製品要件、デザイン制作",
+      "pass_criteria": [
+        {"id": "BS-1", "text": "対象・課題・代替・価値・実現条件・根拠がつながっている", "must": true},
+        {"id": "BS-2", "text": "機能、価値、認識の仮説を区別し、機能から成果へ飛躍していない", "must": true},
+        {"id": "BS-3", "text": "判断を覆す条件が書かれている", "must": true},
+        {"id": "BS-4", "text": "顧客名や製品名を置き換えても成立する一般論ではない", "must": true}
+      ],
+      "reject_examples": ["顧客名や製品名を置換しても成立する一般論", "言葉だけを変えた複数の候補"],
+      "inspection_method": "相互批評で検討し、採用案を別担当が検査する", "downstream_use": "選定と制作の前提にする",
+      "machine_checks": ["candidate_has_rejection_basis", "no_unbacked_absolutes"],
+      "required_headings": ["対象", "代替", "提供価値", "選ぶ理由", "約束しないこと"],
+      "required_structured": {"target": "text", "value": "text", "flips_if": "text"},
+      "structured_example": {"target": "架空：受付を複数人で分担する小規模窓口の責任者", "value": "架空：担当者が不在でも経緯を確認できる", "flips_if": "架空：担当者不在の場面が実際には少ないと分かれば案を変える", "audiences": []},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "adopted_strategy": {
+      "id": "adopted_strategy", "version": "1.0", "review": "content",
+      "purpose": "相互批評の結果から暫定案と選定理由をまとめ、残る異論と判断を変える条件を明らかにする",
+      "readers": "制作・検証の担当と依頼者", "required_decisions": ["採用する案", "選定理由", "採用しなかった案の長所と棄却理由"],
+      "required_evidence": "候補と討論の発言への参照", "provision_conditions": "仮説の確認状態を保つ", "out_of_scope": "全員一致の形成",
+      "pass_criteria": [
+        {"id": "AS-1", "text": "対象・課題・代替・価値・実現条件・根拠がつながり、選定理由が示されている", "must": true},
+        {"id": "AS-2", "text": "採用しなかった案の長所、棄却理由、推奨を変更すべき条件が書かれている", "must": true},
+        {"id": "AS-3", "text": "少数意見と未解決の異論を消さず、確定扱いにしていない", "must": true},
+        {"id": "AS-4", "text": "調査の結果と、提供可能性や事業上の優先順位による意思決定を区別している", "must": true}
+      ],
+      "reject_examples": ["異論を消して全員が合意したように書く", "意思決定を調査で実証された事実として書く"],
+      "inspection_method": "比較評価の担当が共通基準で判定する", "downstream_use": "制作物の対象と約束の基準にする",
+      "machine_checks": ["candidate_has_rejection_basis", "no_unbacked_absolutes"],
+      "required_headings": ["採用する案", "選定理由", "採用しなかった案", "残る異論"],
+      "required_structured": {"target": "text", "value": "text", "flips_if": "text"},
+      "structured_example": {"target": "架空：受付を複数人で分担する小規模窓口の責任者", "value": "架空：担当者が不在でも経緯を確認できる", "flips_if": "架空：担当者不在の場面が実際には少ないと分かれば案を変える", "audiences": ["架空：導入を審査する情報システム担当"], "carried_forward": []},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "short_intro": {
+      "id": "short_intro", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "誰向けの何であるかを伝える1文と、顧客の状況・価値・方法・根拠を含む30秒の説明を作る",
+      "readers": "顧客と営業担当", "required_decisions": ["対象", "カテゴリー", "主要な価値"], "required_evidence": "採用された戦略の主張への参照", "provision_conditions": "価値の成立条件を落とさない", "out_of_scope": "媒体別の展開",
+      "pass_criteria": [
+        {"id": "SI-1", "text": "1文で誰向けの何かが分かる", "must": true},
+        {"id": "SI-2", "text": "30秒の説明に顧客の状況、価値、方法、根拠が含まれる", "must": true},
+        {"id": "SI-3", "text": "未確認の比較優位を対外説明に転記していない", "must": true}
+      ],
+      "reject_examples": ["独自名称だけで何の製品か分からない", "「革新的なソリューション」のような抽象語だけの説明"],
+      "inspection_method": "説明の解釈の担当が読み取れる内容を判定する", "downstream_use": "各媒体の基準にする",
+      "machine_checks": ["no_unbacked_absolutes", "planned_not_current"], "required_headings": ["1文", "30秒"], "delivery": {"allows_hypothesis": true}
+    },
+    "landing_page": {
+      "id": "landing_page", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "紹介ページの本文案を、作り手の補足なしでレビューできる状態にする",
+      "readers": "見込み顧客と検査担当", "required_decisions": ["誰に何を伝えるか", "提供条件", "次の行動"], "required_evidence": "採用された戦略と製品の主張への参照", "provision_conditions": "提供条件を本文に書く", "out_of_scope": "デザイン制作",
+      "pass_criteria": [
+        {"id": "LP-1", "text": "依頼された範囲の本文が書かれ、見出しだけの節がない", "must": true},
+        {"id": "LP-2", "text": "具体的な利用場面と、人が何を確認・判断するかが書かれている", "must": true},
+        {"id": "LP-3", "text": "根拠と提供条件が本文にあり、未確認の主張を確定表現にしていない", "must": true},
+        {"id": "LP-4", "text": "現在の方法から変える理由と、次の行動が書かれている", "must": true}
+      ],
+      "reject_examples": ["「課題」「解決策」「導入事例」という見出しだけ", "「設定不要」と書くが FAQ では管理者設定が必要", "実績がないのに導入事例を書く"],
+      "inspection_method": "体験との整合の担当が、実際の機能・運用条件と照合して判定する", "downstream_use": "媒体間の整合の検査に使う",
+      "machine_checks": ["no_unbacked_absolutes", "planned_not_current"], "delivery": {"allows_hypothesis": true}
+    },
+    "sales_script": {
+      "id": "sales_script", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "営業の説明の順序と原稿を、そのまま話せる状態にする", "readers": "営業担当と購入決定者", "required_decisions": ["説明の順序", "購入決定者の判断材料"],
+      "required_evidence": "採用された戦略への参照", "provision_conditions": "導入の負担と条件を隠さない", "out_of_scope": "価格交渉",
+      "pass_criteria": [
+        {"id": "SS-1", "text": "説明の順序と原稿があり、話す内容が特定できる", "must": true},
+        {"id": "SS-2", "text": "戦略の対象・約束・提供範囲が保たれている", "must": true},
+        {"id": "SS-3", "text": "購入決定者の判断基準と変更負担に答えている", "must": true}
+      ],
+      "reject_examples": ["戦略では小規模部門向けなのに、全社統制を主な価値として訴求する", "戦略の「需要がある可能性」を「多数の顧客が求めている」に変える"],
+      "inspection_method": "戦略と照合して判定する", "downstream_use": "媒体間の整合の検査に使う", "machine_checks": ["no_unbacked_absolutes", "planned_not_current"], "delivery": {"allows_hypothesis": true}
+    },
+    "demo_scenario": {
+      "id": "demo_scenario", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "説明した価値を操作と結果で示すデモを、実演担当へ渡せる状態にする", "readers": "実演担当", "required_decisions": ["利用場面", "観察する変化"],
+      "required_evidence": "製品の機能の確認記録", "provision_conditions": "必要なデータと実現条件を書く", "out_of_scope": "デモ環境の構築",
+      "pass_criteria": [
+        {"id": "DM-1", "text": "初期状態、操作、表示内容、説明原稿、観察する変化がある", "must": true},
+        {"id": "DM-2", "text": "必要なデータと実現条件があり、実演担当へ渡せる", "must": true},
+        {"id": "DM-3", "text": "訴求する価値を、操作と結果が実際に示している", "must": true}
+      ],
+      "reject_examples": ["「機能を説明し価値を訴求する」と指示するだけ", "引き継ぎ支援を訴求するのに一覧表示だけを実演する"],
+      "inspection_method": "機能・運用条件と照合して判定する", "downstream_use": "説明との整合の検査に使う",
+      "machine_checks": ["planned_not_current"], "required_headings": ["初期状態", "操作", "観察"], "delivery": {"allows_hypothesis": true}
+    },
+    "case_study": {
+      "id": "case_study", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "実績に基づく事例の構成案を作る", "readers": "見込み顧客", "required_decisions": ["実績の範囲"], "required_evidence": "実際の顧客の発言または行動の記録", "provision_conditions": "掲載の許諾を確認する", "out_of_scope": "実績の創作",
+      "pass_criteria": [
+        {"id": "CS-1", "text": "実績の出所が実際の顧客の発言または行動である", "must": true},
+        {"id": "CS-2", "text": "不足資料が明示されている", "must": true}
+      ],
+      "reject_examples": ["実績がないのに事例記事を書く"], "inspection_method": "出典確認の担当が照合する", "downstream_use": "紹介ページの根拠にする",
+      "machine_checks": ["requires_real_evidence", "no_unbacked_absolutes"], "delivery": {"allows_hypothesis": false, "requires_real_evidence_kinds": ["customer_statement", "customer_behavior"]}
+    },
+    "faq": {
+      "id": "faq", "version": "1.0", "review": "content", "external_facing": true,
+      "purpose": "検討時の疑問に、提供条件を含めて答える", "readers": "見込み顧客と導入関係者", "required_decisions": ["提供条件"], "required_evidence": "製品の主張への参照", "provision_conditions": "できないことを書く", "out_of_scope": "サポート規約",
+      "pass_criteria": [
+        {"id": "FQ-1", "text": "実際の疑問に答え、回答に提供条件が含まれる", "must": true},
+        {"id": "FQ-2", "text": "紹介ページなど他の媒体と提供条件が一致している", "must": true}
+      ],
+      "reject_examples": ["質問だけで回答がない", "できないことを隠す"], "inspection_method": "機能と照合して判定する", "downstream_use": "媒体間の整合の検査に使う",
+      "machine_checks": ["no_unbacked_absolutes", "planned_not_current"], "delivery": {"allows_hypothesis": true}
+    },
+    "visual_direction": {
+      "id": "visual_direction", "version": "1.0", "review": "content", "external_facing": false,
+      "purpose": "名称・図・デザインへの指示案を、狙う認識との関係とともに示す", "readers": "デザイン担当", "required_decisions": ["狙う認識との関係"], "required_evidence": "採用された戦略への参照", "provision_conditions": "見た目だけで価値の問題を解決したと扱わない", "out_of_scope": "デザイン制作そのもの",
+      "pass_criteria": [{"id": "VD-1", "text": "各指示が狙う認識と結びつき、理由が書かれている", "must": true}],
+      "reject_examples": ["好みの色だけを指定する"], "inspection_method": "戦略と照合して判定する", "downstream_use": "デザイン制作へ引き渡す", "machine_checks": [], "delivery": {"allows_hypothesis": true}
+    },
+    "touchpoint_matrix": {
+      "id": "touchpoint_matrix", "version": "1.0", "review": "content", "external_facing": false,
+      "purpose": "接点ごとに伝える約束と必要な体験を対応させ、差分を示す", "readers": "制作と検査の担当", "required_decisions": ["接点ごとの約束", "現状との差分"], "required_evidence": "機能・運用の主張への参照", "provision_conditions": "差分への対応を、説明の修正・約束の修正・体験の改善に分ける", "out_of_scope": "改善の実施",
+      "pass_criteria": [
+        {"id": "TP-1", "text": "接点／顧客が知りたいこと／伝える約束／必要な体験／現状／差分／次の行動が対応している", "must": true},
+        {"id": "TP-2", "text": "製品の改善が必要な項目を、コミュニケーションの課題と分けている", "must": true}
+      ],
+      "reject_examples": ["接点の一覧だけで差分がない"], "inspection_method": "体験との整合の担当が判定する", "downstream_use": "改善課題の引き渡しに使う", "machine_checks": [], "required_structured": {"rows": "list"},
+      "structured_example": {"rows": [{"touchpoint": "架空：初期設定画面", "wants": "すぐ使えるか知りたい", "promise": "設定の手順を示す", "experience": "管理者が担当者を登録する", "current": "手順書のみ", "gap": "所要時間が不明", "next": "製品担当が計測する"}]},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "validation_plan": {
+      "id": "validation_plan", "version": "1.0", "review": "content",
+      "purpose": "未確認の主張のうち判断を変えるものを選び、確認する仮説と観察方法を対応させる", "readers": "判断する人と実施担当", "required_decisions": ["確認する仮説", "対象者", "判断の基準"], "required_evidence": "未確認の主張への参照", "provision_conditions": "30日は最初の確認期間の目安であり、ブランドの確立や売上効果の証明期限ではない", "out_of_scope": "顧客への連絡や公開の実行",
+      "pass_criteria": [
+        {"id": "VP-1", "text": "確認したい仮説、対象条件、質問・提示物、観察結果の解釈、次の判断が対応している", "must": true},
+        {"id": "VP-2", "text": "理解、関心、信頼、行動を分けて確かめる", "must": true},
+        {"id": "VP-3", "text": "担当者、期限、振り返る日、維持・修正・保留の基準がある", "must": true},
+        {"id": "VP-4", "text": "少人数の結果で市場性を証明したと扱わない", "must": true}
+      ],
+      "reject_examples": ["「顧客に聞いて改善する」と書く", "購入理由が未確認なのに閲覧数だけで検証完了とする"],
+      "inspection_method": "未確認事項との対応を判定する", "downstream_use": "依頼者が実施を判断する", "machine_checks": [],
+      "required_structured": {"hypotheses": "list"},
+      "structured_example": {"hypotheses": [{"claim_ref": "adopted_strategy#C1", "learn": "架空：担当者不在の場面があるか", "who": "受付を複数人で分担する窓口", "contact": "既存の問い合わせ者", "show": "説明案", "method": "過去の具体的な行動を聞く", "owner": "企画担当", "due": "2週目", "observe": "本人の言葉での説明", "keep_if": "3件中2件以上で場面がある", "change_if": "場面がない", "review_date": "30日目"}]},
+      "delivery": {"allows_hypothesis": true}
+    },
+    "inspection_report": {
+      "id": "inspection_report", "version": "1.0", "review": "content",
+      "purpose": "特定の観点で成果物を検査し、該当箇所・理由・修正条件を示す", "readers": "作成担当と統括", "required_decisions": ["欠陥の有無と重大度"], "required_evidence": "該当箇所の引用", "provision_conditions": "良い点も具体的に認める", "out_of_scope": "成果物の代筆",
+      "pass_criteria": [
+        {"id": "IR-1", "text": "指摘に該当箇所、理由、修正条件がある", "must": true},
+        {"id": "IR-2", "text": "軽微な改善点と重大な欠陥を分けている", "must": true}
+      ],
+      "reject_examples": ["「全体的に弱い」とだけ書く"], "inspection_method": "指摘を受ける担当が修正できるかを判定する", "downstream_use": "修正と最終統合の入力にする", "machine_checks": [], "delivery": {"allows_hypothesis": true}
+    },
+    "governance_note": {
+      "id": "governance_note", "version": "1.0", "review": "content",
+      "purpose": "統括・進行の判断を、次の担当が使える記録にする", "readers": "全担当と依頼者", "required_decisions": ["何を決めたか", "なぜか"], "required_evidence": "台帳と発言への参照", "provision_conditions": "未実施や未確認を消さない", "out_of_scope": "成果物の内容の代筆",
+      "pass_criteria": [
+        {"id": "GN-1", "text": "決めたこと、その理由、次に使う担当が書かれている", "must": true},
+        {"id": "GN-2", "text": "未実施、未確認、異論を消していない", "must": true}
+      ],
+      "reject_examples": ["「順調」とだけ書く"], "inspection_method": "受け取る担当が利用できるかを判定する", "downstream_use": "進行と報告に使う", "machine_checks": [], "delivery": {"allows_hypothesis": true}
+    },
+    "final_proposal": {
+      "id": "final_proposal", "version": "1.0", "review": "content",
+      "purpose": "成果物、根拠、討論と修正の記録、残る異論、稼働実績を依頼者が判断できる形にまとめる", "readers": "依頼者", "required_decisions": ["推奨", "推奨を変更すべき条件"], "required_evidence": "各成果物の主張への参照", "provision_conditions": "要約でも未確認状態と提供条件を消さない", "out_of_scope": "公開や連絡の実行",
+      "pass_criteria": [
+        {"id": "FP-1", "text": "推奨、残る異論、未確認事項、推奨を変更すべき条件が書かれている", "must": true},
+        {"id": "FP-2", "text": "AIの評価を需要の検証結果として報告していない", "must": true},
+        {"id": "FP-3", "text": "要約で未確認状態や提供条件を消していない", "must": true}
+      ],
+      "reject_examples": ["合意したことを需要の検証とする"], "inspection_method": "全資料と照合して判定する", "downstream_use": "依頼者の判断に使う", "machine_checks": ["no_unbacked_absolutes"],
+      "required_headings": ["推奨", "未確認"], "delivery": {"allows_hypothesis": true}
+    }
+  }
+}

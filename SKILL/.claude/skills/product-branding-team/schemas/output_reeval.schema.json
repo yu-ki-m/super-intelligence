@@ -1,0 +1,25 @@
+{
+  "title": "批判者による再評価",
+  "type": "object",
+  "required": ["judgments"],
+  "properties": {
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["about_critique", "in_reply_to", "judgment", "body", "reason"],
+        "properties": {
+          "about_critique": {"type": "string", "description": "自分の批判の発言ID"},
+          "in_reply_to": {"type": "string", "description": "読んだ応答の発言ID"},
+          "judgment": {"type": "string", "enum": ["resolved", "partially_resolved", "unresolved", "withdrawn"]},
+          "body": {"type": "string"},
+          "reason": {"type": "string"},
+          "new_basis": {"type": "string", "description": "未解消とするとき、応答を読んだうえで新たに示す根拠や理由"},
+          "dispute_type": {"type": "string", "enum": ["fact", "inference", "criteria", "info_missing"]},
+          "keep_strength": {"type": "string"}
+        }
+      }
+    },
+    "new_critiques": {"type": "array", "items": {"type": "object"}}
+  }
+}
