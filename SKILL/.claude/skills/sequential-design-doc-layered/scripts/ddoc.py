@@ -2530,6 +2530,8 @@ def check_nest_src(procs, idx, rep):
     囲むブロックはソースの字下げから決めるので、同じファイルのヘルパーを先に展開した行があっても見失わない。
     根拠が無い行（設計だけの行など）と、別のファイルへ展開した行と展開元のブロックの関係は対象外。
     ブロックの終わりの行（繰返終端・try終端・待機）は、根拠がブロックの中を指すのが正しいので比べない。
+    例外経路の行（E1-01 など）も比べない。例外経路は本体の途中から続く流れを字下げ 0 から書くので、
+    ソースでは with・try の中にある行でも字下げ 0 が正しい。
     比べた行数を INFO で示す。比べられなかった行の字下げは目視する。"""
     for proc in procs:
         pid = proc.get("id")
@@ -2539,6 +2541,8 @@ def check_nest_src(procs, idx, rep):
             seen, seen2 = {}, {}  # (ファイル, 行) → その行を主な根拠にした文書の行／ついでに挙げた最初の行（コミットの行が with の行を挙げるなど）
             for kind, _tr, cs, d in table_rows(t):
                 if kind != "step" or len(cs) < 3 or set(kinds_in(cs[1])) & CLOSERS:
+                    continue
+                if cs[0].text().strip().startswith("E"):
                     continue
                 cites = parse_citations(cs[-1].text())
                 if not cites:
@@ -2962,6 +2966,8 @@ def check_doc(text, src_root=None, coverage=False, refs=False, git_base=None, gi
                 cs = cells(r)
                 if len(cs) >= 2 and re.search(r"\bNG\b", cs[1].text()):
                     rep.err("VERIFY", "", "検証結果が NG のまま残っている（%s）。直してから出力する" % cs[0].text().strip())
+                if len(cs) >= 3 and all(c.tag == "td" for c in cs) and (not cs[1].text().strip() or not cs[2].text().strip()):
+                    rep.warn("VERIFY", "", "検証記録の観点「%s」の結果か確認した内容が空（手順 5 でソースと照合して埋める）" % cs[0].text().strip())
 
     # 根拠の照合
     for proc in procs:

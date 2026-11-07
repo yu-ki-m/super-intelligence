@@ -390,7 +390,7 @@ table.steps td.c, table.steps td.c.gf::before, .gb, table.steps tr.gt > td, tabl
 }
 /* 処理ごとのタブ（build が生成） */
 body.tabs { --tabs-h: 52px; }
-@media screen and (max-width: 472px) { table.steps > tbody > tr.gt > td { position: static; } }
+@media screen and (max-width: 454px) { table.steps > tbody > tr.gt > td { position: static; } }
 body.tabs:has(#doc-check:target, #doc-check :target) nav.tabs a.tab[href="#doc-check"],
 body.tabs:has(#doc-guide:target, #doc-guide :target) nav.tabs a.tab[href="#doc-guide"],
 body.tabs:has(#p1:target, #p1 :target) nav.tabs a.tab[href="#p1"],
@@ -426,9 +426,9 @@ body.tabs:not(:has(.panel:target, .panel :target)) nav.tabs a.tab.default { back
 <main>
 <nav class="tabs" aria-label="処理の切り替え">
 <div class="tg"><div class="tgl">文書</div><div class="tgt"><a class="tab" href="#doc-check">未確認事項・検証記録</a><a class="tab" href="#doc-guide">見方</a></div></div>
-<div class="tg"><div class="tgl">処理</div><div class="tgt"><a class="tab default" href="#p1">会員登録（POST /members）</a></div></div>
+<div class="tg"><div class="tgl">会員</div><div class="tgt"><a class="tab default" href="#p1">会員登録 POST /members</a></div></div>
 </nav>
-<section class="proc panel default" id="p1" data-title="会員登録">
+<section class="proc panel default" id="p1" data-group="会員" data-tab="会員登録 POST /members">
 <h2>1. 会員登録（POST /members）</h2>
 
 <section data-sec="overview">
