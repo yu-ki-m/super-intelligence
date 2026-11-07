@@ -154,7 +154,8 @@ class Engine:
             "SELECT * FROM defects WHERE artifact_id=? AND state='open' ORDER BY rowid", (artifact_id,))]
 
     def remaining_calls(self):
-        used = self.store.db.execute("SELECT COUNT(*) c FROM attempts WHERE COALESCE(status,'')<>'env_limit'").fetchone()["c"]
+        # 実行環境の上限や、依頼が受け取られなかった試行は、呼び出しとして数えない。
+        used = self.store.db.execute("SELECT COUNT(*) c FROM attempts WHERE COALESCE(status,'') NOT IN ('env_limit','not_dispatched')").fetchone()["c"]
         return (self.store.budget().get("max_calls") or 0) - used
 
     # 実行 -------------------------------------------------------------
@@ -183,7 +184,7 @@ class Engine:
         with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
             while True:
                 stopping = store.get_meta("stop_requested", False) or store.get_meta("abort_requested", False)
-                paused = store.get_meta("env_pause")
+                paused = store.get_meta("env_pause") or store.get_meta("dispatch_pause")
                 limit_hit = max_results is not None and results >= max_results
                 if not (stopping or paused or limit_hit):
                     self._reap_expired()
@@ -218,8 +219,12 @@ class Engine:
                     store.set_run_status("paused", "停止の指示により一時停止した")
                     return "paused"
                 if paused:
-                    store.set_run_status("paused", f"実行環境の上限により一時停止した：{paused}")
+                    if store.get_meta("env_pause"):
+                        store.set_run_status("paused", f"実行環境の上限により一時停止した：{store.get_meta('env_pause')}")
+                    else:
+                        store.set_run_status("paused", f"サブエージェントを起動する親の会話が依頼を受け取らないので一時停止した：{store.get_meta('dispatch_pause')}")
                     store.set_meta("env_pause", None)
+                    store.set_meta("dispatch_pause", None)
                     return "paused"
                 if limit_hit:
                     store.set_run_status("paused", f"指定された {max_results} 件の結果を受け取ったので一時停止した")
@@ -470,7 +475,7 @@ class Engine:
 
     def _on_failure(self, task, attempt, result):
         store = self.store
-        status = {"env_limit": "env_limit", "timeout": "timed_out"}.get(result.error_class, "failed")
+        status = {"env_limit": "env_limit", "timeout": "timed_out", "not_dispatched": "not_dispatched"}.get(result.error_class, "failed")
         store.db.execute("UPDATE attempts SET status=?, error_class=?, error_detail=? WHERE attempt_id=?",
                          (status, result.error_class, (result.error_detail or "")[:1000], attempt["attempt_id"]))
         store.event("agent_failure", task_id=task["task_id"], attempt_id=attempt["attempt_id"], error=result.error_class, detail=(result.error_detail or "")[:300])
@@ -478,6 +483,11 @@ class Engine:
             # 実行環境の上限は作業の失敗ではない。再試行の回数を消費せず、一時停止して再開を待つ。
             store.transition(task["task_id"], "ready", "実行環境の上限のため待機する")
             store.set_meta("env_pause", result.error_detail[:200] or "実行環境の上限")
+            return
+        if result.error_class == "not_dispatched":
+            # 親の会話が依頼を受け取らないのは作業の失敗ではない。再試行の回数を消費せず、一時停止して再開を待つ。
+            store.transition(task["task_id"], "ready", "親の会話が依頼を受け取らないので待機する")
+            store.set_meta("dispatch_pause", result.error_detail[:200] or "依頼が受け取られなかった")
             return
         if result.error_class == "unavailable":
             store.transition(task["task_id"], "failed", "実行基盤を利用できない", outcome="execution_failed")

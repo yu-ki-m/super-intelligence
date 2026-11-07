@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 import time
 from pathlib import Path
 
-from adapters.base import UnavailableAdapter
+from adapters import agent_tool
+from adapters.agent_tool import AgentToolAdapter
+from adapters.base import Capability, UnavailableAdapter
 from adapters.claude_cli import ClaudeCliAdapter
 from adapters.mock import MockAdapter
 
@@ -16,19 +19,39 @@ from .engine import Engine, init_run
 from .store import Store
 
 
-def make_adapter(args):
-    name = getattr(args, "adapter", "claude_cli")
+def make_adapter(args, root="."):
+    """root は依頼と結果を受け渡すフォルダーである（Agent ツールの方式だけが使う）。"""
+    name = getattr(args, "adapter", None) or "agent"
     if name == "mock":
         return MockAdapter()
     if name == "unavailable":
         return UnavailableAdapter()
+    if name == "agent":
+        return AgentToolAdapter(root, model=getattr(args, "model", None) or "sonnet", allow_web=getattr(args, "allow_web", False))
     return ClaudeCliAdapter(model=getattr(args, "model", "sonnet"), effort=getattr(args, "effort", None), allow_web=getattr(args, "allow_web", False))
 
 
 def cmd_probe(args):
-    cap = make_adapter(args).probe(Path(args.workdir))
-    print(json.dumps(cap.to_dict(), ensure_ascii=False, indent=1))
+    workdir = Path(args.workdir)
+    cap = make_adapter(args, workdir).probe(workdir)
+    data = cap.to_dict()
+    data["checked_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    workdir.mkdir(parents=True, exist_ok=True)
+    (workdir / "capability.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(data, ensure_ascii=False, indent=1))
     return 0 if cap.debate_possible else 1
+
+
+def _probed_capability(probe_dir):
+    """Agent ツールの方式では、init の中で確認できない。先に実行した probe の結果を使う。"""
+    path = Path(probe_dir) / "capability.json"
+    if not path.exists():
+        raise SystemExit(f"{path} がない。先に probe を実行する（Agent ツールの方式では、親の会話がサブエージェントを起動する必要がある）")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("adapter") != "agent":
+        raise SystemExit(f"{path} は {data.get('adapter')} の確認結果である。--adapter agent で probe を実行し直す")
+    names = {f.name for f in dataclasses.fields(Capability)}
+    return Capability(**{k: v for k, v in data.items() if k in names})
 
 
 def cmd_check_graph(args):
@@ -41,7 +64,8 @@ def cmd_check_graph(args):
 
 def cmd_init(args):
     brief = json.loads(Path(args.brief).read_text(encoding="utf-8"))
-    adapter = make_adapter(args)
+    adapter = make_adapter(args, args.run_dir)
+    capability = _probed_capability(args.probe_dir) if adapter.name == "agent" else None
     settings = {"concurrency": args.concurrency, "model": args.model, "timeout_sec": args.timeout_sec}
     budget = {}
     if args.max_calls:
@@ -50,7 +74,7 @@ def cmd_init(args):
         budget["debate_rounds"] = args.debate_rounds
     if args.revisions is not None:
         budget["revisions"] = args.revisions
-    store = init_run(args.run_dir, brief, args.graph, adapter, settings, budget)
+    store = init_run(args.run_dir, brief, args.graph, adapter, settings, budget, capability=capability)
     print(report.status_text(store))
     return 1 if store.get_meta("design_only") else 0
 
@@ -67,7 +91,7 @@ def cmd_run(args):
     store = Store(args.run_dir)
     args.allow_web = args.allow_web or bool((store.get_meta("brief") or {}).get("allow_web"))
     store.close()
-    engine = Engine(args.run_dir, make_adapter(args))
+    engine = Engine(args.run_dir, make_adapter(args, args.run_dir))
     result = engine.run(max_results=args.max_results)
     print(report.status_text(engine.store))
     report.export(engine.store)
@@ -105,7 +129,7 @@ def cmd_update_source(args):
     store.close()
     args.adapter = adapter_name
     args.model = getattr(args, "model", None) or "sonnet"
-    engine = Engine(args.run_dir, make_adapter(args))
+    engine = Engine(args.run_dir, make_adapter(args, args.run_dir))
     text = Path(args.file).read_text(encoding="utf-8")
     print(json.dumps(engine.update_source(args.source, text, retrieved_at=args.retrieved_at), ensure_ascii=False, indent=1))
     print("run で再確認を進める。")
@@ -126,12 +150,29 @@ def cmd_log_human(args):
     return 0
 
 
+def cmd_pending(args):
+    print(json.dumps(agent_tool.pending(args.run_dir, wait=args.wait), ensure_ascii=False, indent=1))
+    return 0
+
+
+def cmd_done(args):
+    result = agent_tool.done(args.run_dir, args.attempt, error=args.error)
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+    return 0 if result["accepted"] else 1
+
+
+def cmd_check_output(args):
+    problems = agent_tool.check_output(args.run_dir, args.attempt)
+    print("問題なし" if not problems else "\n".join(problems))
+    return 1 if problems else 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="pbteam", description="product-branding-team のハーネス")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     def adapter_options(p):
-        p.add_argument("--adapter", default="claude_cli", choices=["claude_cli", "mock", "unavailable"])
+        p.add_argument("--adapter", default="agent", choices=["agent", "claude_cli", "mock", "unavailable"])
         p.add_argument("--model", default="sonnet")
         p.add_argument("--effort", default=None)
         p.add_argument("--allow-web", action="store_true")
@@ -155,6 +196,7 @@ def build_parser():
     p.add_argument("--max-calls", type=int)
     p.add_argument("--debate-rounds", type=int)
     p.add_argument("--revisions", type=int)
+    p.add_argument("--probe-dir", default=".pbteam-probe", help="Agent ツールの方式で、先に実行した probe の作業フォルダー")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("run", help="実行を開始または再開する")
@@ -182,6 +224,22 @@ def build_parser():
     p.add_argument("--run-dir", required=True)
     p.add_argument("--out")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("pending", help="Agent ツールの方式で、サブエージェントに渡す依頼を受け取る")
+    p.add_argument("--run-dir", required=True, help="実行フォルダー。probe のときは probe の作業フォルダー")
+    p.add_argument("--wait", type=float, default=90, help="新しい依頼が無いときに待つ秒数")
+    p.set_defaults(func=cmd_pending)
+
+    p = sub.add_parser("done", help="Agent ツールの方式で、サブエージェントの完了をハーネスへ知らせる")
+    p.add_argument("--run-dir", required=True)
+    p.add_argument("--attempt", required=True)
+    p.add_argument("--error", help="サブエージェントが失敗したときの内容（利用上限のエラー文など）")
+    p.set_defaults(func=cmd_done)
+
+    p = sub.add_parser("check-output", help="サブエージェントが書いた結果の形式を確かめる")
+    p.add_argument("--run-dir", required=True)
+    p.add_argument("--attempt", required=True)
+    p.set_defaults(func=cmd_check_output)
 
     p = sub.add_parser("log-human", help="人間の確認・修正にかかった時間を記録する")
     p.add_argument("--run-dir", required=True)

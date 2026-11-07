@@ -27,7 +27,7 @@ class AgentRequest:
 class AgentResult:
     ok: bool
     payload: dict | None = None
-    # timeout / invalid_output / session_lost / env_limit / crash / unavailable
+    # timeout / invalid_output / session_lost / env_limit / not_dispatched / crash / unavailable
     error_class: str | None = None
     error_detail: str = ""
     session_id: str | None = None
