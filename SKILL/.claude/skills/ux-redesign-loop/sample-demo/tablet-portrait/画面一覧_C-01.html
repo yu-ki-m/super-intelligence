@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<!--
+  見本の画面一覧キャンバス：K-03（縦のタブレット。C-01 / iter-01）
+  設備点検のプロトタイプ（proto-C-01.html）の 6 つの状態を、端末の枠を外して並べる。
+  書き方は references/canvas.md。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画面一覧 K-03 設備点検</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../screen-canvas/canvas.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_CANVAS = {
+  "id": "K-03",
+  "title": "設備点検：画面の全体と、情報の置き場所",
+  "refs": {
+    "case": "C-01",
+    "iteration": "iter-01"
+  },
+  "prototype": "proto-C-01.html",
+  "device": "tablet-portrait",
+  "screens": [
+    {
+      "id": "s-route",
+      "row": 0,
+      "title": "設備を点検する",
+      "desc": "P-03 の前",
+      "state": {
+        "eq": 2,
+        "pressure": "0.42"
+      },
+      "marks": [
+        {
+          "sel": "#route",
+          "text": "点検の順路。済み・点検中・まだ"
+        },
+        {
+          "sel": "#check-pressure",
+          "text": "数値の入力と、基準の範囲・前回の値"
+        },
+        {
+          "sel": "#check-sound",
+          "text": "正常・要注意・異常の大きなボタン"
+        },
+        {
+          "sel": "#next-btn",
+          "text": "次の設備へ（親指の届く下）"
+        }
+      ]
+    },
+    {
+      "id": "s-criteria",
+      "row": 0,
+      "title": "判断の基準を開く",
+      "desc": "異音",
+      "state": {
+        "eq": 2,
+        "pressure": "0.42",
+        "open": "sound"
+      },
+      "marks": [
+        {
+          "sel": "#criteria-sound",
+          "text": "項目の中に出る判断の基準"
+        }
+      ]
+    },
+    {
+      "id": "s-abnormal",
+      "row": 0,
+      "title": "異常を記録する",
+      "desc": "下から出るシート",
+      "state": {
+        "eq": 2,
+        "pressure": "0.42",
+        "sound": "ng",
+        "sheet": "abnormal",
+        "finding": true,
+        "photo": true
+      },
+      "marks": [
+        {
+          "sel": "#finding-chips",
+          "text": "所見の大きな選択肢（複数選べる）"
+        },
+        {
+          "sel": "#photo",
+          "text": "写真"
+        },
+        {
+          "sel": "#send-abnormal",
+          "text": "記録して保全に送る"
+        }
+      ]
+    },
+    {
+      "id": "s-sent",
+      "row": 1,
+      "title": "保全に送った",
+      "desc": "項目に残る",
+      "state": {
+        "eq": 2,
+        "pressure": "0.42",
+        "sound": "ng",
+        "sent": true
+      },
+      "marks": [
+        {
+          "sel": "#sent-note",
+          "text": "送った時刻・所見・写真と、受け取りの状態"
+        }
+      ]
+    },
+    {
+      "id": "s-resume",
+      "row": 1,
+      "title": "中断から戻る",
+      "desc": "C-01 の途中",
+      "state": {
+        "eq": 3,
+        "pressure": "0.42",
+        "sound": "ng",
+        "sent": true,
+        "resumed": true
+      },
+      "marks": [
+        {
+          "sel": "#resume-banner",
+          "text": "中断した設備と、記録した項目の数"
+        },
+        {
+          "sel": "#route",
+          "text": "順路の今の位置"
+        }
+      ]
+    },
+    {
+      "id": "s-done",
+      "row": 1,
+      "title": "点検の終わり",
+      "desc": "保全が受け取った",
+      "state": {
+        "screen": "done",
+        "sent": true,
+        "accepted": true
+      },
+      "marks": [
+        {
+          "sel": "#summary-done",
+          "text": "記録した設備と、異常・要注意の数"
+        },
+        {
+          "sel": "#handoff-status",
+          "text": "保全の受け取りと、返事"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "from": "s-route",
+      "to": "s-criteria",
+      "trigger": "#check-sound [data-act=\"criteria\"]",
+      "label": "判断の基準"
+    },
+    {
+      "from": "s-criteria",
+      "to": "s-abnormal",
+      "trigger": "#check-sound [data-v=\"ng\"]",
+      "label": "「異常」を押す"
+    },
+    {
+      "from": "s-abnormal",
+      "to": "s-sent",
+      "trigger": "#send-abnormal",
+      "label": "保全に送る"
+    },
+    {
+      "from": "s-sent",
+      "to": "s-resume",
+      "auto": true,
+      "label": "中断して戻る"
+    },
+    {
+      "from": "s-resume",
+      "to": "s-done",
+      "trigger": "#next-btn",
+      "label": "最後の設備まで"
+    }
+  ],
+  "notes": [
+    {
+      "type": "text",
+      "near": "s-route",
+      "dx": 0,
+      "dy": -320,
+      "text": "設備点検（縦のタブレット）の画面の全体"
+    },
+    {
+      "type": "sticky",
+      "near": "s-route",
+      "dx": 1180,
+      "dy": -260,
+      "color": "yellow",
+      "text": "手袋のままで、この大きさのボタンを押し分けられるか（現場で確かめる）"
+    }
+  ]
+};
+</script>
+<script src="../../screen-canvas/canvas.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

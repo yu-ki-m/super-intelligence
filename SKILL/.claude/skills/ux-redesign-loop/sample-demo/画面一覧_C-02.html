@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--
+  見本の画面一覧キャンバス：K-01（PC。C-02 / iter-01）
+  CSV 取込のプロトタイプ（proto-C-02.html）の 6 つの状態を、スクロールした先まで含めた全体のフレームとして並べる。
+  書き方は references/canvas.md。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画面一覧 K-01 CSV 取込</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../sample-design-system/components.css">
+<link rel="stylesheet" href="../screen-canvas/canvas.css">
+<script src="../sample-design-system/components.js" defer></script>
+<script>
+window.UX_CANVAS = {
+  id: 'K-01',
+  title: 'CSV 取込：画面の全体と、情報の置き場所',
+  refs: { case: 'C-02', iteration: 'iter-01' },
+  prototype: 'proto-C-02.html',
+  device: 'pc',
+  screens: [
+    { id: 's-upload', row: 0, title: 'ファイルを選んだ', desc: '取込の入口', state: { screen: 'upload', file: true },
+      marks: [{ sel: '#file-row', text: '選んだファイルの名前・大きさ・行数。取り違えていないかを、ここで確かめる' },
+              { sel: '#check-btn', text: '取り込む前に、全行を検査する。検査では顧客データは変わらない' }] },
+    { id: 's-checking', row: 0, title: '検査している', desc: '待っている間', state: { screen: 'checking', file: true, progress: 62 },
+      marks: [{ sel: '#check-progress', text: '進み具合・残り時間・途中で見つかった問題の数' },
+              { sel: '#leave-note', text: '画面を離れても検査は続き、終わると通知が来る' }] },
+    { id: 's-review', row: 0, title: '検査の結果', desc: '47 行に問題', state: { screen: 'review', file: true, progress: 100 },
+      marks: [{ sel: '#summary', text: '取り込める行と、直す必要がある行の数' },
+              { sel: '#groups', text: '直す必要がある行を、理由ごとにまとめる。まとめて直せるか、管理者が要るかも出す' },
+              { sel: '#partial-btn', text: '直さずに保留にして、取り込める行だけ先に取り込む' }] },
+    { id: 's-phone', row: 1, title: '電話番号をまとめて直す', desc: '変更前と変更後', state: { screen: 'review', file: true, progress: 100, group: 'phone' },
+      marks: [{ sel: '#group-detail', text: '直す提案の 18 行を、変更前と変更後で並べる。確定するまで変わらない' },
+              { sel: '#apply-phone', text: '変更を確定する' }] },
+    { id: 's-done', row: 1, title: '取り込んだ', desc: '保留 12 行', state: { screen: 'done', file: true, fixedPhone: true, fixedEmail: true, imported: 3202 },
+      marks: [{ sel: '#done-flash', text: '取り込んだ行の数と、保留の数' },
+              { sel: '#held', text: '保留の行。理由ごとに、直し方と頼む先が出る' },
+              { sel: '#handoff-btn', text: '担当者マスタの管理者に、追加を頼む' }] },
+    { id: 's-morning', row: 1, title: '翌朝に開く', desc: '保留を片付ける', state: { screen: 'done', file: true, fixedPhone: true, fixedEmail: true, imported: 3202, handoff: true, morning: true },
+      marks: [{ sel: '#morning-banner', text: '昨日の保留と、管理者が担当者を追加したことが、いちばん上に出る' },
+              { sel: '#import-owner', text: '担当者の 6 行を、そのまま取り込む' }] }
+  ],
+  flows: [
+    { from: 's-upload', to: 's-checking', trigger: '#check-btn', label: '取り込む前に検査する' },
+    { from: 's-checking', to: 's-review', auto: true, label: '検査が終わる' },
+    { from: 's-review', to: 's-phone', trigger: '#group-phone [data-act="group"]', label: 'まとめて直す' },
+    { from: 's-phone', to: 's-done', trigger: '#apply-phone', label: '確定して取り込む' },
+    { from: 's-done', to: 's-morning', auto: true, label: '翌朝に開く' }
+  ],
+  notes: [
+    { type: 'text', near: 's-upload', dx: 0, dy: -420, text: 'CSV 取込の画面の全体（C-02）' },
+    { type: 'sticky', near: 's-upload', dx: 0, dy: -300, color: 'yellow', text: '取り込む前の検査が入口。これまでの「取り込んでから数分後のエラーメール」をなくすため（H-01）' },
+    { type: 'sticky', near: 's-review', dx: 1660, dy: 60, color: 'pink', text: '47 行を一度に見せて、怖がらせないか？ 理由ごとのまとまりで和らげられるか（H-02）' },
+    { type: 'sticky', near: 's-morning', dx: 1660, dy: 60, color: 'blue', text: '翌朝、保留が入口に出ているか。出ていなければ、保留の行は忘れられる（H-05）' }
+  ]
+};
+</script>
+<script src="../screen-canvas/canvas.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

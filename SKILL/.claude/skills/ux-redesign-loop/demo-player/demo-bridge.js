@@ -203,6 +203,79 @@
 
   var lastState = null, lastHighlight = null;
 
+  /* ---------- 画面一覧キャンバス（canvas.js）から呼ばれたとき ----------
+     キャンバスは、1 画面の全体（スクロールした先まで）を 1 枚のフレームとして並べる。そこで、
+     ・スマートフォン版 DS の端末の枠を外し、スクロールする欄を伸ばして、中身の高さそのままに描く
+     ・動きを止める（並べた画面が動き続けると読みにくく、高さも測れない）
+     ・印を付ける要素（measure のセレクター）の位置と、ページ全体の大きさを測って返す */
+  var CANVAS_CSS = [
+    'html[data-ux-canvas],html[data-ux-canvas] body{overflow:hidden!important;height:auto!important;min-height:0!important}',
+    'html[data-ux-canvas] *,html[data-ux-canvas] *::before,html[data-ux-canvas] *::after{animation:none!important;transition:none!important}',
+    'html[data-ux-canvas] .proto-panel,html[data-ux-canvas] .dv-controls{display:none!important}',
+    'html[data-ux-canvas] .dv-stage{display:block!important;padding:0!important;min-height:0!important;background:none!important}',
+    'html[data-ux-canvas] .dv-phone{width:100%!important;height:auto!important;padding:0!important;margin:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;transform:none!important}',
+    'html[data-ux-canvas] .dv-phone::before,html[data-ux-canvas] .dv-phone::after,html[data-ux-canvas] .dv-camera,html[data-ux-canvas] .dv-statusbar,html[data-ux-canvas] .dv-navbar,html[data-ux-canvas] .dv-keyboard,html[data-ux-canvas] .dv-back-arrow,html[data-ux-canvas] .dv-home,html[data-ux-canvas] .dv-heads-up{display:none!important}',
+    'html[data-ux-canvas] .dv-phone__glass{height:auto!important;padding:0!important;border-radius:0!important;background:none!important;box-shadow:none!important}',
+    'html[data-ux-canvas] .dv-screen{width:100%!important;height:auto!important;border-radius:0!important;overflow:visible!important;--ds-safe-top:0px;--ds-safe-bottom:0px}',
+    'html[data-ux-canvas] .dv-viewport{position:static!important;height:auto!important}',
+    'html[data-ux-canvas] .ds-app{height:auto!important;overflow:visible!important}',
+    'html[data-ux-canvas] .ds-app__stack{flex:none!important;overflow:visible!important}',
+    'html[data-ux-canvas] .ds-screen:not([hidden]){position:relative!important;inset:auto!important}',
+    'html[data-ux-canvas] .ds-content{flex:none!important;overflow:visible!important}'
+  ].join('\n');
+  var canvasReq = null, canvasTimer = 0;
+  function expandScrollers() {
+    // スクロールする欄（縦）を、中身の高さまで伸ばす。DS に無い作りの欄（.p-scroll など）にも効く
+    var all = document.body.getElementsByTagName('*');
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i], cs = getComputedStyle(el);
+      if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1) {
+        el.style.setProperty('overflow-y', 'visible', 'important');
+        el.style.setProperty('height', 'auto', 'important');
+        el.style.setProperty('max-height', 'none', 'important');
+        el.style.setProperty('flex', 'none', 'important');
+      }
+    }
+  }
+  function measureCanvas() {
+    if (!canvasReq) return;
+    expandScrollers();
+    var de = document.documentElement;
+    var rects = (canvasReq.measure || []).map(function (sel) {
+      var el = null;
+      try { el = document.querySelector(sel); } catch (_) { el = null; }
+      if (!el) return { selector: sel, found: false };
+      var r = el.getBoundingClientRect();
+      return { selector: sel, found: true, x: r.left + window.scrollX, y: r.top + window.scrollY, w: r.width, h: r.height };
+    });
+    post({ type: 'measured', id: canvasReq.id, width: Math.ceil(de.scrollWidth), height: Math.ceil(Math.max(de.scrollHeight, document.body.scrollHeight)), rects: rects });
+  }
+  function applyCanvas(d) {
+    if (!document.getElementById('uxdemo-canvas-css')) {
+      var st = document.createElement('style');
+      st.id = 'uxdemo-canvas-css';
+      st.textContent = CANVAS_CSS;
+      document.head.appendChild(st);
+    }
+    root.setAttribute('data-ux-canvas', '');
+    hide();
+    var ok = true, error = null;
+    try {
+      if (typeof window.uxDemoApply === 'function') window.uxDemoApply(d.state || {});
+      else { ok = false; error = 'window.uxDemoApply が定義されていない'; }
+    } catch (ex) { ok = false; error = String(ex && ex.message || ex); }
+    canvasReq = { id: d.id, measure: d.measure || [] };
+    if (!ok) post({ type: 'measured', id: d.id, ok: false, error: error, rects: [] });
+    // 描画と文字の読み込みが落ち着いてから測る
+    requestAnimationFrame(function () { requestAnimationFrame(function () { setTimeout(measureCanvas, 120); }); });
+  }
+  // フレームの高さが変わると、100vh を使う作りの高さも変わるので、測り直して返す
+  window.addEventListener('resize', function () {
+    if (!canvasReq) return;
+    clearTimeout(canvasTimer);
+    canvasTimer = setTimeout(measureCanvas, 150);
+  });
+
   window.addEventListener('message', function (e) {
     var d = e.data;
     if (!d || d.source !== 'ux-demo-player') return;
@@ -210,6 +283,7 @@
       if (d.theme === 'light' || d.theme === 'dark') root.dataset.theme = d.theme; else delete root.dataset.theme;
       return;
     }
+    if (d.type === 'apply' && d.canvas) { applyCanvas(d); return; }
     if (d.type !== 'apply') return;
     // 状態が前の手と同じなら、描き直しはするが、動きは付けない（次へを押すたびに同じ画面が動き直すのを防ぐ）
     var stateKey = stable(d.state || {});

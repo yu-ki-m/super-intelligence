@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!--
+  見本の画面一覧キャンバス：K-04（横のタブレット。C-01 / iter-01）
+  店頭受け取りのプロトタイプ（proto-C-01.html）の 5 つの状態を、端末の枠を外して並べる。
+  書き方は references/canvas.md。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画面一覧 K-04 店頭受け取り</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../screen-canvas/canvas.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_CANVAS = {
+  "id": "K-04",
+  "title": "店頭受け取り：画面の全体と、情報の置き場所",
+  "refs": {
+    "case": "C-01",
+    "iteration": "iter-01"
+  },
+  "prototype": "proto-C-01.html",
+  "device": "tablet-landscape",
+  "screens": [
+    {
+      "id": "s-list",
+      "row": 0,
+      "title": "受け取り待ちの一覧",
+      "desc": "開いたところ",
+      "state": {},
+      "marks": [
+        {
+          "sel": "#search",
+          "text": "名前・注文番号で探す"
+        },
+        {
+          "sel": "#order-list",
+          "text": "受け取り待ちの注文。電話番号の下 4 桁も出す"
+        },
+        {
+          "sel": "#queue",
+          "text": "カウンターで待っている人の数"
+        }
+      ]
+    },
+    {
+      "id": "s-search",
+      "row": 0,
+      "title": "同じ名前の注文",
+      "desc": "「石井」で探した",
+      "state": {
+        "query": "石井"
+      },
+      "marks": [
+        {
+          "sel": "#same-name",
+          "text": "同じ名前があることと、確かめ方"
+        },
+        {
+          "sel": "#row-W-24117",
+          "text": "下 4 桁が合う注文"
+        }
+      ]
+    },
+    {
+      "id": "s-detail",
+      "row": 0,
+      "title": "注文の詳細",
+      "desc": "一部欠品",
+      "state": {
+        "query": "石井",
+        "sel": "W-24117",
+        "idChecked": true
+      },
+      "marks": [
+        {
+          "sel": "#id-check",
+          "text": "本人確認の結果"
+        },
+        {
+          "sel": "#shortage",
+          "text": "欠品の品と、入荷の見込み"
+        },
+        {
+          "sel": "#substitute-offer",
+          "text": "代わりの品・売場の在庫・差額"
+        },
+        {
+          "sel": "#hand-btn",
+          "text": "受け渡す（本人確認と欠品の扱いが決まるまで押せない）"
+        }
+      ]
+    },
+    {
+      "id": "s-sub",
+      "row": 1,
+      "title": "代わりの品に替えた",
+      "desc": "行列が延びる",
+      "state": {
+        "query": "石井",
+        "sel": "W-24117",
+        "idChecked": true,
+        "shortage": "substitute",
+        "queue": 4
+      },
+      "marks": [
+        {
+          "sel": "#items",
+          "text": "代わりの品に替わった行"
+        },
+        {
+          "sel": "#queue",
+          "text": "待っている人が 4 人に増えた"
+        }
+      ]
+    },
+    {
+      "id": "s-handed",
+      "row": 1,
+      "title": "受け渡した",
+      "desc": "入荷の連絡",
+      "state": {
+        "handed": true,
+        "restock": true
+      },
+      "marks": [
+        {
+          "sel": "#handed-note",
+          "text": "受け渡しの記録と、レジでの差額の案内"
+        },
+        {
+          "sel": "#restock-note",
+          "text": "倉庫からの入荷の連絡"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "from": "s-list",
+      "to": "s-search",
+      "trigger": "#search",
+      "label": "名前で探す"
+    },
+    {
+      "from": "s-search",
+      "to": "s-detail",
+      "trigger": "#row-W-24117",
+      "label": "下 4 桁で開く"
+    },
+    {
+      "from": "s-detail",
+      "to": "s-sub",
+      "trigger": "#substitute",
+      "label": "代わりの品を勧める"
+    },
+    {
+      "from": "s-sub",
+      "to": "s-handed",
+      "trigger": "#hand-btn",
+      "label": "受け渡す"
+    }
+  ],
+  "notes": [
+    {
+      "type": "text",
+      "near": "s-list",
+      "dx": 0,
+      "dy": -320,
+      "text": "店頭受け取り（横のタブレット）の画面の全体"
+    },
+    {
+      "type": "sticky",
+      "near": "s-detail",
+      "dx": 1660,
+      "dy": 60,
+      "color": "pink",
+      "text": "差額の支払いがレジに回ると、後ろの列がさらに延びる。このタブレットで受けられないか"
+    }
+  ]
+};
+</script>
+<script src="../../screen-canvas/canvas.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

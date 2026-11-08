@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!--
+  見本の画面一覧キャンバス：K-02（スマートフォン。C-01 / iter-01）
+  経費の承認のプロトタイプ（proto-C-01.html）の 7 つの状態を、端末の枠を外し、スクロールした先まで含めた全体のフレームとして並べる。
+  書き方は references/canvas.md。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画面一覧 K-02 経費の承認</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../screen-canvas/canvas.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_CANVAS = {
+  "id": "K-02",
+  "title": "経費の承認：画面の全体と、情報の置き場所",
+  "refs": {
+    "case": "C-01",
+    "iteration": "iter-01"
+  },
+  "prototype": "proto-C-01.html",
+  "device": "phone",
+  "screens": [
+    {
+      "id": "s-inbox",
+      "row": 0,
+      "title": "承認待ち",
+      "desc": "開いたところ",
+      "state": {
+        "screen": "inbox"
+      },
+      "marks": [
+        {
+          "sel": "#summary",
+          "text": "規定どおりの件数と金額、確認が必要な件数、締めの時刻"
+        },
+        {
+          "sel": "#need-list",
+          "text": "規定から外れた申請と、外れた理由"
+        },
+        {
+          "sel": "#ok-list",
+          "text": "規定どおりの申請（20 件まで。残りは件数だけ）"
+        },
+        {
+          "sel": "#bulk-btn",
+          "text": "まとめて承認。親指の届く下に置く"
+        }
+      ]
+    },
+    {
+      "id": "s-bulk",
+      "row": 0,
+      "title": "まとめて承認",
+      "desc": "下から出るシート",
+      "state": {
+        "screen": "inbox",
+        "sheet": "bulk"
+      },
+      "marks": [
+        {
+          "sel": "#bulk-checks",
+          "text": "自動で確かめた 3 つの項目"
+        },
+        {
+          "sel": "#bulk-ok",
+          "text": "件数を書いた確定のボタン"
+        }
+      ]
+    },
+    {
+      "id": "s-detail",
+      "row": 0,
+      "title": "外れた申請の詳細",
+      "desc": "会食 ¥32,400",
+      "state": {
+        "approvedBulk": true,
+        "screen": "detail",
+        "item": "r1"
+      },
+      "marks": [
+        {
+          "sel": "#rule-gap",
+          "text": "どの規定のどの値から外れたか（1 人あたり 8,100 円・上限 5,000 円）"
+        },
+        {
+          "sel": "#receipt",
+          "text": "領収書の写真"
+        },
+        {
+          "sel": "#return-btn",
+          "text": "差し戻す・承認する"
+        }
+      ]
+    },
+    {
+      "id": "s-return",
+      "row": 0,
+      "title": "理由を選んで差し戻す",
+      "desc": "通信が切れている",
+      "state": {
+        "approvedBulk": true,
+        "screen": "detail",
+        "item": "r1",
+        "offline": true,
+        "sheet": "return"
+      },
+      "marks": [
+        {
+          "sel": "#return-reasons",
+          "text": "外れていた規定から、理由が選ばれた状態で開く"
+        },
+        {
+          "sel": "#return-send",
+          "text": "差し戻しを送る（通信が切れていれば端末に残す）"
+        }
+      ]
+    },
+    {
+      "id": "s-waiting",
+      "row": 1,
+      "title": "返事待ち",
+      "desc": "送信待ち",
+      "state": {
+        "approvedBulk": true,
+        "screen": "inbox",
+        "returned": true,
+        "offline": true
+      },
+      "marks": [
+        {
+          "sel": "#offline-banner",
+          "text": "通信が切れていること"
+        },
+        {
+          "sel": "#done-note",
+          "text": "まとめて承認した結果。元に戻せる"
+        },
+        {
+          "sel": "#return-status",
+          "text": "差し戻しが送信待ちであること"
+        }
+      ]
+    },
+    {
+      "id": "s-resub",
+      "row": 1,
+      "title": "出し直された申請",
+      "desc": "規定どおりになった",
+      "state": {
+        "approvedBulk": true,
+        "screen": "detail",
+        "item": "r1",
+        "returned": true,
+        "sent": true,
+        "resubmitted": true
+      },
+      "marks": [
+        {
+          "sel": "#rule-gap",
+          "text": "規定どおりになったこと"
+        },
+        {
+          "sel": "#changes",
+          "text": "前回からの変更だけを並べる"
+        }
+      ]
+    },
+    {
+      "id": "s-acct",
+      "row": 1,
+      "title": "経理からの差し戻し",
+      "desc": "夕方",
+      "state": {
+        "approvedBulk": true,
+        "screen": "inbox",
+        "returned": true,
+        "sent": true,
+        "resubmitted": true,
+        "approvedR1": true,
+        "acct": true
+      },
+      "marks": [
+        {
+          "sel": "#acct-banner",
+          "text": "まとめて承認したうちの 1 件が、経理で差し戻されたこと"
+        },
+        {
+          "sel": "#need-list",
+          "text": "残りの確認が必要な申請"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "from": "s-inbox",
+      "to": "s-bulk",
+      "trigger": "#bulk-btn",
+      "label": "まとめて承認"
+    },
+    {
+      "from": "s-bulk",
+      "to": "s-detail",
+      "trigger": "#bulk-ok",
+      "label": "外れた申請を開く"
+    },
+    {
+      "from": "s-detail",
+      "to": "s-return",
+      "trigger": "#return-btn",
+      "label": "差し戻す"
+    },
+    {
+      "from": "s-return",
+      "to": "s-waiting",
+      "trigger": "#return-send",
+      "label": "差し戻しを送る"
+    },
+    {
+      "from": "s-waiting",
+      "to": "s-resub",
+      "auto": true,
+      "label": "出し直しが届く"
+    },
+    {
+      "from": "s-resub",
+      "to": "s-acct",
+      "trigger": "#approve-btn",
+      "label": "承認する"
+    }
+  ],
+  "notes": [
+    {
+      "type": "text",
+      "near": "s-inbox",
+      "dx": 0,
+      "dy": -320,
+      "text": "経費の承認（スマートフォン）の画面の全体"
+    },
+    {
+      "type": "sticky",
+      "near": "s-bulk",
+      "dx": 0,
+      "dy": -230,
+      "color": "pink",
+      "text": "「自動で確かめたこと」に日付が無い。経理の差し戻し（7）はここが原因では？（H-01）"
+    },
+    {
+      "type": "sticky",
+      "near": "s-acct",
+      "dx": 760,
+      "dy": 60,
+      "color": "yellow",
+      "text": "経理の差し戻しが承認者の画面にしか出ない。申請者の高橋さんには、どこで届く？"
+    }
+  ]
+};
+</script>
+<script src="../../screen-canvas/canvas.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

@@ -1,0 +1,107 @@
+/*
+ * canvas.css — 画面一覧キャンバス（全画面をフレームとして並べ、印・遷移の矢印・付箋・テキストを置く）
+ * デザインシステムの tokens.css・components.css の後に読み込む。色・余白・文字は DS の意味トークンを使う。
+ */
+.uxc {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  margin: 0;
+  background: var(--ds-color-bg-page);
+  color: var(--ds-color-text-body);
+  overflow: hidden;
+}
+.uxc [hidden] { display: none !important; }
+
+/* ---------- 上の帯 ---------- */
+.uxc-top { display: flex; align-items: center; gap: var(--ds-space-s); flex-wrap: wrap; min-height: 52px; padding: var(--ds-space-xs) var(--ds-space-m); border-bottom: 1px solid var(--ds-color-border-divider); background: var(--ds-color-bg-container); position: relative; z-index: 5; }
+.uxc-kind { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--ds-color-border-container); background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-body-s); line-height: 20px; font-weight: var(--ds-font-weight-bold); }
+.uxc-heading { min-width: 0; flex: 1 1 260px; }
+.uxc-heading h1 { margin: 0; font-size: var(--ds-font-size-heading-s); line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uxc-heading p { margin: 0; font-size: var(--ds-font-size-body-s); line-height: 16px; color: var(--ds-color-text-description); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uxc-tools { display: flex; align-items: center; gap: var(--ds-space-xxs); flex-wrap: wrap; }
+.uxc-sep { width: 1px; height: 24px; background: var(--ds-color-border-divider); margin: 0 4px; }
+.uxc-zoom { min-width: 52px; text-align: center; font-size: var(--ds-font-size-body-s); font-variant-numeric: tabular-nums; color: var(--ds-color-text-secondary); }
+.uxc-menu { min-width: 260px; padding: var(--ds-space-xs) var(--ds-space-s); display: grid; gap: var(--ds-space-xs); }
+
+/* ---------- キャンバス ---------- */
+.uxc-viewport {
+  position: relative; overflow: hidden; min-height: 0;
+  cursor: grab; touch-action: none;
+  background-color: var(--ds-color-bg-subtle);
+  background-image: radial-gradient(var(--ds-color-border-input) 1px, transparent 1px);
+}
+.uxc-viewport.is-panning { cursor: grabbing; }
+.uxc-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* 重なり順：画面（フレーム）の上に矢印、その上に操作の名前、いちばん上に付箋。
+   矢印をボタンから出すとき、画面の中の線が画面に隠れないようにするため */
+.uxc-flows { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 2; }
+.uxc-flow-layer { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; }
+.uxc-note-layer { position: absolute; left: 0; top: 0; z-index: 4; }
+.uxc-flows path { fill: none; stroke: var(--ds-color-text-secondary); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.uxc-flows marker path, .uxc-flows marker circle { fill: var(--ds-color-text-secondary); stroke: none; }
+/* 操作の名前。行の間の矢印では線の上に重ね、横の矢印では線の上に乗せる（線を隠さない）。長ければ折り返す */
+.uxc-flow-label { position: absolute; transform: translate(-50%, -50%); width: max-content; padding: 4px 14px; border-radius: 999px; background: var(--ds-color-bg-container); border: 1px solid var(--ds-color-border-input); font-size: 20px; line-height: 1.4; text-align: center; color: var(--ds-color-text-body); pointer-events: none; box-shadow: 0 2px 8px var(--ds-color-shadow); }
+.uxc-flow-label--above { transform: translate(-50%, calc(-100% - 12px)); }
+/* 押す操作ではなく、時間や出来事で移るときは点線。札も点線で囲む */
+.uxc-flows path.is-auto { stroke-dasharray: 14 12; }
+.uxc-flow-label--auto { border-style: dashed; color: var(--ds-color-text-secondary); }
+.uxc.hide-flows .uxc-flows, .uxc.hide-flows .uxc-flow-label { display: none; }
+
+/* フレーム（1 画面の全体） */
+.uxc-frame { position: absolute; z-index: 1; }
+.uxc-frame__label { display: flex; align-items: baseline; gap: 12px; height: 56px; padding: 0 4px; cursor: move; user-select: none; white-space: nowrap; }
+.uxc-frame__label b { font-size: 28px; line-height: 1; }
+.uxc-frame__no { display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 10px; background: var(--ds-color-text-body); color: var(--ds-color-bg-container); font-size: 22px; font-weight: var(--ds-font-weight-bold); align-self: center; }
+.uxc-frame__meta { font-size: 18px; color: var(--ds-color-text-description); overflow: hidden; text-overflow: ellipsis; }
+.uxc-frame__warn { font-size: 18px; color: var(--ds-color-warning); font-weight: var(--ds-font-weight-bold); }
+.uxc-frame__body { position: relative; background: var(--ds-color-bg-page); box-shadow: 0 0 0 1px var(--ds-color-border-container), 0 12px 36px var(--ds-color-shadow); }
+.uxc-frame__body iframe { display: block; border: 0; pointer-events: none; background: var(--ds-color-bg-page); }
+.uxc-frame.is-live .uxc-frame__body { box-shadow: 0 0 0 4px var(--ds-color-focus-ring), 0 12px 36px var(--ds-color-shadow); }
+.uxc-frame.is-live iframe { pointer-events: auto; }
+/* 最初に見える範囲の線。札は画面の左の外側に置き、画面の中身や矢印に重ねない */
+.uxc-frame__fold { position: absolute; left: -24px; right: 0; border-top: 3px dashed var(--ds-color-warning); pointer-events: none; }
+.uxc-frame__fold span { position: absolute; right: calc(100% + 8px); top: 0; transform: translateY(-50%); width: max-content; white-space: nowrap; padding: 2px 10px; border-radius: 6px; background: var(--ds-color-warning-bg); border: 1px solid var(--ds-color-warning-border); font-size: 16px; line-height: 1.5; text-align: right; color: var(--ds-color-text-body); }
+.uxc.hide-fold .uxc-frame__fold { display: none; }
+.uxc-live-btn { margin-left: auto; cursor: pointer; font: inherit; font-size: 18px; padding: 4px 12px; border-radius: 8px; border: 1px solid var(--ds-color-border-input); background: var(--ds-color-bg-container); color: var(--ds-color-text-body); }
+.uxc-frame.is-live .uxc-live-btn { background: var(--ds-color-btn-primary-bg); border-color: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+
+/* 情報の位置の印（番号つきの枠）と、フレームの横の説明 */
+.uxc-mark { position: absolute; border: 3px solid var(--uxc-mark, #e11d74); border-radius: 8px; pointer-events: none; transition: box-shadow .15s; }
+.uxc-mark__no { position: absolute; left: -16px; top: -16px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--uxc-mark, #e11d74); color: #fff; font-size: 18px; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.uxc-mark.is-hot { box-shadow: 0 0 0 6px color-mix(in srgb, var(--uxc-mark, #e11d74) 30%, transparent); }
+.uxc.hide-marks .uxc-mark, .uxc.hide-marks .uxc-callout { display: none; }
+.uxc-callout { position: absolute; width: 300px; display: grid; gap: 10px; }
+.uxc-callout__item { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: var(--ds-color-bg-container); border: 1px solid var(--ds-color-border-container); font-size: 18px; line-height: 1.6; cursor: default; }
+.uxc-callout__item b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--uxc-mark, #e11d74); color: #fff; font-size: 18px; }
+.uxc-callout__item.is-missing { border-style: dashed; color: var(--ds-color-text-description); }
+
+/* 付箋とテキスト */
+.uxc-note { position: absolute; min-width: 120px; cursor: move; user-select: none; }
+.uxc-note__text { outline: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.uxc-note--sticky { width: 260px; min-height: 160px; padding: 16px 18px; border-radius: 4px; box-shadow: 0 6px 18px rgba(0,0,0,.18); color: #1c1917; font-size: 20px; line-height: 1.6; }
+.uxc-note--sticky[data-color="yellow"] { background: #fff3a8; }
+.uxc-note--sticky[data-color="pink"] { background: #ffd1e3; }
+.uxc-note--sticky[data-color="blue"] { background: #cfe5ff; }
+.uxc-note--sticky[data-color="green"] { background: #d4f5d0; }
+/* テキストは、置いた所から右へ伸ばす（絶対配置の要素は、幅を決めないと 1〜2 文字ずつ折り返されるため） */
+.uxc-note--text { width: max-content; max-width: 1600px; padding: 4px 6px; font-size: 40px; line-height: 1.3; font-weight: 700; color: var(--ds-color-text-body); }
+.uxc-note--text[data-color="pink"] { color: #be185d; }
+.uxc-note--text[data-color="blue"] { color: #1d4ed8; }
+.uxc-note--text[data-color="green"] { color: #15803d; }
+.uxc-note.is-selected { outline: 3px solid var(--ds-color-focus-ring); outline-offset: 4px; }
+.uxc-note.is-editing { cursor: text; user-select: text; }
+.uxc-note.is-editing .uxc-note__text { cursor: text; }
+.uxc-note__empty { color: rgba(0,0,0,.4); }
+.uxc-note--text .uxc-note__empty { color: var(--ds-color-text-description); }
+.uxc-note__bar { position: absolute; left: 0; top: -52px; display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--ds-color-bg-container); border: 1px solid var(--ds-color-border-container); box-shadow: 0 4px 12px var(--ds-color-shadow); cursor: default; }
+.uxc-note__bar button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(0,0,0,.15); cursor: pointer; padding: 0; }
+.uxc-note__bar button[aria-pressed="true"] { outline: 2px solid var(--ds-color-focus-ring); outline-offset: 2px; }
+.uxc-note__bar .uxc-del { width: auto; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--ds-color-border-input); background: var(--ds-color-bg-container); color: var(--ds-color-error); font: inherit; font-size: 14px; }
+.uxc.hide-notes .uxc-note { display: none; }
+
+/* 使い方の札（左下） */
+.uxc-help { position: absolute; left: 12px; bottom: 12px; z-index: 4; max-width: 520px; padding: 8px 12px; border-radius: 10px; background: var(--ds-color-bg-container); border: 1px solid var(--ds-color-border-container); font-size: var(--ds-font-size-body-s); line-height: 1.7; color: var(--ds-color-text-secondary); box-shadow: 0 4px 12px var(--ds-color-shadow); }
+.uxc-help kbd { font-family: var(--ds-font-family-mono); font-size: 11px; padding: 0 4px; border: 1px solid var(--ds-color-border-input); border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .uxc-mark { transition: none; } }
