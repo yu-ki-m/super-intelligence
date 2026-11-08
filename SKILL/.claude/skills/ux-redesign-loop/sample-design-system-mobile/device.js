@@ -247,7 +247,8 @@ window.dv = (() => {
     const phone = e.target.closest?.('.dv-phone');
     if (!phone || real.matches || phone.dataset.dvKeyboard === 'off' || !e.target.closest('.dv-viewport')) return;
     // 入力欄でないものに焦点が移ったときは、下の focusout の処理が、指を離すのを待ってから閉じる
-    if (isText(e.target)) showKeyboard(phone, e.target);
+    // 見えていない入力欄（閉じたシートの中など）に焦点が移っても、キーボードは出さない
+    if (isText(e.target) && e.target.getClientRects().length) showKeyboard(phone, e.target);
   });
   // 実機では、キーボードは指を離したあとに閉じる。押している間に閉じると、押したボタンが指の下から動き、押せなくなる
   let pressing = false;
@@ -350,7 +351,7 @@ window.dv = (() => {
     return { element: n, close: () => dismiss() };
   };
 
-  /* ----- 端末の短い知らせ（トースト） ----- */
+  /* ----- 端末の短いお知らせ（トースト） ----- */
   const toast = (text, phone) => {
     phone = phone || phoneOf();
     const s = screenOf(phone);

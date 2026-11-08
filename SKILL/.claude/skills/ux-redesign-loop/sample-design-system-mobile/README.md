@@ -12,10 +12,10 @@ PC 版（`../sample-design-system/`）と同じトークンの名前・同じ色
 | `tokens.css` | デザイントークン（`--ds-*`）。色は PC 版と同じ値。大きさ・文字・角丸・端（safe area）をスマートフォン用にしたもの。`:root` がミニマル、`:root[data-look="console"]` がコンソール |
 | `components.css` | アプリの部品のクラス `.ds-*`。トークンだけを使う。最後に「コンソールの見た目で形が変わる部品」と「動き」をまとめている |
 | `components.js` | アプリの部品の動き。`window.ds`（重なる部品の開閉・画面の進む戻る・スナックバー・確かめるダイアログ・動きの関数）、部品の共通の動き、指の動き（シートを引いて閉じる・行を払う・引いて更新） |
-| `device.css` / `device.js` | デモ用の端末の部品 `.dv-*`。端末の枠・時刻の帯・カメラの穴・下の操作の帯・画面のキーボード・通知・端末の知らせ・許可のダイアログ・ホーム画面・デモの操作盤。`window.dv` |
-| `icons.svg` | 16px の線のアイコン。PC 版の 60 個に、スマートフォン版で 17 個（ホーム・ゴミ箱・共有・元に戻す・端末の戻る／ホーム／履歴など）を足した 77 個 |
+| `device.css` / `device.js` | デモ用の端末の部品 `.dv-*`。端末の枠・時刻の帯・カメラの穴・下の操作の帯・画面のキーボード・通知・端末のお知らせ・許可のダイアログ・ホーム画面・デモの操作盤。`window.dv` |
+| `icons.svg` | 16px の線のアイコン。PC 版の 60 個に、スマートフォン版で 20 個（ホーム・ゴミ箱・共有・元に戻す・送る・カレンダー・端末の戻る／ホーム／履歴など）を足した 80 個 |
 | `sync-icons.py` | `icons.svg` を変えたあとに実行し、HTML に埋め込んだアイコンを揃える |
-| `index.html` | 部品の一覧と使い方。各部品を端末の幅（360px）の見本に入れて見せる。PC 版との対応表もある |
+| `index.html` | 部品の一覧と使い方。冒頭の「部品の索引」に全部品（アプリ 77 種・端末 12 種）を分類して並べ、各部品を端末の幅（360px）の見本に入れて見せる。PC 版との対応表もある |
 | `例_スマホ画面.html` | 端末の枠に入れた画面の例。PC 版の画面例と同じ「脆弱性の検出結果を、対応が必要か・不要かに仕分ける」業務を、スマートフォンの作りにしたもの。右にデモの操作盤がある |
 
 ## 想定する端末
@@ -122,10 +122,37 @@ PC 版（`../sample-design-system/`）と同じトークンの名前・同じ色
 | 一覧 | リスト、行、顔、払える行 | `.ds-list`（`--inset`、`__header` `__footer`）、`.ds-cell`（`--2line` `--danger`、`__lead` `__body` `__title` `__sub` `__meta` `__trail` `__chevron` `__unread`）、`.ds-avatar`、`.ds-swipe`（`__action--start / --end`） |
 | まとまり | カード、横に送るカード、キーと値、区切り線、上のタブ | `.ds-card`（`--pressable`）、`.ds-carousel`、`.ds-kv`（`--2col`）、`.ds-divider`、`.ds-tabs`（`--fill`、`__tab`）、`.ds-tab-panel` |
 | 入力 | 入力欄、文章欄、セレクト、検索、ラジオ・チェック、トグル、数の増減、切り替えボタン、絞り込みの札 | `.ds-field`、`.ds-input`、`.ds-textarea`、`.ds-select`、`.ds-search`（`__field` `__clear`）、`.ds-choice`、`.ds-toggle`、`.ds-number`、`.ds-segmented`、`.ds-chips`（`data-single` `--wrap`）・`.ds-chip` |
-| 知らせ | アラート、バナー、スナックバー | `.ds-alert`、`.ds-banner`、`ds.snackbar()` |
+| お知らせ | アラート、バナー、スナックバー | `.ds-alert`、`.ds-banner`、`ds.snackbar()` |
 | 重なる部品 | シート、操作の一覧、ダイアログ | `.ds-sheet`（`--full`、`__handle` `__header` `__title` `__body` `__footer`）、`.ds-actions`・`.ds-action`、`.ds-dialog`・`ds.confirm()` |
 | 状態 | バッジ、未読の数、深刻度、判定、ステータス、進み具合、読み込み中、空の状態、引いて更新 | `.ds-badge`、`.ds-count`（`--dot`）、`.ds-severity--*`、`.ds-verdict--tp / fp / pending`、`.ds-status--*`、`.ds-progress`（`--indeterminate`）、`.ds-spinner`、`.ds-skeleton`、`.ds-empty`、`.ds-content[data-refresh]` |
 | 判定の画面 | コード表示、手順、確認の条件 | `.ds-code`（`__line--hit`）、`.ds-steps`、`.ds-criteria` |
+
+### あとから足した部品
+
+初めの版では、業務アプリのスマートフォン画面でよく使う部品（日付や時刻の選択、まとめて選ぶ操作、履歴、会話など）が足りず、種類が少なかったため、次の部品を足しました。
+
+| 分類 | 部品 | クラス・関数 | 使う場面 |
+|---|---|---|---|
+| 入力 | スライダー | `.ds-slider`（`__head` `__value` `__ticks`） | 範囲のある数（しきい値・音量など）を指で選ぶ |
+| 入力 | 日付（カレンダー） | `.ds-calendar`（`data-month` `data-value` `data-today` `data-min` `data-max` `data-marks`） | 期限・予定日。キーボードで日付を打たせない |
+| 入力 | 時刻（ホイール） | `.ds-wheel`（`__col` `__item` `__sep`） | 時刻・分・小さな数を上下に回して選ぶ |
+| 入力 | 認証コード | `.ds-otp`、`ds.otpError(要素)` | 1 文字ずつの枠。貼り付けに対応。揃うと `ds-complete` |
+| 入力 | 札の入力 | `.ds-tag-input`・`.ds-tag` | 宛先・ラベルなど複数の短い値 |
+| 入力 | 添付 | `.ds-attach`（`__item` `--photo` `__add` `__remove` `__progress`） | 写真・ファイル。送信中の進み具合 |
+| 入力 | 下の入力欄 | `.ds-composer`（`__field` `__send`） | コメント・相談。画面の下に固定し、送ると `ds-send` |
+| 表示 | 数値のタイル | `.ds-stats`・`.ds-stat`（`__delta--good / --bad`） | 件数・割合の要点を 2 列で。増減は矢印と言葉 |
+| 表示 | 円の進み具合 | `.ds-ring`（`--l` `--success`） | 達成率・完了の割合 |
+| 表示 | 時系列（履歴） | `.ds-timeline`（`__mark--success / --error / --accent`） | 誰が・いつ・何をしたか |
+| 表示 | 会話 | `.ds-thread`・`.ds-message`（`--mine` `--failed`） | 相談・コメントのやり取り |
+| 表示 | 顔の大きさ・重なり | `.ds-avatar--s / --l`、`.ds-avatar-group`、`.ds-avatar--more` | 担当者・参加者 |
+| 表示 | 開閉できるまとまり | `.ds-expandable`（details） | 読む人が限られる情報を畳む。高さが伸び縮みする |
+| 表示 | 続きを読む | `.ds-more`（`__text` `__toggle`） | 長い説明を 3 行で切る。切れていなければボタンを出さない |
+| 表示 | 横に送るページ・ページの印 | `.ds-pager`（`data-dots`）、`.ds-dots`、`[data-pager-next]`、`.ds-onboard` | 初めて使う人への案内 |
+| 状態 | 残り時間 | `.ds-timer`（`data-seconds`） | 期限・試験の時間。1 分を切ると黄、0 で赤 |
+| 状態 | 続きの読み込み・失敗の状態 | `.ds-load-more`、`.ds-empty--error` | 一覧の最後・読み込めなかったとき |
+| 操作 | 選ぶ状態 | `[data-selectable]`・`.ds-cell__check`・`.ds-appbar--selection`、`ds.selection` | 行を長押しして複数を選び、まとめて操作する |
+| 操作 | 横から出る引き出し | `.ds-drawer`（`__header` `__section` `__item`） | 行き先が多く、下のタブ（5 つまで）に入らないとき |
+| 操作 | 案内の吹き出し | `ds.coach([{ target, text }], { within })` | 画面の部品を順に指して説明する。`'done'` か `'skip'` を返す |
 
 ### 端末の部品（デモ用）
 
@@ -138,7 +165,7 @@ PC 版（`../sample-design-system/`）と同じトークンの名前・同じ色
 | ホーム | 3 つのボタンのホーム、下のつまみを上へ払う、`dv.home()` | 壁紙・時計・アプリのアイコン。アイコンを押すとアプリへ戻る |
 | キーボード | 入力欄を選ぶと出る | 表示面がキーボードの分だけ縮む。キーを押すと入力欄に文字が入る。`inputmode="numeric"` などでは数字の並び。`data-dv-keyboard="off"` で出さない |
 | 通知 | `dv.notify({ title, text, onTap })` | 画面の上に出る通知。上へ払うと消え、押すと `onTap` |
-| 端末の知らせ | `dv.toast(文)` | 画面の下に出る短い知らせ。アプリのスナックバーとは別 |
+| 端末のお知らせ | `dv.toast(文)` | 画面の下に出る短いお知らせ。アプリのスナックバーとは別 |
 | 許可のダイアログ | `dv.permission({ text, options })` | 選んだ文字を返す（Promise）。選ぶまで閉じない |
 | 操作盤 | `.dv-controls` | 端末の横に置くデモの操作盤。`data-dv-frame` / `data-dv-nav` / `data-theme-choice` / `data-look-choice` のボタンを置く |
 
@@ -150,10 +177,14 @@ PC 版（`../sample-design-system/`）と同じトークンの名前・同じ色
 |---|---|
 | `ds.open(要素)` / `ds.close(要素, 値)` | シート・ダイアログを開く・閉じる。閉じると要素に `ds-close` イベント（`detail.value`）。HTML では `data-open="id"` と `data-close="値"` |
 | `ds.confirm({ title, message, ok, cancel, tone, icon, within })` | 確かめるダイアログ。押したほうで `true` / `false`。`tone: 'danger'` では「キャンセル」に焦点を置く |
-| `ds.snackbar({ message, action, onAction, duration, within })` | 下に短い知らせ。「元に戻す」を 1 つ置ける。下のタブ・下の操作帯・浮かぶボタンの上に出る |
+| `ds.snackbar({ message, action, onAction, duration, within })` | 下に短いお知らせ。「元に戻す」を 1 つ置ける。下のタブ・下の操作帯・浮かぶボタンの上に出る |
 | `ds.push(画面)` / `ds.pop()` / `ds.back()` | 画面へ進む・戻る・「戻る」（重なり → メニュー → 画面の順）。HTML では `data-push="id"` と `data-pop` |
 | `ds.remove(要素)` / `ds.enter(要素)` / `ds.flip(要素の一覧, 変える処理)` | 縮めて消す・浮かび上がらせる・並べ替えを滑らせる（PC 版と同じ） |
 | `ds.transition(() => { 変える })` | 画面全体をなめらかに入れ替える |
+| `ds.init(要素)` | あとから差し込んだ HTML の中の部品（スライダー・カレンダー・ホイール・続きを読むなど）の初めの形を整える |
+| `ds.selection.enter(画面, 行)` / `exit(画面)` / `selected(画面)` | 選ぶ状態に入る・抜ける・選んだ行の一覧 |
+| `ds.coach(手順, { within })` | 案内の吹き出しを出す |
+| `ds.otpError(要素)` / `ds.calendar(要素)` | 認証コードが違ったときに揺らして空にする / カレンダーを描き直す |
 
 **画面の側で受け取るイベント**
 
@@ -163,7 +194,14 @@ PC 版（`../sample-design-system/`）と同じトークンの名前・同じ色
 | `ds-refresh` | `.ds-content[data-refresh]` | 先頭で引いて離した。`preventDefault()` したら、読み終えたときに `detail.done()` を呼ぶ。呼ばなければ 0.9 秒で戻る |
 | `ds-change` | `.ds-segmented`・`.ds-chip` | 切り替えた・札を選んだ |
 | `ds-tabchange` / `ds-screenchange` | 下のタブ / 画面 | 行き先が変わった / 進んだ・戻った |
-| `ds-open` / `ds-close` | シート・ダイアログ | 開いた / 閉じた |
+| `ds-open` / `ds-close` | シート・ダイアログ・引き出し | 開いた / 閉じた |
+| `ds-change` | スライダー以外の入力の部品（カレンダー・ホイール・札の入力） | 値が変わった（`detail.value` / `detail.tags`） |
+| `ds-complete` | `.ds-otp` | 認証コードが揃った（`detail.code`） |
+| `ds-send` | `.ds-composer` | 送るボタンを押した（`detail.text`） |
+| `ds-attach` | `.ds-attach` | ＋ を押した（ファイルを選ぶ処理は画面の側） |
+| `ds-selectionchange` | 選ぶ状態の画面 | 選んだ行が変わった（`detail.cells`。抜けると空） |
+| `ds-pagechange` / `ds-pager-end` | `.ds-pager` | ページが変わった（`detail.index`・`detail.last`） / 最後のページで「次へ」を押した |
+| `ds-expire` | `.ds-timer` | 残り時間が 0 になった |
 
 ## 決まり
 
@@ -202,4 +240,7 @@ Chromium（Playwright）で、ローカルの HTTP サーバーから開いて�
 - 幅 390px（実機の幅）で開くと、端末の部品が消え、アプリが画面いっぱいに出て、横にはみ出さないことを確かめた。
 - `index.html` を開き、スクリプトの誤りが出ないこと、ページが横にはみ出さないこと、ダイアログとシートが見本の画面の中に収まることを確かめた。
 
-確かめていないこと: 実機での指の操作（払う・引いて更新・シートを引く）、iOS の Safari、Firefox、読み上げ機能での操作、文字と背景の明るさの差（コントラスト比）の測定。色の値は PC 版と同じですが、スマートフォン版で足した色（アプリバー・下のタブ・スナックバーなど）の組み合わせは測っていません。
+- あとから足した部品を `index.html` で試した。長押しで選ぶ状態に入り、押すたびに選ぶ・外す、Esc で抜けること。引き出しが開き、項目を押すと閉じること。案内の吹き出しが指した部品の下に出て、次へ・スキップで進むこと。認証コードが違うと揺れて空になり、正しいコードが入ること。札の入力・カレンダーの日と月の切り替え・ホイール・スライダー・下の入力欄の送信・続きを読む・開閉・ページ送り（最後で「はじめる」に替わる）が動くこと。暗い画面・コンソールの見た目でも画像で崩れが無いことを確かめた。
+- `例_スマホ画面.html` で、2 行を長押しで選んで「対応不要」にまとめて判定し、「元に戻す」で 2 行とも戻ること、詳細の「続きを読む」と対応の履歴の開閉、案内の吹き出しを確かめた。
+
+確かめていないこと: 一度だけ、入力欄を選んでいないのに端末のキーボードが出た画像があった（同じ手順を 3 回くり返しても再現せず、原因は分かっていない。見えていない入力欄ではキーボードを出さない条件を足した）。実機での指の操作（払う・引いて更新・シートを引く）、iOS の Safari、Firefox、読み上げ機能での操作、文字と背景の明るさの差（コントラスト比）の測定。色の値は PC 版と同じですが、スマートフォン版で足した色（アプリバー・下のタブ・スナックバーなど）の組み合わせは測っていません。

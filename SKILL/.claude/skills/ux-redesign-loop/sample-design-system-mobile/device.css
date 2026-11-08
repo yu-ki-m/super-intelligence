@@ -17,7 +17,7 @@
  *       .dv-navbar           … 下の操作の帯（ジェスチャーのつまみ、または 戻る・ホーム・履歴 の 3 つのボタン）
  *       .dv-keyboard         … 画面のキーボード（入力欄を選ぶと下から出る）
  *       .dv-heads-up         … 画面の上に出る通知
- *       .dv-toast            … 画面の下に出る、端末の短い知らせ
+ *       .dv-toast            … 画面の下に出る、端末の短いお知らせ
  *       .dv-perm             … 端末の許可のダイアログ（通知・位置情報など）
  *       .dv-home             … ホーム画面（壁紙・時計・アプリのアイコン）
  *   .dv-controls             … 端末の横に置く、デモの操作盤（枠の色・操作の帯・明るさ・通知を試す）
@@ -296,7 +296,7 @@ iframe.dv-viewport { height: calc(100% - var(--dv-kb-h)); background: transparen
 /* 数字の入力欄では、数字の並びにする */
 .dv-keyboard--numeric .dv-key { height: 48px; font-size: 22px; }
 
-/* ========== 7. 通知・知らせ・許可 ========== */
+/* ========== 7. 通知・お知らせ・許可 ========== */
 /* 画面の上に出る通知（ヘッドアップ通知）。上へ払うと消える */
 .dv-heads-up {
   position: absolute;
@@ -322,7 +322,7 @@ iframe.dv-viewport { height: calc(100% - var(--dv-kb-h)); background: transparen
 .dv-heads-up__title { grid-column: 2 / 4; font-weight: 600; }
 .dv-heads-up__text { grid-column: 2 / 4; color: light-dark(#3c4043, #c4c7c5); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
-/* 端末の短い知らせ（トースト）。アプリのスナックバーとは別。操作のボタンを持たない */
+/* 端末の短いお知らせ（トースト）。アプリのスナックバーとは別。操作のボタンを持たない */
 .dv-toast {
   position: absolute;
   left: 50%;

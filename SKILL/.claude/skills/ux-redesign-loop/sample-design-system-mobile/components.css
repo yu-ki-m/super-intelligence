@@ -673,8 +673,8 @@ body > .ds-app { height: 100vh; height: 100dvh; }
 .ds-chip__count { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); font-variant-numeric: tabular-nums; }
 .ds-chip[aria-pressed="true"] .ds-chip__count { color: inherit; }
 
-/* ========== 9. 知らせ ========== */
-/* アラート（中身の中に置く枠付きの知らせ） */
+/* ========== 9. お知らせ ========== */
+/* アラート（中身の中に置く枠付きのお知らせ） */
 .ds-alert {
   display: flex; gap: var(--ds-space-s);
   padding: var(--ds-space-s) var(--ds-space-m);
@@ -692,7 +692,7 @@ body > .ds-app { height: 100vh; height: 100dvh; }
 .ds-alert--warning > .ds-icon { color: var(--ds-color-warning); }
 .ds-alert--error { --ds-alert-color: var(--ds-color-error); --ds-alert-bg: var(--ds-color-error-bg); }
 
-/* バナー（画面の上に残る知らせ。オフライン・権限が無いなど、直すまで消えないもの） */
+/* バナー（画面の上に残るお知らせ。オフライン・権限が無いなど、直すまで消えないもの） */
 .ds-banner {
   display: flex; gap: var(--ds-space-s); align-items: flex-start;
   padding: var(--ds-space-s) var(--ds-space-screen);
@@ -1069,3 +1069,387 @@ body > .ds-app { height: 100vh; height: 100dvh; }
   .ds-spinner, .ds-ptr.is-refreshing .ds-ptr__icon .ds-icon { animation-duration: 2.4s; }  /* 止めると読み込み中か分からないので、遅くする */
   .ds-skeleton, .ds-progress--indeterminate .ds-progress__bar { animation: none; }
 }
+
+/* =====================================================================
+ * 14. 入力（追加）
+ * ===================================================================== */
+/* スライダー（範囲の中から 1 つの値を選ぶ。--ds-fill は components.js が値に合わせて付ける） */
+.ds-slider { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-slider__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ds-space-xs); }
+.ds-slider__value { font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-slider input[type="range"] {
+  --ds-fill: 50%;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: var(--ds-size-touch);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.ds-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--ds-color-border-selected) var(--ds-fill), var(--ds-color-bg-muted) var(--ds-fill));
+}
+.ds-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px; margin-top: -10px;
+  border-radius: 50%;
+  border: 2px solid var(--ds-color-border-selected);
+  background: var(--ds-neutral-0);
+  box-shadow: var(--ds-shadow-raised);
+  transition: transform var(--ds-motion-duration-fast) var(--ds-motion-ease-spring);
+}
+.ds-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); }
+.ds-slider input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); }
+.ds-slider input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--ds-color-border-selected); }
+.ds-slider input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ds-color-border-selected); background: var(--ds-neutral-0); }
+.ds-slider input[type="range"]:focus-visible { outline: none; }
+.ds-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--ds-color-focus-ring); }
+.ds-slider__ticks { display: flex; justify-content: space-between; font-size: var(--ds-font-size-caption); line-height: var(--ds-line-height-caption); color: var(--ds-color-text-description); margin-top: -6px; }
+
+/* 日付の選択（カレンダー）。components.js が data-month の月を描き、押した日に aria-pressed を付ける */
+.ds-calendar { user-select: none; }
+.ds-calendar__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-xxs); }
+.ds-calendar__month { margin: 0; font-size: var(--ds-font-size-heading-s); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-calendar__grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+.ds-calendar__dow { display: grid; place-items: center; height: 28px; font-size: var(--ds-font-size-caption); color: var(--ds-color-text-secondary); }
+.ds-calendar__day {
+  position: relative;
+  justify-self: center;
+  width: 44px; height: 44px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: none;
+  color: var(--ds-color-text-body);
+  font: inherit; font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-calendar__day:active { background: var(--ds-color-pressed); }
+.ds-calendar__day[data-today] { box-shadow: inset 0 0 0 1.5px var(--ds-color-border-selected); font-weight: var(--ds-font-weight-bold); }
+.ds-calendar__day[aria-pressed="true"] { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); font-weight: var(--ds-font-weight-bold); box-shadow: none; }
+.ds-calendar__day:disabled { color: var(--ds-color-text-disabled); cursor: default; }
+/* 予定などの印（日付の下の点） */
+.ds-calendar__day[data-mark]::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+/* ホイール（時刻・数を、上下に回して選ぶ）。真ん中の帯に止まった項目が選ばれる */
+.ds-wheel {
+  position: relative;
+  display: flex;
+  gap: var(--ds-space-xxs);
+  height: 220px;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+}
+.ds-wheel::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; margin-top: -22px; border-radius: var(--ds-radius-input); background: var(--ds-color-bg-subtle); pointer-events: none; }
+.ds-wheel__col { position: relative; flex: 1; overflow-y: auto; scroll-snap-type: y mandatory; padding: 88px 0; scrollbar-width: none; overscroll-behavior: contain; outline: none; }
+.ds-wheel__col::-webkit-scrollbar { display: none; }
+.ds-wheel__col:focus-visible { box-shadow: inset 0 0 0 2px var(--ds-color-border-focus); border-radius: var(--ds-radius-input); }
+.ds-wheel__sep { position: relative; align-self: center; font-size: 20px; font-weight: var(--ds-font-weight-bold); }
+.ds-wheel__item { height: 44px; line-height: 44px; text-align: center; scroll-snap-align: center; font-size: 20px; color: var(--ds-color-text-secondary); font-variant-numeric: tabular-nums; cursor: pointer; transition: color var(--ds-motion-duration-fast); }
+.ds-wheel__item.is-selected { color: var(--ds-color-text-body); font-weight: var(--ds-font-weight-bold); }
+
+/* 認証コードの入力（1 文字ずつの枠。入れると次の枠へ進み、貼り付けると全部に入る） */
+.ds-otp { display: flex; gap: var(--ds-space-xs); justify-content: center; }
+.ds-otp input {
+  width: 46px; height: 56px;
+  padding: 0;
+  border: 1.5px solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  color: var(--ds-color-text-body);
+  font-family: var(--ds-font-family-mono);
+  font-size: 24px;
+  text-align: center;
+  caret-color: var(--ds-color-border-focus);
+}
+.ds-otp input:focus { outline: none; border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-otp[aria-invalid="true"] input { border-color: var(--ds-color-error); }
+.ds-otp.is-shake { animation: ds-shake var(--ds-motion-duration-slow) var(--ds-motion-ease-standard); }
+@keyframes ds-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+/* 札の入力（宛先・ラベルなど、複数の短い値。Enter か読点で札になる） */
+.ds-tag-input {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  min-height: var(--ds-size-control-height);
+  padding: 6px 8px;
+  border: var(--ds-border-width-input) solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  cursor: text;
+}
+.ds-tag-input:focus-within { border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-tag-input input { flex: 1; min-width: 6em; height: 34px; border: 0; padding: 0 4px; background: none; color: var(--ds-color-text-body); font: inherit; font-size: var(--ds-font-size-input); outline: none; }
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 32px;
+  padding: 0 2px 0 10px;
+  border-radius: var(--ds-radius-chip);
+  background: var(--ds-color-bg-selected);
+  color: var(--ds-color-chip-text);
+  font-size: var(--ds-font-size-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+}
+.ds-tag__remove { position: relative; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+.ds-tag__remove::after { content: ""; position: absolute; inset: -8px -4px; }
+.ds-tag__remove .ds-icon { width: 14px; height: 14px; vertical-align: 0; }
+
+/* 添付（写真・ファイルの小さなタイル。送信中は下に進み具合） */
+.ds-attach { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: var(--ds-space-xs); }
+.ds-attach__item, .ds-attach__add {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 6px;
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-attach-thumb, var(--ds-color-bg-subtle)) center / cover;
+  overflow: hidden;
+  font-size: var(--ds-font-size-caption);
+  line-height: var(--ds-line-height-caption);
+}
+.ds-attach__icon { position: absolute; top: 38%; left: 50%; translate: -50% -50%; color: var(--ds-color-text-secondary); }
+.ds-attach__icon.ds-icon { width: 28px; height: 28px; }
+.ds-attach__name { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ds-color-text-secondary); }
+.ds-attach__item--photo .ds-attach__name { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.ds-attach__remove {
+  position: absolute; top: 4px; right: 4px;
+  display: grid; place-items: center;
+  width: 26px; height: 26px; padding: 0;
+  border: 0; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55); color: #fff;
+  cursor: pointer;
+}
+.ds-attach__remove::after { content: ""; position: absolute; inset: -10px; }
+.ds-attach__remove .ds-icon { width: 14px; height: 14px; vertical-align: 0; }
+.ds-attach__progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--ds-color-bg-muted); }
+.ds-attach__progress::before { content: ""; display: block; height: 100%; width: var(--ds-progress, 0%); background: var(--ds-color-border-selected); transition: width var(--ds-motion-duration-slow); }
+.ds-attach__add { align-items: center; justify-content: center; gap: 4px; border: 1.5px dashed var(--ds-color-border-input); background: none; color: var(--ds-color-text-secondary); font: inherit; font-size: var(--ds-font-size-caption); cursor: pointer; }
+.ds-attach__add .ds-icon { width: 24px; height: 24px; }
+
+/* 画面の下に固定する入力欄（コメント・相談。.ds-screen の最後に置く） */
+.ds-composer {
+  position: relative; z-index: 2;
+  flex: none;
+  display: flex; align-items: flex-end; gap: var(--ds-space-xxs);
+  padding: var(--ds-space-xs) calc(var(--ds-space-xs) + var(--ds-safe-right)) calc(var(--ds-space-xs) + var(--ds-screen-safe-bottom, 0px)) calc(var(--ds-space-xxs) + var(--ds-safe-left));
+  background: var(--ds-color-bg-container);
+  border-top: 1px solid var(--ds-color-border-divider);
+}
+.ds-composer__field { flex: 1; min-width: 0; display: flex; align-items: flex-end; border-radius: 24px; background: var(--ds-color-bg-subtle); padding: 0 var(--ds-space-xxs) 0 var(--ds-space-m); }
+.ds-composer__field:focus-within { box-shadow: 0 0 0 2px var(--ds-color-border-focus); }
+.ds-composer textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 120px; padding: 12px 0; border: 0; background: none; color: var(--ds-color-text-body); font: inherit; font-size: var(--ds-font-size-input); line-height: 24px; resize: none; outline: none; field-sizing: content; }
+.ds-composer__send { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+.ds-composer__send:disabled { background: transparent; color: var(--ds-color-text-disabled); }
+
+/* =====================================================================
+ * 15. 表示（追加）
+ * ===================================================================== */
+/* 数値のタイル（件数・割合を 2 列で。増減は矢印と文字で示し、色だけに頼らない） */
+.ds-stats { display: grid; grid-template-columns: repeat(var(--ds-cols, 2), minmax(0, 1fr)); gap: var(--ds-space-xs); }
+.ds-stat {
+  position: relative;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--ds-space-s) 14px;
+  border: var(--ds-border-width-container) solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-container);
+  background: var(--ds-color-bg-container);
+  color: inherit; text-decoration: none;
+}
+.ds-stat__label { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-stat__value { font-size: 26px; line-height: 32px; font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.ds-stat__unit { margin-left: 2px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); }
+.ds-stat__delta { display: inline-flex; align-items: center; gap: 2px; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-stat__delta--good { color: var(--ds-color-success); }
+.ds-stat__delta--bad { color: var(--ds-color-error); }
+
+/* 円の進み具合（--ds-ring に 0〜100） */
+.ds-ring {
+  --ds-ring-size: 56px;
+  --ds-ring-width: 6px;
+  position: relative;
+  display: inline-grid; place-items: center;
+  width: var(--ds-ring-size); height: var(--ds-ring-size);
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--ds-ring-color, var(--ds-color-border-selected)) calc(var(--ds-ring, 0) * 1%), var(--ds-color-bg-muted) 0);
+}
+.ds-ring::before { content: ""; position: absolute; inset: var(--ds-ring-width); border-radius: 50%; background: var(--ds-ring-bg, var(--ds-color-bg-container)); }
+.ds-ring__value { position: relative; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-ring--l { --ds-ring-size: 96px; --ds-ring-width: 9px; }
+.ds-ring--l .ds-ring__value { font-size: var(--ds-font-size-heading-m); }
+.ds-ring--success { --ds-ring-color: var(--ds-color-success); }
+
+/* 時系列（誰が・いつ・何をしたかの履歴） */
+.ds-timeline { list-style: none; margin: 0; padding: 0; }
+.ds-timeline > li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: var(--ds-space-s); padding-bottom: var(--ds-space-m); }
+.ds-timeline > li:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 36px; bottom: 4px; width: 2px; border-radius: 1px; background: var(--ds-color-border-divider); }
+.ds-timeline__mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-secondary); }
+.ds-timeline__mark .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-timeline__mark--success { background: var(--ds-color-success-bg); color: var(--ds-color-success); }
+.ds-timeline__mark--error { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+.ds-timeline__mark--accent { background: var(--ds-color-bg-selected); color: var(--ds-color-text-accent); }
+.ds-timeline__title { padding-top: 5px; }
+.ds-timeline__meta { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-timeline__body { margin-top: 6px; padding: 10px 12px; border-radius: var(--ds-radius-input); background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); }
+
+/* 会話（相談・コメントのやり取り） */
+.ds-thread { display: flex; flex-direction: column; gap: var(--ds-space-xs); }
+.ds-thread__day { align-self: center; margin: var(--ds-space-xs) 0; padding: 2px 10px; border-radius: 999px; background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-caption); line-height: 18px; color: var(--ds-color-text-secondary); }
+.ds-message { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 82%; align-self: flex-start; }
+.ds-message__author { padding: 0 6px; font-size: var(--ds-font-size-caption); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.ds-message__bubble { padding: 9px 14px; border-radius: 18px 18px 18px 6px; background: var(--ds-color-message-other-bg); color: var(--ds-color-text-body); overflow-wrap: anywhere; }
+.ds-message__meta { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; font-size: var(--ds-font-size-caption); line-height: var(--ds-line-height-caption); color: var(--ds-color-text-description); }
+.ds-message__meta .ds-icon { width: 12px; height: 12px; vertical-align: 0; }
+.ds-message--mine { align-self: flex-end; align-items: flex-end; }
+.ds-message--mine .ds-message__bubble { border-radius: 18px 18px 6px 18px; background: var(--ds-color-message-mine-bg); color: var(--ds-color-message-mine-text); }
+.ds-message--failed .ds-message__meta { color: var(--ds-color-error); }
+.ds-message--failed .ds-message__bubble { opacity: 0.7; }
+
+/* 顔の大きさ・顔の重なり（担当者・参加者を 3〜4 人まで見せ、残りは数） */
+.ds-avatar--s { width: 32px; height: 32px; font-size: var(--ds-font-size-body-s); }
+.ds-avatar--l { width: 56px; height: 56px; font-size: var(--ds-font-size-heading-m); }
+.ds-avatar-group { display: inline-flex; align-items: center; }
+.ds-avatar-group > .ds-avatar { width: 32px; height: 32px; font-size: var(--ds-font-size-body-s); box-shadow: 0 0 0 2px var(--ds-color-bg-container); }
+.ds-avatar-group > .ds-avatar + .ds-avatar { margin-left: -8px; }
+.ds-avatar--more { background: var(--ds-color-bg-muted); color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-caption); }
+
+/* 開閉できるまとまり（details。詳細の画面で、読む人が限られる情報を畳む） */
+.ds-expandable { border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-expandable > summary {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  min-height: 52px;
+  padding: var(--ds-space-xs) var(--ds-space-screen);
+  list-style: none;
+  font-weight: var(--ds-font-weight-bold);
+  cursor: pointer;
+  user-select: none;
+}
+.ds-expandable > summary::-webkit-details-marker { display: none; }
+.ds-expandable > summary:active { background: var(--ds-color-pressed); }
+.ds-expandable__summary-text { flex: 1; min-width: 0; }
+.ds-expandable__summary-text .ds-text-small { display: block; font-weight: var(--ds-font-weight-normal); }
+.ds-expandable__chevron { color: var(--ds-color-text-description); transition: transform var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.ds-expandable[open]:not(.is-closing) > summary .ds-expandable__chevron { transform: rotate(180deg); }
+.ds-expandable__body { padding: 0 var(--ds-space-screen) var(--ds-space-m); }
+
+/* 続きを読む（長い説明を 3 行で切り、押すと全文。切れていなければボタンを出さない） */
+.ds-more__text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--ds-more-lines, 3); line-clamp: var(--ds-more-lines, 3); overflow: hidden; }
+.ds-more.is-open .ds-more__text { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+.ds-more__toggle { min-height: 40px; padding: 0; border: 0; background: none; color: var(--ds-color-text-link); font: inherit; font-weight: var(--ds-font-weight-bold); cursor: pointer; }
+.ds-more:not(.is-clamped):not(.is-open) .ds-more__toggle { display: none; }
+
+/* ページの印と、横に送るページ（初めて使う人への案内・写真の送り） */
+.ds-pager { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.ds-pager::-webkit-scrollbar { display: none; }
+.ds-pager > * { scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
+.ds-dots { display: flex; justify-content: center; gap: 6px; }
+.ds-dots > span { width: 6px; height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); transition: width var(--ds-motion-duration-base) var(--ds-motion-ease-spring), background-color var(--ds-motion-duration-fast); }
+.ds-dots > span[aria-current="true"] { width: 20px; background: var(--ds-color-border-selected); }
+.ds-onboard { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-xl) var(--ds-space-xl) var(--ds-space-m); text-align: center; }
+.ds-onboard__art { display: grid; place-items: center; width: 120px; height: 120px; margin-bottom: var(--ds-space-xs); border-radius: 36px; background: var(--ds-color-bg-selected); color: var(--ds-color-text-accent); }
+.ds-onboard__art .ds-icon { width: 52px; height: 52px; stroke-width: 1.2; }
+.ds-onboard__title { margin: 0; font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); font-weight: var(--ds-font-weight-bold); }
+.ds-onboard__body { margin: 0; color: var(--ds-color-text-secondary); }
+
+/* 残り時間（期限・試験の時間。1 分を切ると黄、0 で赤。components.js が data-seconds から数える） */
+.ds-timer { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); font-family: var(--ds-font-family-mono); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ds-timer .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-timer--warning { background: var(--ds-color-warning-bg); color: var(--ds-color-warning); }
+.ds-timer--expired { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* 続きの読み込み（一覧の最後。読み込み中・失敗・これで全部） */
+.ds-load-more { display: flex; align-items: center; justify-content: center; gap: var(--ds-space-xs); min-height: 56px; padding: 0 var(--ds-space-screen); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+/* 失敗の状態（空の状態の、読み込めなかったときの形。やり直すボタンを置く） */
+.ds-empty--error .ds-empty__icon { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* =====================================================================
+ * 16. 操作（追加）
+ * ===================================================================== */
+/* 選ぶ状態（行を長押しすると入り、押すたびに選ぶ・外す。アプリバーが「n 件を選択中」に替わる）
+ * <ul class="ds-list" data-selectable> の行に .ds-cell__check を置き、画面に選ぶ状態のアプリバー（hidden）を置く */
+.ds-cell__check {
+  display: none;
+  place-items: center;
+  width: 24px; height: 24px; flex: none;
+  border: 2px solid var(--ds-color-border-input);
+  border-radius: 50%;
+  color: transparent;
+}
+.ds-cell__check .ds-icon { width: 14px; height: 14px; stroke-width: 3; vertical-align: 0; }
+.is-selecting .ds-cell__check { display: grid; animation: ds-pop var(--ds-motion-duration-base) var(--ds-motion-ease-bounce); }
+.is-selecting .ds-cell__chevron, .is-selecting .ds-cell__unread { display: none; }
+.ds-cell[aria-selected="true"] { background: var(--ds-color-bg-selected); }
+.ds-cell[aria-selected="true"] .ds-cell__check { border-color: var(--ds-color-border-selected); background: var(--ds-color-border-selected); color: var(--ds-neutral-0); }
+.is-selecting .ds-swipe__action { display: none; }
+.ds-appbar--selection { background: var(--ds-color-bg-selected); color: var(--ds-color-text-body); --ds-color-appbar-text-secondary: var(--ds-color-text-secondary); }
+.ds-appbar--selection .ds-appbar__title { font-variant-numeric: tabular-nums; }
+
+/* 横から出る引き出し（ナビゲーションドロワー）。行き先が 6 つ以上あるとき、下のタブに入らないものを入れる */
+.ds-drawer {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  z-index: 21;
+  display: flex; flex-direction: column;
+  width: min(320px, 86%);
+  padding: calc(var(--ds-safe-top) + var(--ds-space-xs)) 0 calc(var(--ds-safe-bottom) + var(--ds-space-xs));
+  border-radius: 0 var(--ds-radius-sheet) var(--ds-radius-sheet) 0;
+  background: var(--ds-color-bg-sheet);
+  box-shadow: var(--ds-shadow-dialog);
+  outline: none;
+  overflow-y: auto;
+}
+.ds-drawer[hidden] { display: none; }
+.ds-drawer__header { display: flex; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-s) var(--ds-space-l) var(--ds-space-m); }
+.ds-drawer__section { margin: var(--ds-space-s) 0 var(--ds-space-xxs); padding: 0 var(--ds-space-l) 0 28px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.ds-drawer__item {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  min-height: 52px;
+  margin: 0 var(--ds-space-s);
+  padding: 0 var(--ds-space-m);
+  border: 0; border-radius: 26px;
+  background: none;
+  color: var(--ds-color-text-body);
+  font: inherit; text-align: left; text-decoration: none;
+  cursor: pointer;
+}
+.ds-drawer__item > .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); color: var(--ds-color-text-secondary); }
+.ds-drawer__item > .ds-count, .ds-drawer__item > .ds-drawer__value { margin-left: auto; }
+.ds-drawer__value { font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+.ds-drawer__item:active { background: var(--ds-color-pressed); }
+.ds-drawer__item[aria-current="page"] { background: var(--ds-color-tabbar-current-bg); font-weight: var(--ds-font-weight-bold); }
+.ds-drawer__item[aria-current="page"] > .ds-icon { color: var(--ds-color-tabbar-current-text); }
+
+/* 案内の吹き出し（初めて使う人に、画面の部品を順に指して説明する）。ds.coach() で出す */
+.ds-coach-scrim { position: absolute; inset: 0; z-index: 22; }
+.ds-coach-ring {
+  position: absolute; z-index: 23;
+  border-radius: var(--ds-radius-input);
+  box-shadow: 0 0 0 3px var(--ds-color-coach-ring), 0 0 0 9999px var(--ds-color-overlay);
+  pointer-events: none;
+  transition: top var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), left var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), width var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), height var(--ds-motion-duration-slow) var(--ds-motion-ease-spring);
+}
+.ds-coach {
+  position: absolute; z-index: 24;
+  left: var(--ds-space-m); right: var(--ds-space-m);
+  padding: 14px 16px 6px;
+  border-radius: var(--ds-radius-alert);
+  background: var(--ds-color-coach-bg);
+  color: var(--ds-color-coach-text);
+  box-shadow: var(--ds-shadow-dialog);
+  transition: top var(--ds-motion-duration-slow) var(--ds-motion-ease-spring);
+}
+.ds-coach::before { content: ""; position: absolute; left: var(--ds-coach-arrow, 50%); width: 14px; height: 14px; margin-left: -7px; background: inherit; border-radius: 2px; rotate: 45deg; }
+.ds-coach--below::before { top: -6px; }
+.ds-coach--above::before { bottom: -6px; }
+.ds-coach__step { font-size: var(--ds-font-size-caption); color: var(--ds-neutral-400); }
+.ds-coach__text { margin: 2px 0 4px; font-size: var(--ds-font-size-body-s); line-height: 20px; }
+.ds-coach__actions { display: flex; justify-content: space-between; margin: 0 -10px; }
+.ds-coach .ds-btn--link { color: var(--ds-neutral-300); min-height: 40px; }
+.ds-coach .ds-btn--link:last-child { color: var(--ds-primary-300); }
+
+:where(:root[data-look="console"]) .ds-drawer__item[aria-current="page"] { color: var(--ds-color-text-link); }
+
+/* hidden を付けた部品は、部品の display の指定より優先して隠す（display: flex などを持つ部品でも hidden が効くように） */
+.ds-body [hidden] { display: none !important; }

@@ -100,6 +100,9 @@
   <symbol id="ds-i-enter" viewBox="0 0 16 16"><path d="M13.5 3v5.5h-10"/><path d="M6 6L3.5 8.5 6 11"/></symbol>
   <symbol id="ds-i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
   <symbol id="ds-i-swipe" viewBox="0 0 16 16"><path d="M2 5h9M8.5 2.5L11 5 8.5 7.5"/><path d="M14 11H5M7.5 8.5L5 11l2.5 2.5"/></symbol>
+  <symbol id="ds-i-send" viewBox="0 0 16 16"><path d="M14.5 1.5L7 9M14.5 1.5L10 14.5 7 9 1.5 6z"/></symbol>
+  <symbol id="ds-i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></symbol>
+  <symbol id="ds-i-image" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M14.5 11l-4-4-6 6.5"/></symbol>
   <symbol id="dv-i-nav-back" viewBox="0 0 16 16"><path d="M11.5 2.5v11L3 8z"/></symbol>
   <symbol id="dv-i-nav-home" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></symbol>
   <symbol id="dv-i-nav-recents" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5"/></symbol>
@@ -117,6 +120,17 @@
 
               <!-- 未判定（最上位の画面） -->
               <section class="ds-screen" id="s-inbox" aria-labelledby="t-inbox">
+                <header class="ds-appbar ds-appbar--selection" hidden>
+                  <div class="ds-appbar__row">
+                    <button type="button" class="ds-btn ds-btn--icon" data-selection-cancel aria-label="選ぶのをやめる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+                    <p class="ds-appbar__title" data-selection-count aria-live="polite">0 件を選択中</p>
+                    <div class="ds-appbar__actions">
+                      <button type="button" class="ds-btn ds-btn--icon" data-selection-all aria-label="すべて選ぶ"><svg class="ds-icon"><use href="#ds-i-list"/></svg></button>
+                      <button type="button" class="ds-btn ds-btn--icon" id="bulk-fp" aria-label="選んだものを対応不要にする"><svg class="ds-icon"><use href="#ds-i-success"/></svg></button>
+                      <button type="button" class="ds-btn ds-btn--icon" id="bulk-tp" aria-label="選んだものを対応が必要にする"><svg class="ds-icon"><use href="#ds-i-warning"/></svg></button>
+                    </div>
+                  </div>
+                </header>
                 <header class="ds-appbar ds-appbar--large">
                   <div class="ds-appbar__row">
                     <p class="ds-appbar__title" aria-hidden="true">未判定</p>
@@ -150,8 +164,8 @@
                       </div>
                     </div>
                   </div>
-                  <p class="ds-list__header"><span>新しい順</span><span class="ex-hint"><svg class="ds-icon"><use href="#ds-i-swipe"/></svg>払って仕分け</span></p>
-                  <ul class="ds-list" id="inbox-list"></ul>
+                  <p class="ds-list__header"><span>新しい順</span><span class="ex-hint"><svg class="ds-icon"><use href="#ds-i-swipe"/></svg>払う・長押しで選ぶ</span></p>
+                  <ul class="ds-list" id="inbox-list" data-selectable></ul>
                   <div class="ds-empty" id="inbox-empty" hidden>
                     <span class="ds-empty__icon"><svg class="ds-icon"><use href="#ds-i-success"/></svg></span>
                     <p class="ds-empty__title">すべて仕分けました</p>
@@ -209,7 +223,7 @@
                   <h1 class="ds-appbar__large" id="t-settings">設定</h1>
                 </header>
                 <main class="ds-content">
-                  <h2 class="ds-list__header">知らせ</h2>
+                  <h2 class="ds-list__header">お知らせ</h2>
                   <ul class="ds-list ds-list--inset">
                     <li><label class="ds-cell ds-cell--2line">
                       <span class="ds-cell__lead ds-cell__lead--tile"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></span>
@@ -356,15 +370,17 @@
       <span class="dv-controls__label">端末の出来事を起こす</span>
       <div class="ds-btn-stack">
         <button type="button" class="ds-btn" id="demo-notify"><svg class="ds-icon"><use href="#ds-i-bell"/></svg>新しい検出を通知する</button>
+        <button type="button" class="ds-btn" id="demo-coach"><svg class="ds-icon"><use href="#ds-i-bulb"/></svg>使い方の案内を出す</button>
         <button type="button" class="ds-btn" id="demo-home"><svg class="ds-icon"><use href="#ds-i-home"/></svg>ホーム画面へ</button>
       </div>
     </div>
-    <p class="dv-controls__note">行を右へ払うと「対応不要」、左へ払うと「対応が必要」。画面の左右の端から内へ払うと戻り、下のつまみを上へ払うとホーム画面へ移ります。一覧の先頭で下へ引くと更新します。</p>
+    <p class="dv-controls__note">行を右へ払うと「対応不要」、左へ払うと「対応が必要」。行を長押しすると、まとめて選べます。画面の左右の端から内へ払うと戻り、下のつまみを上へ払うとホーム画面へ移ります。一覧の先頭で下へ引くと更新します。</p>
   </aside>
 </div>
 
 <script>
-(() => {
+/* components.js と device.js（defer）を読み終えてから動かす */
+document.addEventListener('DOMContentLoaded', () => {
   /* ===== 見本のデータ（脆弱性の番号は実在。パッケージの使われ方・判定・時刻は架空） ===== */
   const SEV = { critical: '重大', high: '高', medium: '中', low: '低' };
   const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -411,6 +427,7 @@
   /* ===== 一覧 ===== */
   const rowHtml = (f, swipe = true) => {
     const cell = `<a class="ds-cell ds-cell--2line" href="#" data-finding="${f.id}">
+        <span class="ds-cell__check" aria-hidden="true"><svg class="ds-icon"><use href="#ds-i-check"/></svg></span>
         ${f.isNew && f.verdict === 'pending' ? '<span class="ds-cell__unread" aria-label="未読"></span>' : ''}
         <span class="ds-cell__body">
           <span class="ds-cell__title"><span class="ds-mono">${esc(f.cve)}</span></span>
@@ -483,6 +500,28 @@
     });
   };
 
+  // まとめて判定（長押しで選んだ行）。取り消しは 1 回の「元に戻す」でまとめて戻す
+  const decideMany = verdict => {
+    const scope = $('#s-inbox');
+    const list = ds.selection.selected(scope).map(c => byId(c.dataset.finding)).filter(Boolean);
+    if (!list.length) return;
+    const before = list.map(f => ({ f, verdict: f.verdict, reason: f.reason, note: f.note }));
+    list.forEach(f => { f.verdict = verdict; f.reason = 'まとめて判定（理由なし）'; f.isNew = false; });
+    ds.selection.exit(scope);
+    Promise.all(list.map(f => ds.remove($(`#inbox-list > li[data-id="${f.id}"]`)))).then(renderInbox);
+    renderCounts();
+    ds.snackbar({
+      message: `${list.length} 件を「${LABEL[verdict]}」にしました`, action: '元に戻す', within: app,
+      onAction: () => {
+        before.forEach(b => Object.assign(b.f, { verdict: b.verdict, reason: b.reason, note: b.note }));
+        renderInbox();
+        [...$('#inbox-list').children].forEach(li => ds.enter(li));
+      },
+    });
+  };
+  $('#bulk-fp').addEventListener('click', () => decideMany('fp'));
+  $('#bulk-tp').addEventListener('click', () => decideMany('tp'));
+
   // 行を払う: 右へ払うと「対応不要」、左へ払うと「対応が必要」。理由は付けずに決め、あとから詳細で直せる
   document.addEventListener('ds-swipe', e => {
     const li = e.target.closest('li[data-id]');
@@ -551,6 +590,7 @@
     $('#d-body').innerHTML = `
       <div class="ex-detail-head"><span class="ds-severity ds-severity--${f.sev}">${SEV[f.sev]}</span>${verdictHtml(f, false)}<span class="ds-text-small">${esc(f.service)} ・ ${esc(f.age)}</span></div>
       <h2 class="ds-h2">${esc(f.title)}</h2>
+      <div class="ds-more"><p class="ds-p ds-more__text ds-text-secondary">${esc(f.pkg)} の ${esc(f.ver)} には、「${esc(f.title)}」という弱点があります。攻撃する人が細工した値を渡せる場所でこの処理を使っていると、サービスが止まったり、意図しない処理が動いたりするおそれがあります。${esc(f.fixed)} 以上へ上げると直ります。すぐに上げられない場合は、外から入る値をこの処理に渡していないかを確かめ、渡していなければ「対応不要」にできます。</p><button type="button" class="ds-more__toggle" aria-expanded="false">続きを読む</button></div>
       ${f.reason ? `<div class="ds-alert"><svg class="ds-icon"><use href="#ds-i-info"/></svg><div class="ds-alert__body"><div class="ds-alert__title">判定の理由</div>${esc(f.reason)}${f.note ? `<div class="ds-text-small">${esc(f.note)}</div>` : ''}</div></div>` : ''}
       <dl class="ds-kv ds-kv--2col">
         <div><dt>入っている版</dt><dd class="ds-mono">${esc(f.ver)}</dd></div>
@@ -570,7 +610,18 @@
       <section>
         <h3 class="ex-section-title">該当する箇所</h3>
         <pre class="ds-code" aria-label="${esc(f.file)}">${f.code.map(([n, html, hit]) => `<span class="ds-code__line${hit ? ' ds-code__line--hit' : ''}"><span class="ds-code__num">${n}</span>${html}</span>`).join('')}</pre>
-      </section>`;
+      </section>
+      <details class="ds-expandable" style="margin-inline: calc(var(--ds-space-screen) * -1); border-top: 1px solid var(--ds-color-border-divider)">
+        <summary><span class="ds-expandable__summary-text">対応の履歴<span class="ds-text-small">${f.verdict === 'pending' ? 2 : 3} 件</span></span><svg class="ds-icon ds-expandable__chevron"><use href="#ds-i-caret-down"/></svg></summary>
+        <div class="ds-expandable__body">
+          <ol class="ds-timeline">
+            ${f.verdict !== 'pending' ? `<li><span class="ds-timeline__mark ds-timeline__mark--${f.verdict === 'tp' ? 'error' : 'success'}"><svg class="ds-icon"><use href="#ds-i-${f.verdict === 'tp' ? 'warning' : 'success'}"/></svg></span><div><div class="ds-timeline__title">佐藤さんが「${LABEL[f.verdict]}」にした</div><div class="ds-timeline__meta">今</div>${f.reason ? `<div class="ds-timeline__body">${esc(f.reason)}</div>` : ''}</div></li>` : ''}
+            <li><span class="ds-timeline__mark ds-timeline__mark--accent"><svg class="ds-icon"><use href="#ds-i-user"/></svg></span><div><div class="ds-timeline__title">佐藤さんに割り当てた</div><div class="ds-timeline__meta">${esc(f.age)} ・ 自動</div></div></li>
+            <li><span class="ds-timeline__mark"><svg class="ds-icon"><use href="#ds-i-search"/></svg></span><div><div class="ds-timeline__title">${esc(f.service)} サービスの検査で見つけた</div><div class="ds-timeline__meta">${esc(f.age)}</div></div></li>
+          </ol>
+        </div>
+      </details>`;
+    ds.init($('#d-body'));
     $('#d-body').closest('.ds-content').scrollTop = 0;
     $('#s-detail .ds-appbar').classList.remove('is-scrolled');
   };
@@ -674,10 +725,21 @@
     });
   });
   $('#demo-home').addEventListener('click', () => dv.home());
+  $('#demo-coach').addEventListener('click', () => {
+    dv.openApp();
+    const inbox = app.querySelector('[data-screen="s-inbox"]');
+    if (inbox.getAttribute('aria-current') !== 'page') inbox.click();
+    if (app._dsHistory?.length) { app._dsHistory.length = 1; ds.pop(app); }
+    setTimeout(() => ds.coach([
+      { target: '#filter-chips', text: '深刻度で絞り込めます。数は、まだ判定していない件数です。' },
+      { target: '#inbox-list > li:first-child', text: '行を右へ払うと「対応不要」、左へ払うと「対応が必要」になります。長押しすると、まとめて選べます。' },
+      { target: '.ds-tabbar__item[data-screen="s-done"]', text: '判定したものは「判定済み」で見直せます。間違えたら、詳細の ⋮ から未判定に戻せます。' },
+    ], { within: app }), 450);
+  });
 
   renderInbox();
   markSettings();
-})();
+});
 </script>
 </body>
 </html>

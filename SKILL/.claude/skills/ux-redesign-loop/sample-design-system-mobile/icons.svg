@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <!-- 16x16 の線のアイコン（自作）。PC 版の 60 個に、スマートフォン版で 17 個を足した。ds-i-* はアプリの部品、dv-i-* は端末（device.css）の部品が使う。
+  <!-- 16x16 の線のアイコン（自作）。PC 版の 60 個に、スマートフォン版で 20 個を足した。ds-i-* はアプリの部品、dv-i-* は端末（device.css）の部品が使う。
        <svg class="ds-icon"><use href="icons.svg#ds-i-info"/></svg> で使う。
        file:// で開くと外部参照が読めないブラウザがあるため、見本の HTML には同じ定義を埋め込んでいる。
        アイコンを足したら sync-icons.py を実行して、HTML の埋め込みも揃える。 -->
@@ -76,6 +76,9 @@
   <symbol id="ds-i-enter" viewBox="0 0 16 16"><path d="M13.5 3v5.5h-10"/><path d="M6 6L3.5 8.5 6 11"/></symbol>
   <symbol id="ds-i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
   <symbol id="ds-i-swipe" viewBox="0 0 16 16"><path d="M2 5h9M8.5 2.5L11 5 8.5 7.5"/><path d="M14 11H5M7.5 8.5L5 11l2.5 2.5"/></symbol>
+  <symbol id="ds-i-send" viewBox="0 0 16 16"><path d="M14.5 1.5L7 9M14.5 1.5L10 14.5 7 9 1.5 6z"/></symbol>
+  <symbol id="ds-i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></symbol>
+  <symbol id="ds-i-image" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M14.5 11l-4-4-6 6.5"/></symbol>
   <symbol id="dv-i-nav-back" viewBox="0 0 16 16"><path d="M11.5 2.5v11L3 8z"/></symbol>
   <symbol id="dv-i-nav-home" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></symbol>
   <symbol id="dv-i-nav-recents" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5"/></symbol>

@@ -3,7 +3,7 @@
  * <script src="components.js" defer></script> で読み込む。各画面の固有の動き（保存・計算など）はここに入れない。
  *
  * 構成
- *   1. 動きの土台（window.ds）: 前後の形を測って動かす関数と、重なる部品・画面の移動・知らせの関数。画面の側からも呼べる。
+ *   1. 動きの土台（window.ds）: 前後の形を測って動かす関数と、重なる部品・画面の移動・お知らせの関数。画面の側からも呼べる。
  *   2. 部品の共通の動き: 見た目と明るさの切り替え、下のタブ、上のタブ、札、メニュー、数の増減など。
  *   3. 指の動き: シートを引いて閉じる、行を払う（スワイプ）、引いて更新、送りに合わせたアプリバーの変化。
  *
@@ -86,30 +86,50 @@ window.ds = (() => {
     });
   };
 
-  /* ----- メニュー（details）: 浮かんで現れる ----- */
+  /* ----- details の開閉: メニューは浮かんで現れ、開閉できるまとまり（.ds-expandable）は高さが伸び縮みする ----- */
+  const isDisclosure = d => d.matches('.ds-expandable');
+  const heightFrames = (body, opening) => {
+    const cs = getComputedStyle(body);
+    const h = body.getBoundingClientRect().height / scaleOf(body);
+    const shut = { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 };
+    const full = { height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1 };
+    return opening ? [shut, full] : [full, shut];
+  };
   const openDetails = d => {
     if (d.open && !d.classList.contains('is-closing')) return;
     d.classList.remove('is-closing');
     d.open = true;
     const body = d.querySelector(':scope > :not(summary)');
-    if (body) play(body, [{ opacity: 0, transform: 'scale(0.92)' }, { opacity: 1, transform: 'none' }],
-      { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-enter') });
+    if (!body) return;
+    if (isDisclosure(d)) {
+      body.classList.add('is-motion-clip');
+      play(body, heightFrames(body, true), { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-standard') })
+        .done.then(() => body.classList.remove('is-motion-clip'));
+    } else {
+      play(body, [{ opacity: 0, transform: 'scale(0.92)' }, { opacity: 1, transform: 'none' }],
+        { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-enter') });
+    }
   };
   const closeDetails = d => {
     if (!d.open || d.classList.contains('is-closing')) return;
     const body = d.querySelector(':scope > :not(summary)');
     if (!body || reduce.matches) { d.open = false; return; }
     d.classList.add('is-closing');
-    const run = play(body, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }],
-      { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' });
+    if (isDisclosure(d)) body.classList.add('is-motion-clip');
+    const run = isDisclosure(d)
+      ? play(body, heightFrames(body, false), { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-standard'), fill: 'forwards' })
+      : play(body, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.96)' }],
+        { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' });
     run.done.then(finished => {
       if (finished && d.classList.contains('is-closing')) { d.open = false; d.classList.remove('is-closing'); run.animation.cancel(); }
+      body.classList.remove('is-motion-clip');
     });
   };
 
   /* ----- 重なる部品（シート・ダイアログ）----- */
   const layers = [];   // 開いている順
   const isSheet = el => el.classList.contains('ds-sheet');
+  const isDrawer = el => el.classList.contains('ds-drawer');
   const open = (el, { returnFocus } = {}) => {
     if (!el || (!el.hidden && !el.classList.contains('is-closing'))) return Promise.resolve();
     const app = appOf(el);
@@ -135,7 +155,9 @@ window.ds = (() => {
     play(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: ms('--ds-motion-duration-base'), easing: 'linear' });
     const run = isSheet(el)
       ? play(el, [{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: ms('--ds-motion-duration-slow'), easing: ease('--ds-motion-ease-enter') })
-      : play(el, [{ opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1 }], { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-spring') });
+      : isDrawer(el)
+        ? play(el, [{ transform: 'translateX(-100%)' }, { transform: 'none' }], { duration: ms('--ds-motion-duration-slow'), easing: ease('--ds-motion-ease-enter') })
+        : play(el, [{ opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1 }], { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-spring') });
     (el.querySelector('[autofocus]') || el).focus({ preventScroll: true });
     fire(el, 'ds-open');
     return run.done;
@@ -149,7 +171,9 @@ window.ds = (() => {
     if (scrim) play(scrim, [{ opacity: getComputedStyle(scrim).opacity }, { opacity: 0 }], { duration: ms('--ds-motion-duration-base'), easing: 'linear', fill: 'forwards' });
     const run = isSheet(el)
       ? play(el, [{ transform: `translateY(${from}px)` }, { transform: 'translateY(100%)' }], { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' })
-      : play(el, [{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.96 }], { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' });
+      : isDrawer(el)
+        ? play(el, [{ transform: 'none' }, { transform: 'translateX(-100%)' }], { duration: ms('--ds-motion-duration-base'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' })
+        : play(el, [{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.96 }], { duration: ms('--ds-motion-duration-fast'), easing: ease('--ds-motion-ease-exit'), fill: 'forwards' });
     return run.done.then(() => {
       el.hidden = true;
       el.classList.remove('is-closing');
@@ -252,6 +276,8 @@ window.ds = (() => {
     if (top) { close(top, 'back'); return true; }
     const menu = [...document.querySelectorAll('details.ds-menu[open]')].find(within);
     if (menu) { closeDetails(menu); return true; }
+    const selecting = [...document.querySelectorAll('.is-selecting')].find(within);
+    if (selecting && window.ds.selection) { window.ds.selection.exit(selecting); return true; }
     const app = scope.matches?.('.ds-app') ? scope : (scope.querySelector?.('.ds-app') || (scope === document ? null : appOf(scope)));
     return app ? pop(app) : false;
   };
@@ -289,7 +315,7 @@ window.ds = (() => {
     s.className = 'ds-snackbar';
     s.innerHTML = '<div class="ds-snackbar__text"></div>'
       + (action ? '<button type="button" class="ds-btn ds-btn--link"></button>' : '')
-      + '<button type="button" class="ds-btn ds-btn--icon" aria-label="知らせを閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>';
+      + '<button type="button" class="ds-btn ds-btn--icon" aria-label="お知らせを閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>';
     s.querySelector('.ds-snackbar__text').textContent = message;
     let timer;
     const dismiss = () => {
@@ -375,7 +401,7 @@ window.ds = (() => {
     if (o) { e.preventDefault(); ds.open(document.getElementById(o.dataset.open), { returnFocus: o }); return; }
     const c = e.target.closest('[data-close]');
     if (c) {
-      const layer = c.closest('.ds-sheet, .ds-dialog');
+      const layer = c.closest('.ds-sheet, .ds-dialog, .ds-drawer');
       if (layer?._dsDragged) { layer._dsDragged = false; return; }   // つまみを引いて離したときの click は無視する
       if (layer) ds.close(layer, c.dataset.close || c.value || 'close');
     }
@@ -449,7 +475,7 @@ window.ds = (() => {
 
   // メニュー（details.ds-menu）: 開閉を動かす。外を押すか、項目を押したら閉じる
   document.addEventListener('click', e => {
-    const s = e.target.closest('details.ds-menu > summary');
+    const s = e.target.closest('details.ds-menu > summary, details.ds-expandable > summary');
     if (s) { e.preventDefault(); const d = s.parentElement; d.open ? ds.closeDetails(d) : ds.openDetails(d); }
     document.querySelectorAll('details.ds-menu[open]').forEach(d => {
       if (!d.contains(e.target) || e.target.closest('.ds-menu__item')) ds.closeDetails(d);
@@ -530,7 +556,7 @@ window.ds = (() => {
   // 画面の側でイベントの preventDefault() を呼ぶと、行は戻らない（ds.remove で消すときなど）
   document.addEventListener('pointerdown', e => {
     const cell = e.target.closest('.ds-swipe > .ds-cell');
-    if (!cell || e.button > 0) return;
+    if (!cell || e.button > 0 || cell.closest('.is-selecting')) return;   // 選ぶ状態では払えない
     const row = cell.parentElement;
     const s = ds.scaleOf(row);
     const x0 = e.clientX, y0 = e.clientY;
@@ -695,4 +721,411 @@ window.ds = (() => {
     }
     c._dsLastY = y;
   }, true);
+})();
+
+/* ========== 4. 追加した部品の動き ========== */
+(() => {
+  const onReady = fn => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn) : fn());
+  const fire = (el, name, detail) => el.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }));
+  const vibrate = n => { try { navigator.vibrate?.(n); } catch (_) { /* 震えない端末 */ } };
+  const pad = n => String(n).padStart(2, '0');
+
+  /* ----- スライダー: 値に合わせて塗りと値の文字を変える（.ds-slider__value の data-unit を後ろに付ける） ----- */
+  const paintSlider = input => {
+    const min = input.min === '' ? 0 : +input.min;
+    const max = input.max === '' ? 100 : +input.max;
+    input.style.setProperty('--ds-fill', ((input.value - min) / (max - min || 1)) * 100 + '%');
+    const out = input.closest('.ds-slider')?.querySelector('.ds-slider__value');
+    if (out) out.textContent = input.value + (out.dataset.unit || '');
+  };
+  document.addEventListener('input', e => { if (e.target.matches?.('.ds-slider input[type="range"]')) paintSlider(e.target); });
+
+  /* ----- カレンダー: data-month="2026-11"・data-value（選んだ日）・data-today・data-min・data-max・data-marks（印を付ける日をカンマ区切り） ----- */
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const renderCalendar = cal => {
+    const today = cal.dataset.today || iso(new Date());
+    const [y, m] = (cal.dataset.month || (cal.dataset.value || today).slice(0, 7)).split('-').map(Number);
+    cal.dataset.month = `${y}-${pad(m)}`;
+    const sel = cal.dataset.value || '';
+    const marks = (cal.dataset.marks || '').split(',');
+    const { min = '', max = '' } = cal.dataset;
+    const first = new Date(y, m - 1, 1).getDay();
+    const days = new Date(y, m, 0).getDate();
+    let html = '<div class="ds-calendar__head">'
+      + '<button type="button" class="ds-btn ds-btn--icon" data-cal-step="-1" aria-label="前の月"><svg class="ds-icon"><use href="#ds-i-angle-left"/></svg></button>'
+      + `<p class="ds-calendar__month" aria-live="polite">${y}年${m}月</p>`
+      + '<button type="button" class="ds-btn ds-btn--icon" data-cal-step="1" aria-label="次の月"><svg class="ds-icon"><use href="#ds-i-angle-right"/></svg></button></div>'
+      + '<div class="ds-calendar__grid">'
+      + [...'日月火水木金土'].map(d => `<span class="ds-calendar__dow" aria-hidden="true">${d}</span>`).join('')
+      + '<span></span>'.repeat(first);
+    for (let d = 1; d <= days; d++) {
+      const v = `${y}-${pad(m)}-${pad(d)}`;
+      const off = (min && v < min) || (max && v > max);
+      html += `<button type="button" class="ds-calendar__day" data-date="${v}" aria-pressed="${v === sel}" aria-label="${m}月${d}日${v === today ? '（今日）' : ''}"`
+        + `${v === today ? ' data-today' : ''}${marks.includes(v) ? ' data-mark' : ''}${off ? ' disabled' : ''}>${d}</button>`;
+    }
+    cal.innerHTML = html + '</div>';
+  };
+  document.addEventListener('click', e => {
+    const step = e.target.closest('.ds-calendar [data-cal-step]');
+    if (step) {
+      const cal = step.closest('.ds-calendar');
+      const [y, m] = cal.dataset.month.split('-').map(Number);
+      const d = new Date(y, m - 1 + Number(step.dataset.calStep), 1);
+      cal.dataset.month = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+      renderCalendar(cal);
+      cal.querySelector(`[data-cal-step="${step.dataset.calStep}"]`)?.focus();
+      return;
+    }
+    const day = e.target.closest('.ds-calendar__day');
+    if (!day) return;
+    const cal = day.closest('.ds-calendar');
+    cal.dataset.value = day.dataset.date;
+    cal.querySelectorAll('.ds-calendar__day').forEach(x => x.setAttribute('aria-pressed', String(x === day)));
+    fire(cal, 'ds-change', { value: day.dataset.date });
+  });
+
+  /* ----- ホイール: 真ん中の帯に止まった項目を選ぶ。項目を押すとそこまで回る。↑ ↓ キーでも動く ----- */
+  const ITEM = 44;
+  const markWheel = col => {
+    const items = col.querySelectorAll('.ds-wheel__item');
+    const i = Math.max(0, Math.min(items.length - 1, Math.round(col.scrollTop / ITEM)));
+    items.forEach((x, j) => { x.classList.toggle('is-selected', j === i); x.setAttribute('aria-selected', String(j === i)); });
+    return items[i];
+  };
+  const settle = new WeakMap();
+  document.addEventListener('scroll', e => {
+    const col = e.target;
+    if (!(col instanceof Element) || !col.matches('.ds-wheel__col')) return;
+    markWheel(col);
+    clearTimeout(settle.get(col));
+    settle.set(col, setTimeout(() => {
+      const it = markWheel(col);
+      fire(col.closest('.ds-wheel'), 'ds-change', { column: col, value: it?.dataset.value ?? it?.textContent.trim() });
+    }, 140));
+  }, true);
+  document.addEventListener('click', e => {
+    const it = e.target.closest('.ds-wheel__item');
+    if (!it) return;
+    const col = it.parentElement;
+    col.scrollTo({ top: [...col.children].indexOf(it) * ITEM, behavior: ds.reduced() ? 'auto' : 'smooth' });
+  });
+  document.addEventListener('keydown', e => {
+    const col = e.target.closest?.('.ds-wheel__col');
+    if (!col || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    col.scrollBy({ top: e.key === 'ArrowUp' ? -ITEM : ITEM, behavior: ds.reduced() ? 'auto' : 'smooth' });
+  });
+  const initWheel = col => {
+    const items = [...col.querySelectorAll('.ds-wheel__item')];
+    const i = Math.max(0, items.findIndex(x => x.classList.contains('is-selected') || (col.dataset.value && x.dataset.value === col.dataset.value)));
+    col.scrollTop = i * ITEM;
+    markWheel(col);
+  };
+
+  /* ----- 認証コード: 1 文字入れると次の枠へ、空で ← を押すと前の枠へ、貼り付けると全部に入る。揃うと ds-complete ----- */
+  document.addEventListener('input', e => {
+    const box = e.target.closest?.('.ds-otp input');
+    if (!box) return;
+    const otp = box.closest('.ds-otp');
+    const boxes = [...otp.querySelectorAll('input')];
+    const chars = box.value.replace(/\s/g, '');
+    if (chars.length > 1) {
+      let i = boxes.indexOf(box);
+      for (const c of chars) { if (i >= boxes.length) break; boxes[i++].value = c; }
+      boxes[Math.min(i, boxes.length - 1)].focus();
+    } else if (chars) {
+      box.value = chars;
+      boxes[boxes.indexOf(box) + 1]?.focus();
+    }
+    otp.removeAttribute('aria-invalid');
+    const code = boxes.map(b => b.value).join('');
+    if (code.length === boxes.length) fire(otp, 'ds-complete', { code });
+  });
+  document.addEventListener('keydown', e => {
+    const box = e.target.closest?.('.ds-otp input');
+    if (!box) return;
+    const boxes = [...box.closest('.ds-otp').querySelectorAll('input')];
+    const i = boxes.indexOf(box);
+    if (e.key === 'Backspace' && !box.value && i > 0) { e.preventDefault(); boxes[i - 1].value = ''; boxes[i - 1].focus(); }
+    if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+    if (e.key === 'ArrowRight' && i < boxes.length - 1) boxes[i + 1].focus();
+  });
+  /** 認証コードが違ったとき: 枠を揺らし、空にして最初の枠へ戻す */
+  const otpError = otp => {
+    otp.setAttribute('aria-invalid', 'true');
+    otp.classList.remove('is-shake');
+    void otp.offsetWidth;
+    otp.classList.add('is-shake');
+    vibrate([20, 40, 20]);
+    otp.querySelectorAll('input').forEach(b => { b.value = ''; });
+    otp.querySelector('input')?.focus();
+  };
+
+  /* ----- 札の入力: Enter・カンマ・読点で札にする。空で ← を押すと最後の札を外す ----- */
+  const addTag = (wrap, text) => {
+    text = text.trim();
+    if (!text) return;
+    const t = document.createElement('span');
+    t.className = 'ds-tag';
+    t.innerHTML = '<span></span><button type="button" class="ds-tag__remove"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>';
+    t.firstChild.textContent = text;
+    t.querySelector('button').setAttribute('aria-label', `${text} を外す`);
+    wrap.insertBefore(t, wrap.querySelector('input'));
+    ds.enter(t);
+    fire(wrap, 'ds-change', { tags: tagsOf(wrap) });
+  };
+  const tagsOf = wrap => [...wrap.querySelectorAll('.ds-tag > span:first-child')].map(s => s.textContent);
+  document.addEventListener('keydown', e => {
+    const input = e.target.closest?.('.ds-tag-input input');
+    if (!input) return;
+    const wrap = input.closest('.ds-tag-input');
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(wrap, input.value); input.value = ''; }
+    if (e.key === 'Backspace' && !input.value) {
+      const last = [...wrap.querySelectorAll('.ds-tag')].pop();
+      if (last) ds.remove(last).then(() => fire(wrap, 'ds-change', { tags: tagsOf(wrap) }));
+    }
+  });
+  document.addEventListener('input', e => {
+    const input = e.target.closest?.('.ds-tag-input input');
+    if (!input || !/[,、，]/.test(input.value)) return;
+    const parts = input.value.split(/[,、，]/);
+    input.value = parts.pop();
+    parts.forEach(p => addTag(input.closest('.ds-tag-input'), p));
+  });
+  document.addEventListener('click', e => {
+    const rm = e.target.closest('.ds-tag__remove');
+    if (rm) { const wrap = rm.closest('.ds-tag-input'); ds.remove(rm.closest('.ds-tag')).then(() => wrap && fire(wrap, 'ds-change', { tags: tagsOf(wrap) })); return; }
+    const wrap = e.target.closest('.ds-tag-input');
+    if (wrap && !e.target.closest('.ds-tag')) wrap.querySelector('input')?.focus();
+  });
+
+  /* ----- 添付: × で外す。＋ を押すと ds-attach イベント（ファイルを選ぶ処理は画面の側） ----- */
+  document.addEventListener('click', e => {
+    const rm = e.target.closest('.ds-attach__remove');
+    if (rm) { ds.remove(rm.closest('.ds-attach__item')); return; }
+    const add = e.target.closest('.ds-attach__add');
+    if (add) fire(add.closest('.ds-attach'), 'ds-attach', {});
+  });
+
+  /* ----- 下の入力欄: 何か書くまで送るボタンを押せなくする。送ると ds-send イベント（detail.text）で、欄を空にする ----- */
+  const syncComposer = c => {
+    const t = c.querySelector('textarea');
+    const send = c.querySelector('.ds-composer__send');
+    if (t && send) send.disabled = !t.value.trim();
+  };
+  document.addEventListener('input', e => { const c = e.target.closest?.('.ds-composer'); if (c) syncComposer(c); });
+  document.addEventListener('click', e => {
+    const send = e.target.closest('.ds-composer__send');
+    if (!send) return;
+    const c = send.closest('.ds-composer');
+    const t = c.querySelector('textarea');
+    const text = t.value.trim();
+    if (!text) return;
+    t.value = '';
+    syncComposer(c);
+    fire(c, 'ds-send', { text });
+  });
+
+  /* ----- 続きを読む: 切れているときだけボタンを出す。押すと全文と短い形を切り替える ----- */
+  const checkMore = m => {
+    if (m.classList.contains('is-open')) return;
+    const t = m.querySelector('.ds-more__text');
+    m.classList.toggle('is-clamped', !!t && t.scrollHeight > t.clientHeight + 1);
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.ds-more__toggle');
+    if (!b) return;
+    const m = b.closest('.ds-more');
+    const open = m.classList.toggle('is-open');
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? (b.dataset.closeLabel || '短く表示') : (b.dataset.openLabel || '続きを読む');
+    if (!open) checkMore(m);
+  });
+
+  /* ----- 横に送るページとページの印: .ds-pager[data-dots="印の id"]。data-pager-next="ページの id" で次へ ----- */
+  const pageOf = p => Math.round(p.scrollLeft / Math.max(1, p.clientWidth));
+  const markDots = p => {
+    const dots = p.dataset.dots && document.getElementById(p.dataset.dots);
+    if (!dots) return;
+    const i = pageOf(p);
+    [...dots.children].forEach((d, j) => d.setAttribute('aria-current', String(j === i)));
+    fire(p, 'ds-pagechange', { index: i, last: i === p.children.length - 1 });
+  };
+  document.addEventListener('scroll', e => {
+    const p = e.target;
+    if (p instanceof Element && p.matches('.ds-pager')) { clearTimeout(p._dsT); p._dsT = setTimeout(() => markDots(p), 60); }
+  }, true);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-pager-next]');
+    if (!b) return;
+    const p = document.getElementById(b.dataset.pagerNext);
+    const i = pageOf(p);
+    if (i >= p.children.length - 1) { fire(p, 'ds-pager-end', {}); return; }
+    p.scrollTo({ left: (i + 1) * p.clientWidth, behavior: ds.reduced() ? 'auto' : 'smooth' });
+  });
+
+  /* ----- 残り時間: data-seconds から 1 秒ずつ減らす。60 秒を切ると --warning、0 で --expired と ds-expire イベント ----- */
+  const tickTimers = () => document.querySelectorAll('.ds-timer[data-seconds]').forEach(t => {
+    let s = Number(t.dataset.seconds);
+    if (t.dataset.started) s = Math.max(0, s - 1); else t.dataset.started = '1';
+    t.dataset.seconds = s;
+    const text = t.querySelector('.ds-timer__text') || t;
+    text.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+    t.classList.toggle('ds-timer--warning', s > 0 && s < 60);
+    t.classList.toggle('ds-timer--expired', s === 0);
+    if (s === 0 && !t.dataset.expired) { t.dataset.expired = '1'; fire(t, 'ds-expire', {}); }
+  });
+  setInterval(tickTimers, 1000);
+
+  /* ----- 選ぶ状態: <ul class="ds-list" data-selectable> の行を長押し（0.5 秒）すると入る ----- */
+  const scopeOf = el => el.closest('.ds-screen') || el.closest('.ds-app') || document.body;
+  const cellsOf = scope => [...scope.querySelectorAll('[data-selectable] .ds-cell')];
+  const selectedOf = scope => cellsOf(scope).filter(c => c.getAttribute('aria-selected') === 'true');
+  const bars = scope => ({
+    sel: scope.querySelector(':scope > .ds-appbar--selection'),
+    normal: scope.querySelector(':scope > .ds-appbar:not(.ds-appbar--selection)'),
+  });
+  const update = scope => {
+    const n = selectedOf(scope).length;
+    scope.querySelectorAll('[data-selection-count]').forEach(x => { x.textContent = `${n} 件を選択中`; });
+    if (n === 0) return exitSelection(scope);
+    fire(scope, 'ds-selectionchange', { cells: selectedOf(scope) });
+  };
+  const enterSelection = (scope, cell) => {
+    if (!scope.classList.contains('is-selecting')) {
+      scope.classList.add('is-selecting');
+      cellsOf(scope).forEach(c => c.setAttribute('aria-selected', 'false'));
+      const { sel, normal } = bars(scope);
+      if (sel) {
+        if (normal) normal.hidden = true;
+        sel.hidden = false;
+        ds.play(sel, [{ opacity: 0 }, { opacity: 1 }], { duration: ds.ms('--ds-motion-duration-fast'), easing: 'linear' });
+        sel.querySelector('[data-selection-cancel]')?.focus({ preventScroll: true });
+      }
+      vibrate(12);
+    }
+    if (cell) cell.setAttribute('aria-selected', 'true');
+    update(scope);
+  };
+  const exitSelection = scope => {
+    if (!scope.classList.contains('is-selecting')) return;
+    scope.classList.remove('is-selecting');
+    cellsOf(scope).forEach(c => c.removeAttribute('aria-selected'));
+    const { sel, normal } = bars(scope);
+    if (sel) sel.hidden = true;
+    if (normal) normal.hidden = false;
+    fire(scope, 'ds-selectionchange', { cells: [] });
+  };
+  ds.selection = { enter: enterSelection, exit: exitSelection, selected: selectedOf };
+
+  document.addEventListener('pointerdown', e => {
+    const cell = e.target.closest('[data-selectable] .ds-cell');
+    if (!cell || e.button > 0) return;
+    const scope = scopeOf(cell);
+    if (scope.classList.contains('is-selecting')) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    const cancel = () => {
+      clearTimeout(timer);
+      removeEventListener('pointermove', move, true);
+      removeEventListener('pointerup', cancel, true);
+      removeEventListener('pointercancel', cancel, true);
+    };
+    const move = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) cancel(); };
+    const timer = setTimeout(() => {
+      cancel();
+      cell._dsLongPressed = true;   // 指を離したときの click で、行が開かないようにする
+      enterSelection(scope, cell);
+    }, 500);
+    addEventListener('pointermove', move, true);
+    addEventListener('pointerup', cancel, true);
+    addEventListener('pointercancel', cancel, true);
+  });
+  document.addEventListener('contextmenu', e => { if (e.target.closest('[data-selectable] .ds-cell')) e.preventDefault(); });
+  document.addEventListener('click', e => {
+    const cell = e.target.closest('[data-selectable] .ds-cell');
+    if (cell?._dsLongPressed) { cell._dsLongPressed = false; e.preventDefault(); e.stopPropagation(); return; }
+    if (cell && scopeOf(cell).classList.contains('is-selecting')) {
+      e.preventDefault(); e.stopPropagation();
+      cell.setAttribute('aria-selected', String(cell.getAttribute('aria-selected') !== 'true'));
+      update(scopeOf(cell));
+      return;
+    }
+    const cancelBtn = e.target.closest('[data-selection-cancel]');
+    if (cancelBtn) { exitSelection(scopeOf(cancelBtn)); return; }
+    const all = e.target.closest('[data-selection-all]');
+    if (all) { const scope = scopeOf(all); cellsOf(scope).forEach(c => c.setAttribute('aria-selected', 'true')); update(scope); }
+  }, true);
+
+  /* ----- 案内の吹き出し: ds.coach([{ target, text }], { within }) で、部品を順に指して説明する。'done' か 'skip' を返す ----- */
+  ds.coach = (steps, { within } = {}) => new Promise(resolve => {
+    const app = (within && (within.closest?.('.ds-app') || within)) || document.querySelector('.ds-app');
+    const scrim = Object.assign(document.createElement('div'), { className: 'ds-coach-scrim' });
+    const ring = Object.assign(document.createElement('div'), { className: 'ds-coach-ring' });
+    const bubble = Object.assign(document.createElement('div'), { className: 'ds-coach' });
+    bubble.setAttribute('role', 'dialog');
+    bubble.setAttribute('aria-live', 'polite');
+    app.append(scrim, ring, bubble);
+    let i = 0;
+    const end = how => {
+      removeEventListener('keydown', onKey, true);
+      [scrim, ring, bubble].forEach(x => x.remove());
+      resolve(how);
+    };
+    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); end('skip'); } };
+    addEventListener('keydown', onKey, true);
+    const show = () => {
+      const st = steps[i];
+      const target = typeof st.target === 'string' ? app.querySelector(st.target) : st.target;
+      if (!target) { i++; return i < steps.length ? show() : end('done'); }
+      target.scrollIntoView({ block: 'nearest' });
+      const k = ds.scaleOf(app);
+      const a = app.getBoundingClientRect();
+      const r = target.getBoundingClientRect();
+      const x = (r.left - a.left) / k, y = (r.top - a.top) / k, w = r.width / k, h = r.height / k;
+      Object.assign(ring.style, { left: x - 4 + 'px', top: y - 4 + 'px', width: w + 8 + 'px', height: h + 8 + 'px' });
+      const last = i === steps.length - 1;
+      bubble.innerHTML = `<div class="ds-coach__step">${i + 1} / ${steps.length}</div><p class="ds-coach__text"></p>`
+        + `<div class="ds-coach__actions"><button type="button" class="ds-btn ds-btn--link" data-coach="skip">${last ? '' : 'スキップ'}</button>`
+        + `<button type="button" class="ds-btn ds-btn--link" data-coach="next">${last ? 'わかった' : '次へ'}</button></div>`;
+      bubble.querySelector('.ds-coach__text').textContent = st.text;
+      const bh = bubble.offsetHeight;
+      const below = y + h + 14 + bh < app.offsetHeight - 16;
+      bubble.classList.toggle('ds-coach--below', below);
+      bubble.classList.toggle('ds-coach--above', !below);
+      bubble.style.top = (below ? y + h + 14 : y - 14 - bh) + 'px';
+      const bl = bubble.offsetLeft;
+      bubble.style.setProperty('--ds-coach-arrow', Math.max(20, Math.min(bubble.offsetWidth - 20, x + w / 2 - bl)) + 'px');
+      bubble.querySelector('[data-coach="next"]').focus({ preventScroll: true });
+    };
+    bubble.addEventListener('click', e => {
+      const b = e.target.closest('[data-coach]');
+      if (!b) return;
+      if (b.dataset.coach === 'skip') return end('skip');
+      i++;
+      if (i >= steps.length) end('done'); else show();
+    });
+    show();
+  });
+
+  ds.calendar = renderCalendar;
+  ds.otpError = otpError;
+
+  // 隠れていた部品（タブの中身・シートの中）は、表示されて大きさが決まったときに測り直す
+  const ro = new ResizeObserver(entries => entries.forEach(en => {
+    const el = en.target;
+    if (el.matches('.ds-more')) checkMore(el);
+    if (el.matches('.ds-wheel__col') && !el._dsInit && el.clientHeight) { el._dsInit = true; initWheel(el); }
+  }));
+  /** 部品の初めの形を整える。あとから HTML を差し込んだときは、差し込んだ範囲で ds.init(要素) を呼ぶ */
+  ds.init = (root = document) => {
+    root.querySelectorAll('.ds-slider input[type="range"]').forEach(paintSlider);
+    root.querySelectorAll('.ds-calendar').forEach(renderCalendar);
+    root.querySelectorAll('.ds-wheel__col').forEach(initWheel);
+    root.querySelectorAll('.ds-composer').forEach(syncComposer);
+    root.querySelectorAll('.ds-more').forEach(checkMore);
+    root.querySelectorAll('.ds-pager').forEach(markDots);
+    root.querySelectorAll('.ds-more, .ds-wheel__col').forEach(el => ro.observe(el));
+  };
+  onReady(() => { ds.init(); tickTimers(); });
 })();

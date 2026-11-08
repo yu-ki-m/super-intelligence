@@ -114,7 +114,7 @@
   --ds-color-bg-sheet: var(--ds-color-bg-raised);
   --ds-color-sheet-handle: light-dark(var(--ds-neutral-300), var(--ds-neutral-650));
 
-  /* スナックバー（下に出る短い知らせ）。どちらの画面でも、まわりより目立つ暗い面 */
+  /* スナックバー（下に出る短いお知らせ）。どちらの画面でも、まわりより目立つ暗い面 */
   --ds-color-snackbar-bg: light-dark(#18181b, var(--ds-neutral-750));
   --ds-color-snackbar-text: var(--ds-neutral-100);
   --ds-color-snackbar-action: var(--ds-primary-300);
@@ -192,6 +192,16 @@
   --ds-color-code-string: light-dark(var(--ds-success-600), #86efac);
   --ds-color-code-comment: light-dark(#6b6b74, var(--ds-neutral-450));
   --ds-color-code-function: light-dark(var(--ds-info-600), #67e8f9);
+
+  /* 案内の吹き出し（どちらの画面でも、まわりより目立つ暗い面）と、指した部品の輪 */
+  --ds-color-coach-bg: light-dark(#18181b, var(--ds-neutral-750));
+  --ds-color-coach-text: var(--ds-neutral-100);
+  --ds-color-coach-ring: light-dark(var(--ds-primary-400), var(--ds-primary-300));
+
+  /* 会話の吹き出し（自分の発言は主ボタンの色、相手の発言は弱い面） */
+  --ds-color-message-mine-bg: var(--ds-color-btn-primary-bg);
+  --ds-color-message-mine-text: var(--ds-color-btn-primary-text);
+  --ds-color-message-other-bg: var(--ds-color-bg-subtle);
 
   /* 重なり・影 */
   --ds-color-overlay: light-dark(rgba(9, 9, 11, 0.4), rgba(0, 0, 0, 0.7));  /* シート・ダイアログの後ろ */
@@ -449,6 +459,8 @@
   --ds-color-code-string: light-dark(#00802f, #6fd39a);
   --ds-color-code-comment: light-dark(var(--ds-neutral-600), #8b8ba3);
   --ds-color-code-function: light-dark(var(--ds-info-600), #5ab8f0);
+
+  --ds-color-coach-bg: light-dark(#1c1b33, #2f2d58);
 
   --ds-color-overlay: light-dark(rgba(15, 20, 26, 0.5), rgba(0, 0, 0, 0.65));
   --ds-color-shadow: light-dark(rgba(0, 7, 22, 0.1), rgba(0, 0, 0, 0.5));
