@@ -1,0 +1,512 @@
+/*
+ * 汎用デザインシステム（スマートフォン版）— デザイントークン
+ *
+ * PC 版（../sample-design-system/tokens.css）と同じ名前・同じ色の値を使う。違うのは次の 3 つ。
+ *   ・大きさ: 指で押すので、押せる範囲を 48px 以上にする（ボタン・入力欄・行・タブ）
+ *   ・文字: 画面に近づけて読むので、本文を 15px、入力欄を 16px にする（16px 未満だと iOS の Safari が拡大する）
+ *   ・画面の端: 時刻の帯（ステータスバー）と下の操作の帯（ナビゲーションバー）の下まで描くため、--ds-safe-* で避ける
+ * PC 版にだけある部品（上部ナビ・サイドナビ・ターミナル・舞台など）のトークンは持たない。
+ *
+ * 見た目は PC 版と同じ 2 つ。<html data-look="console"> でコンソール、何も付けなければミニマル。
+ * 暗い画面: 意味トークンは light-dark(明るい画面の値, 暗い画面の値) で両方を持つ（ファイルの最後で切り替え）。
+ *
+ * 使い方: <link rel="stylesheet" href="tokens.css"> を components.css より先に読み込む。
+ *   部品では意味トークン（--ds-color-*）を使う。基本パレット（--ds-neutral-* など）は画面で直接使わない。
+ */
+
+/* =====================================================================
+ * ミニマル（既定）
+ * ===================================================================== */
+:root {
+  /* ===== 1. 基本パレット（PC 版と同じ） ===== */
+  --ds-neutral-0: #ffffff;
+  --ds-neutral-100: #f4f4f5;
+  --ds-neutral-200: #ececef;
+  --ds-neutral-250: #e4e4e7;
+  --ds-neutral-300: #d4d4d8;
+  --ds-neutral-350: #b8b8c0;
+  --ds-neutral-400: #a1a1aa;
+  --ds-neutral-450: #8b8b94;
+  --ds-neutral-500: #71717a;
+  --ds-neutral-600: #52525b;
+  --ds-neutral-650: #3f3f46;
+  --ds-neutral-700: #2c2c30;
+  --ds-neutral-750: #232326;
+  --ds-neutral-800: #1c1c1f;
+  --ds-neutral-850: #141416;
+  --ds-neutral-900: #0b0b0c;
+  --ds-neutral-950: #070708;
+  --ds-neutral-1000: #000000;
+
+  --ds-primary-50: #eff4ff;
+  --ds-primary-100: #dbe6ff;
+  --ds-primary-200: #bcd0ff;
+  --ds-primary-300: #8eb0ff;
+  --ds-primary-400: #5b8cff;
+  --ds-primary-500: #3b72f6;
+  --ds-primary-600: #2563eb;
+  --ds-primary-700: #1d4ed8;
+  --ds-primary-800: #1e40af;
+  --ds-primary-900: #1e3a8a;
+  --ds-primary-1000: #0f1d4a;
+
+  --ds-info-50: #ecfeff;
+  --ds-info-600: #0e7490;
+  --ds-error-50: #fef2f2;
+  --ds-error-400: #f87171;
+  --ds-error-600: #dc2626;
+  --ds-error-700: #b91c1c;
+  --ds-success-50: #f0fdf4;
+  --ds-success-400: #34d399;
+  --ds-success-600: #15803d;
+  --ds-warning-50: #fefce8;
+  --ds-warning-500: #facc15;
+  --ds-warning-900: #a16207;
+
+  --ds-chart-1: #5b8cff;
+  --ds-chart-2: #f472b6;
+  --ds-chart-3: #34d399;
+  --ds-chart-4: #a78bfa;
+  --ds-chart-5: #fb923c;
+  --ds-chart-6: #22d3ee;
+
+  /* ===== 2. 意味トークン（画面ではこちらを使う）— light-dark(明るい画面, 暗い画面) ===== */
+
+  /* 文字 */
+  --ds-color-text-body: light-dark(#09090b, #f4f4f5);
+  --ds-color-text-secondary: light-dark(var(--ds-neutral-600), var(--ds-neutral-400));
+  --ds-color-text-description: light-dark(#63636c, var(--ds-neutral-450));
+  --ds-color-text-disabled: light-dark(var(--ds-neutral-400), var(--ds-neutral-600));
+  --ds-color-text-inverted: var(--ds-neutral-100);
+  --ds-color-text-link: light-dark(var(--ds-primary-600), var(--ds-primary-300));
+  --ds-color-text-link-hover: light-dark(var(--ds-primary-800), var(--ds-primary-200));
+  --ds-color-text-accent: light-dark(var(--ds-primary-600), var(--ds-primary-300));
+
+  /* 背景 */
+  --ds-color-bg-page: light-dark(var(--ds-neutral-0), var(--ds-neutral-1000));
+  --ds-color-bg-container: light-dark(var(--ds-neutral-0), var(--ds-neutral-900));
+  --ds-color-bg-raised: light-dark(var(--ds-neutral-0), #121214);        /* シート・ダイアログ・メニュー */
+  --ds-color-bg-subtle: light-dark(var(--ds-neutral-100), var(--ds-neutral-850));
+  --ds-color-bg-muted: light-dark(var(--ds-neutral-250), var(--ds-neutral-750));
+  --ds-color-bg-disabled: light-dark(var(--ds-neutral-100), var(--ds-neutral-850));
+  --ds-color-bg-selected: light-dark(var(--ds-primary-50), #101a33);
+  --ds-color-bg-input: light-dark(var(--ds-neutral-0), #0f0f10);
+  --ds-color-segment-bg: light-dark(var(--ds-neutral-100), #111113);
+  --ds-color-segment-active: light-dark(var(--ds-neutral-0), var(--ds-neutral-750));
+  /* 押している間に重ねる色（指の下が沈んで見える）。ホバーの無い端末で、押したことを伝える */
+  --ds-color-pressed: light-dark(rgba(9, 9, 11, 0.07), rgba(255, 255, 255, 0.09));
+
+  /* アプリバー（画面の上の帯）。ミニマルは地と同じ色で、中身が下に潜ったときだけ線を出す */
+  --ds-color-bg-appbar: var(--ds-color-bg-page);
+  --ds-color-appbar-text: var(--ds-color-text-body);
+  --ds-color-appbar-text-secondary: var(--ds-color-text-secondary);
+  --ds-color-appbar-border: var(--ds-color-border-divider);
+  /* 端末の時刻の帯の文字。アプリバーの上に重なるので、アプリバーの地に合わせる（device.css が使う） */
+  --ds-color-statusbar-fg: var(--ds-color-appbar-text);
+
+  /* 下のタブ（ボトムナビゲーション）。今いる項目はアイコンの後ろの丸い面で示す */
+  --ds-color-bg-tabbar: light-dark(#fafafa, var(--ds-neutral-950));
+  --ds-color-tabbar-text: var(--ds-color-text-secondary);
+  --ds-color-tabbar-current-text: var(--ds-color-text-body);
+  --ds-color-tabbar-current-bg: var(--ds-color-bg-muted);
+
+  /* シート（下から出る面） */
+  --ds-color-bg-sheet: var(--ds-color-bg-raised);
+  --ds-color-sheet-handle: light-dark(var(--ds-neutral-300), var(--ds-neutral-650));
+
+  /* スナックバー（下に出る短い知らせ）。どちらの画面でも、まわりより目立つ暗い面 */
+  --ds-color-snackbar-bg: light-dark(#18181b, var(--ds-neutral-750));
+  --ds-color-snackbar-text: var(--ds-neutral-100);
+  --ds-color-snackbar-action: var(--ds-primary-300);
+
+  /* 線 */
+  --ds-color-border-container: light-dark(var(--ds-neutral-250), #222225);
+  --ds-color-border-divider: light-dark(var(--ds-neutral-200), var(--ds-neutral-800));
+  --ds-color-border-subtle: light-dark(var(--ds-neutral-100), #161618);
+  --ds-color-border-input: light-dark(var(--ds-neutral-300), var(--ds-neutral-700));
+  --ds-color-border-focus: light-dark(var(--ds-primary-600), var(--ds-primary-400));
+  --ds-color-border-selected: light-dark(var(--ds-primary-600), var(--ds-primary-400));
+  --ds-color-border-accent: light-dark(var(--ds-primary-200), #2f3f73);
+  --ds-color-focus-ring: light-dark(rgba(37, 99, 235, 0.2), rgba(91, 140, 255, 0.35));
+
+  /* ボタン */
+  --ds-color-btn-primary-bg: var(--ds-primary-600);
+  --ds-color-btn-primary-bg-hover: var(--ds-primary-700);
+  --ds-color-btn-primary-text: var(--ds-neutral-0);
+  --ds-color-btn-normal-bg: light-dark(var(--ds-neutral-0), var(--ds-neutral-850));
+  --ds-color-btn-normal-text: light-dark(#09090b, var(--ds-neutral-100));
+  --ds-color-btn-normal-border: light-dark(var(--ds-neutral-250), var(--ds-neutral-700));
+  --ds-color-btn-normal-bg-active: light-dark(var(--ds-neutral-250), var(--ds-neutral-750));
+  --ds-color-btn-link-text: var(--ds-color-text-secondary);
+  --ds-color-btn-danger-bg: light-dark(var(--ds-error-700), #991b1b);     /* 取り消せない操作の主ボタン */
+
+  /* 状態 */
+  --ds-color-info: light-dark(var(--ds-info-600), #22d3ee);
+  --ds-color-info-bg: light-dark(var(--ds-info-50), #072027);
+  --ds-color-success: light-dark(var(--ds-success-600), var(--ds-success-400));
+  --ds-color-success-bg: light-dark(var(--ds-success-50), #062018);
+  --ds-color-warning: light-dark(var(--ds-warning-900), #fbbf24);
+  --ds-color-warning-border: light-dark(var(--ds-warning-500), #8a6a14);
+  --ds-color-warning-bg: light-dark(var(--ds-warning-50), #1d1705);
+  --ds-color-error: light-dark(var(--ds-error-700), var(--ds-error-400));
+  --ds-color-error-bg: light-dark(var(--ds-error-50), #240c0e);
+  /* 塗りの状態色（白い文字を載せる。スワイプの操作・色付きのバッジ） */
+  --ds-color-fill-info: light-dark(var(--ds-info-600), #155e75);
+  --ds-color-fill-success: light-dark(var(--ds-success-600), #166534);
+  --ds-color-fill-error: light-dark(var(--ds-error-700), #991b1b);
+  --ds-color-fill-neutral: light-dark(var(--ds-neutral-600), var(--ds-neutral-650));
+
+  /* 切り替え・札・バッジ・読み込み中 */
+  --ds-color-toggle-off: light-dark(var(--ds-neutral-300), var(--ds-neutral-650));
+  --ds-color-badge-bg: var(--ds-color-bg-muted);
+  --ds-color-badge-text: var(--ds-color-text-body);
+  --ds-color-count-bg: light-dark(var(--ds-error-600), #ef4444);          /* 未読の数（下のタブ・アイコンの右上） */
+  --ds-color-chip-border: light-dark(var(--ds-primary-200), #2f3f73);
+  --ds-color-chip-text: light-dark(var(--ds-primary-800), var(--ds-primary-200));
+  --ds-color-spinner-track: light-dark(var(--ds-neutral-250), var(--ds-neutral-750));
+  --ds-color-skeleton-a: light-dark(var(--ds-neutral-100), var(--ds-neutral-850));
+  --ds-color-skeleton-b: light-dark(var(--ds-neutral-250), var(--ds-neutral-800));
+  --ds-color-avatar-bg: light-dark(var(--ds-primary-100), #1a2850);
+  --ds-color-avatar-text: light-dark(var(--ds-primary-800), var(--ds-primary-200));
+  --ds-color-step-done: var(--ds-color-success);
+
+  /* 深刻度（5 段階） */
+  --ds-color-severity-critical: light-dark(#991b1b, #ef4444);
+  --ds-color-severity-high: light-dark(#ea580c, #fb923c);
+  --ds-color-severity-medium: light-dark(#d97706, #fbbf24);
+  --ds-color-severity-low: light-dark(#facc15, #fde047);
+  --ds-color-severity-info: var(--ds-neutral-500);
+
+  /* 判定（対応が必要・対応不要・未判定） */
+  --ds-color-verdict-true-positive: var(--ds-color-error);
+  --ds-color-verdict-false-positive: var(--ds-color-success);
+  --ds-color-verdict-pending: var(--ds-color-text-description);
+
+  /* コード表示 */
+  --ds-color-code-bg: light-dark(#fafafa, var(--ds-neutral-950));
+  --ds-color-code-line-number: light-dark(var(--ds-neutral-500), #80808a);
+  --ds-color-code-highlight-bg: light-dark(#fef9c3, #2a2408);
+  --ds-color-code-highlight-border: light-dark(#eab308, #a68a1e);
+  --ds-color-code-highlight-text: light-dark(#854d0e, #fde68a);
+  --ds-color-code-keyword: light-dark(#7c3aed, #c4b5fd);
+  --ds-color-code-string: light-dark(var(--ds-success-600), #86efac);
+  --ds-color-code-comment: light-dark(#6b6b74, var(--ds-neutral-450));
+  --ds-color-code-function: light-dark(var(--ds-info-600), #67e8f9);
+
+  /* 重なり・影 */
+  --ds-color-overlay: light-dark(rgba(9, 9, 11, 0.4), rgba(0, 0, 0, 0.7));  /* シート・ダイアログの後ろ */
+  --ds-color-shadow: light-dark(rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.6));
+  --ds-color-shadow-strong: light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.8));
+
+  /* ===== 3. 文字 ===== */
+  --ds-font-family-base: "Inter", "Roboto", "Segoe UI Variable Text", "Segoe UI", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+  --ds-font-family-mono: "JetBrains Mono", "Roboto Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+  --ds-font-weight-normal: 400;
+  --ds-font-weight-bold: 600;
+  --ds-font-style-placeholder: normal;
+
+  --ds-font-size-heading-xl: 28px;  --ds-line-height-heading-xl: 34px;  --ds-letter-spacing-heading-xl: -0.02em; /* 大きな題名（画面を開いた直後の画面名） */
+  --ds-font-size-heading-l: 20px;   --ds-line-height-heading-l: 26px;   --ds-letter-spacing-heading-l: -0.01em;  /* アプリバーの題名・節の見出し */
+  --ds-font-size-heading-m: 17px;   --ds-line-height-heading-m: 24px;   --ds-letter-spacing-heading-m: -0.005em; /* シート・ダイアログ・カードの題名 */
+  --ds-font-size-heading-s: 15px;   --ds-line-height-heading-s: 22px;
+  --ds-font-size-body-m: 15px;      --ds-line-height-body-m: 22px;       /* 本文・行の題名 */
+  --ds-font-size-body-s: 13px;      --ds-line-height-body-s: 18px;      --ds-letter-spacing-body-s: 0; /* 補足・行の説明 */
+  --ds-font-size-caption: 11px;     --ds-line-height-caption: 14px;      /* 下のタブの名前・数のバッジ */
+  --ds-font-size-input: 16px;                                            /* 入力欄（16px 未満だと iOS の Safari が拡大する） */
+  --ds-font-size-display-l: 32px;   --ds-line-height-display-l: 38px;    /* 大きな数値 */
+  --ds-letter-spacing-button: 0;
+
+  /* ===== 4. 余白（4px 基準。両方の見た目で同じ） ===== */
+  --ds-space-xxxs: 2px;
+  --ds-space-xxs: 4px;
+  --ds-space-xs: 8px;
+  --ds-space-s: 12px;
+  --ds-space-m: 16px;
+  --ds-space-l: 20px;
+  --ds-space-xl: 24px;
+  --ds-space-xxl: 32px;
+  --ds-space-xxxl: 40px;
+  --ds-space-screen: 16px;   /* 画面の左右の余白 */
+
+  /* ===== 5. 角丸（大きめ） ===== */
+  --ds-radius-badge: 6px;
+  --ds-radius-chip: 10px;
+  --ds-radius-input: 12px;
+  --ds-radius-button: 12px;
+  --ds-radius-alert: 14px;
+  --ds-radius-container: 16px;  /* カード・まとまったリスト */
+  --ds-radius-fab: 16px;
+  --ds-radius-sheet: 24px;      /* シートの上の角 */
+  --ds-radius-dialog: 24px;
+  --ds-radius-checkbox: 6px;
+
+  /* ===== 6. 線の太さ ===== */
+  --ds-border-width-container: 1px;
+  --ds-border-width-input: 1px;
+  --ds-border-width-button: 1px;
+  --ds-border-width-alert-accent: 1px;
+  --ds-border-width-focus: 2px;
+  --ds-border-width-choice: 2px;
+  --ds-border-width-choice-checked: 7px;
+
+  /* ===== 7. 大きさ（両方の見た目で同じ。指で押せる大きさを保つ） ===== */
+  --ds-size-touch: 48px;             /* 押せる範囲の最小。見た目が小さい部品も、押せる範囲はこれ以上にする */
+  --ds-size-control-height: 48px;    /* ボタン・入力欄 */
+  --ds-size-control-height-s: 36px;  /* 小さなボタン・札（見た目の高さ。押せる範囲は 48px） */
+  --ds-size-icon: 20px;
+  --ds-size-icon-l: 24px;            /* アプリバー・下のタブのアイコン */
+  --ds-icon-stroke: 1.6;             /* 16 の枠で描いたアイコンを 20〜24px で見せるときの線の太さ */
+  --ds-size-choice: 22px;            /* ラジオ・チェック */
+  --ds-size-toggle-width: 52px;
+  --ds-size-toggle-height: 32px;
+  --ds-size-appbar-height: 56px;
+  --ds-size-appbar-large-title: 52px; /* 大きな題名の段の高さ */
+  --ds-size-tabbar-height: 64px;
+  --ds-size-cell-height: 56px;        /* 1 行の行 */
+  --ds-size-cell-height-2line: 72px;  /* 題名と説明の 2 段の行 */
+  --ds-size-fab: 56px;
+  --ds-size-dialog-width: 312px;
+  --ds-size-content-max: 640px;       /* 横向き・タブレットで、中身が広がりすぎないようにする */
+
+  /* 端末の端（時刻の帯・下の操作の帯）。実機では env()、ブラウザのデモでは device.css が上書きする */
+  --ds-safe-top: env(safe-area-inset-top, 0px);
+  --ds-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ds-safe-left: env(safe-area-inset-left, 0px);
+  --ds-safe-right: env(safe-area-inset-right, 0px);
+
+  /* ===== 8. 影 ===== */
+  --ds-shadow-raised: 0 2px 8px var(--ds-color-shadow);
+  --ds-shadow-dropdown: 0 8px 24px var(--ds-color-shadow);
+  --ds-shadow-sheet: 0 -8px 32px var(--ds-color-shadow-strong);
+  --ds-shadow-dialog: 0 24px 64px var(--ds-color-shadow-strong);
+  --ds-shadow-fab: 0 6px 16px var(--ds-color-shadow-strong);
+
+  /* ===== 9. 動き ===== */
+  --ds-motion-fast: 100ms;
+  --ds-motion-moderate: 150ms;
+  --ds-motion-slow: 200ms;
+  --ds-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+
+  --ds-motion-duration-instant: 80ms;
+  --ds-motion-duration-fast: 140ms;
+  --ds-motion-duration-base: 220ms;
+  --ds-motion-duration-slow: 320ms;
+  --ds-motion-duration-slower: 560ms;
+  --ds-motion-duration-screen: 360ms;   /* 画面の進む・戻る */
+  --ds-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ds-motion-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ds-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ds-motion-ease-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);
+  --ds-motion-ease-bounce: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.104 25.9%, 1.098 27.6%, 1.061 31.9%, 1.008 38.7%, 0.987 42.3%, 0.981 46.2%, 0.991 54.8%, 1.001 63.6%, 1);
+  --ds-motion-rise: 8px;
+  --ds-motion-stagger: 40ms;
+}
+
+/* =====================================================================
+ * コンソール（<html data-look="console">）
+ * 上の値のうち、違うものだけを上書きする。大きさ（7 章）は、指で押すため両方で同じにする。
+ * ===================================================================== */
+:root[data-look="console"] {
+  /* ===== 1. 基本パレット（PC 版のコンソールと同じ） ===== */
+  --ds-neutral-0: #ffffff;
+  --ds-neutral-100: #f9f9fa;
+  --ds-neutral-200: #f3f3f7;
+  --ds-neutral-250: #ebebf0;
+  --ds-neutral-300: #dedee3;
+  --ds-neutral-350: #c6c6cd;
+  --ds-neutral-400: #b4b4bb;
+  --ds-neutral-450: #a4a4ad;
+  --ds-neutral-500: #8c8c94;
+  --ds-neutral-600: #656871;
+  --ds-neutral-650: #424650;
+  --ds-neutral-700: #333843;
+  --ds-neutral-750: #232b37;
+  --ds-neutral-800: #1b232d;
+  --ds-neutral-850: #161d26;
+  --ds-neutral-900: #12181f;
+  --ds-neutral-950: #0f141a;
+  --ds-neutral-1000: #0a0d12;
+
+  --ds-primary-50: #eef0ff;
+  --ds-primary-100: #e0e3ff;
+  --ds-primary-200: #c7cbfe;
+  --ds-primary-300: #a5abfc;
+  --ds-primary-400: #818cf8;
+  --ds-primary-500: #6366f1;
+  --ds-primary-600: #4f46e5;
+  --ds-primary-700: #4338ca;
+  --ds-primary-800: #3730a3;
+  --ds-primary-900: #312e81;
+  --ds-primary-1000: #1e1b4b;
+
+  --ds-info-50: #f0f9ff;
+  --ds-info-600: #0369a1;
+  --ds-error-50: #fff5f5;
+  --ds-error-400: #ff7a7a;
+  --ds-error-600: #db0000;
+  --ds-error-700: #db0000;
+  --ds-success-50: #effff1;
+  --ds-success-400: #4cc38a;
+  --ds-success-600: #00802f;
+  --ds-warning-50: #fffef0;
+  --ds-warning-500: #fbd332;
+  --ds-warning-900: #855900;
+
+  --ds-chart-1: #688ae8;
+  --ds-chart-2: #c33d69;
+  --ds-chart-3: #2ea597;
+  --ds-chart-4: #8456ce;
+  --ds-chart-5: #e07941;
+  --ds-chart-6: #3759ce;
+
+  /* ===== 2. 意味トークン ===== */
+  --ds-color-text-body: light-dark(var(--ds-neutral-950), #e6e6ef);
+  --ds-color-text-secondary: light-dark(var(--ds-neutral-650), #b6b6c8);
+  --ds-color-text-description: light-dark(var(--ds-neutral-600), #9a9ab0);
+  --ds-color-text-disabled: light-dark(var(--ds-neutral-400), #5d5d75);
+  --ds-color-text-link: light-dark(var(--ds-primary-600), var(--ds-primary-300));
+  --ds-color-text-link-hover: light-dark(var(--ds-primary-900), var(--ds-primary-200));
+  --ds-color-text-accent: light-dark(var(--ds-primary-700), var(--ds-primary-300));
+
+  --ds-color-bg-page: light-dark(var(--ds-neutral-100), #121220);         /* 白いカードが地から浮くよう、地を少し灰色にする */
+  --ds-color-bg-container: light-dark(var(--ds-neutral-0), #1a1a2b);
+  --ds-color-bg-raised: var(--ds-color-bg-container);
+  --ds-color-bg-subtle: light-dark(var(--ds-neutral-200), #222236);
+  --ds-color-bg-muted: light-dark(var(--ds-neutral-250), #2e2e48);
+  --ds-color-bg-disabled: light-dark(var(--ds-neutral-250), #2a2a40);
+  --ds-color-bg-selected: light-dark(var(--ds-primary-50), #26254d);
+  --ds-color-bg-input: var(--ds-color-bg-container);
+  --ds-color-segment-bg: light-dark(var(--ds-neutral-200), #222236);
+  --ds-color-segment-active: light-dark(var(--ds-neutral-0), #2e2e48);
+  --ds-color-pressed: light-dark(rgba(67, 56, 202, 0.08), rgba(165, 171, 252, 0.12));
+
+  /* アプリバーは、どちらの画面でも濃い帯（PC 版の上部ナビと同じ色） */
+  --ds-color-bg-appbar: light-dark(#1c1b33, #0c0b18);
+  --ds-color-appbar-text: var(--ds-neutral-100);
+  --ds-color-appbar-text-secondary: var(--ds-neutral-350);
+  --ds-color-appbar-border: transparent;
+
+  /* 下のタブは、今いる項目をアクセント色の文字と上の線で示す */
+  --ds-color-bg-tabbar: var(--ds-color-bg-container);
+  --ds-color-tabbar-current-text: var(--ds-color-text-link);
+  --ds-color-tabbar-current-bg: var(--ds-color-bg-selected);
+
+  --ds-color-snackbar-bg: light-dark(#1c1b33, #2f2d58);
+  --ds-color-snackbar-action: var(--ds-primary-300);
+
+  --ds-color-border-container: light-dark(var(--ds-neutral-350), #3a3a55);
+  --ds-color-border-divider: light-dark(var(--ds-neutral-300), #3a3a55);
+  --ds-color-border-subtle: light-dark(var(--ds-neutral-250), #2a2a40);
+  --ds-color-border-input: light-dark(var(--ds-neutral-500), #6b6b85);
+  --ds-color-border-accent: light-dark(var(--ds-primary-300), #5b5bb0);
+  --ds-color-focus-ring: light-dark(var(--ds-primary-100), rgba(129, 140, 248, 0.35));
+
+  --ds-color-btn-primary-bg: light-dark(var(--ds-primary-700), var(--ds-primary-600));
+  --ds-color-btn-primary-bg-hover: light-dark(var(--ds-primary-800), var(--ds-primary-700));
+  --ds-color-btn-normal-bg: var(--ds-color-bg-container);
+  --ds-color-btn-normal-text: light-dark(var(--ds-primary-700), var(--ds-primary-300));
+  --ds-color-btn-normal-border: light-dark(var(--ds-primary-300), #4a4a8c);
+  --ds-color-btn-normal-bg-active: light-dark(var(--ds-primary-100), #302e5e);
+  --ds-color-btn-link-text: var(--ds-color-btn-normal-text);
+  --ds-color-btn-danger-bg: light-dark(var(--ds-error-600), #9f1d1d);
+
+  --ds-color-info: light-dark(var(--ds-info-600), #5ab8f0);
+  --ds-color-info-bg: light-dark(var(--ds-info-50), #10243a);
+  --ds-color-success: light-dark(var(--ds-success-600), var(--ds-success-400));
+  --ds-color-success-bg: light-dark(var(--ds-success-50), #102a1e);
+  --ds-color-warning: light-dark(var(--ds-warning-900), #e3b341);
+  --ds-color-warning-border: light-dark(var(--ds-warning-500), #b8912b);
+  --ds-color-warning-bg: light-dark(var(--ds-warning-50), #2a2412);
+  --ds-color-error: light-dark(var(--ds-error-600), var(--ds-error-400));
+  --ds-color-error-bg: light-dark(var(--ds-error-50), #2e1518);
+  --ds-color-fill-info: light-dark(var(--ds-info-600), #075985);
+  --ds-color-fill-success: light-dark(var(--ds-success-600), #166534);
+  --ds-color-fill-error: light-dark(var(--ds-error-600), #9f1d1d);
+  --ds-color-fill-neutral: light-dark(var(--ds-neutral-600), #3a3a55);
+
+  --ds-color-toggle-off: light-dark(var(--ds-neutral-500), #5d5d75);
+  --ds-color-badge-bg: var(--ds-neutral-650);
+  --ds-color-badge-text: var(--ds-neutral-100);
+  --ds-color-chip-border: light-dark(var(--ds-primary-200), #4a4a8c);
+  --ds-color-chip-text: light-dark(var(--ds-primary-900), var(--ds-primary-200));
+  --ds-color-spinner-track: light-dark(var(--ds-primary-100), #302e5e);
+  --ds-color-skeleton-a: light-dark(var(--ds-neutral-200), #222236);
+  --ds-color-skeleton-b: light-dark(var(--ds-neutral-250), #2e2e48);
+  --ds-color-avatar-bg: light-dark(var(--ds-primary-100), #302e5e);
+  --ds-color-step-done: var(--ds-color-text-link);
+
+  --ds-color-severity-critical: light-dark(#870303, #f04848);
+  --ds-color-severity-high: light-dark(#ce3311, #ff8b3d);
+  --ds-color-severity-medium: light-dark(#f89256, #f7b27a);
+  --ds-color-severity-low: #f2cd54;
+
+  --ds-color-code-bg: light-dark(var(--ds-neutral-100), #15152a);
+  --ds-color-code-line-number: light-dark(#707279, #8a8aa5);
+  --ds-color-code-highlight-bg: light-dark(#fff3c4, #3a3115);
+  --ds-color-code-highlight-border: light-dark(var(--ds-warning-500), #c9a227);
+  --ds-color-code-highlight-text: light-dark(var(--ds-warning-900), #f5d76e);
+  --ds-color-code-keyword: light-dark(#8456ce, #c4a7ff);
+  --ds-color-code-string: light-dark(#00802f, #6fd39a);
+  --ds-color-code-comment: light-dark(var(--ds-neutral-600), #8b8ba3);
+  --ds-color-code-function: light-dark(var(--ds-info-600), #5ab8f0);
+
+  --ds-color-overlay: light-dark(rgba(15, 20, 26, 0.5), rgba(0, 0, 0, 0.65));
+  --ds-color-shadow: light-dark(rgba(0, 7, 22, 0.1), rgba(0, 0, 0, 0.5));
+  --ds-color-shadow-strong: light-dark(rgba(0, 7, 22, 0.25), rgba(0, 0, 0, 0.6));
+
+  /* ===== 3. 文字（大きさは両方で同じ。書体と太さだけ変える） ===== */
+  --ds-font-family-base: "Noto Sans JP", "Roboto", "Helvetica Neue", Arial, "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  --ds-font-family-mono: "JetBrains Mono", "Roboto Mono", Consolas, Menlo, monospace;
+  --ds-font-weight-bold: 700;
+  --ds-font-style-placeholder: italic;
+  --ds-letter-spacing-button: 0.005em;
+
+  /* ===== 5. 角丸（控えめ） ===== */
+  --ds-radius-badge: 4px;
+  --ds-radius-chip: 6px;
+  --ds-radius-input: 6px;
+  --ds-radius-button: 6px;
+  --ds-radius-alert: 8px;
+  --ds-radius-container: 8px;
+  --ds-radius-fab: 12px;
+  --ds-radius-sheet: 14px;
+  --ds-radius-dialog: 12px;
+  --ds-radius-checkbox: 4px;
+
+  /* ===== 6. 線の太さ ===== */
+  --ds-border-width-alert-accent: 4px;
+
+  /* ===== 8. 影 ===== */
+  --ds-shadow-raised: 0 1px 4px var(--ds-color-shadow);
+  --ds-shadow-dropdown: 0 4px 20px 1px var(--ds-color-shadow);
+  --ds-shadow-dialog: 0 8px 32px var(--ds-color-shadow-strong);
+
+  /* ===== 9. 動き ===== */
+  --ds-motion-fast: 90ms;
+  --ds-motion-moderate: 135ms;
+  --ds-motion-slow: 180ms;
+  --ds-motion-easing: cubic-bezier(0, 0, 0, 1);
+}
+
+/* ===== 明るい画面・暗い画面の切り替え =====
+ * ・何も指定しなければ、端末の設定（明るい・暗い）に従う
+ * ・<html data-theme="light"> または <html data-theme="dark"> で、どちらかに固定する */
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root, :root[data-look] {
+    --ds-motion-fast: 0ms;
+    --ds-motion-moderate: 0ms;
+    --ds-motion-slow: 0ms;
+    --ds-motion-duration-instant: 0ms;
+    --ds-motion-duration-fast: 0ms;
+    --ds-motion-duration-base: 0ms;
+    --ds-motion-duration-slow: 0ms;
+    --ds-motion-duration-slower: 0ms;
+    --ds-motion-duration-screen: 0ms;
+    --ds-motion-rise: 0px;
+    --ds-motion-stagger: 0ms;
+  }
+}

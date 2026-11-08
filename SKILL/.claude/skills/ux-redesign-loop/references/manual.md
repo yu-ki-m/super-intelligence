@@ -408,15 +408,3 @@ AI機能を含む場合は、提案と実行済み結果、推測と確認済み
 | 反復しても進展しない | 毎回同じ階層しか変更しない | 問題の定義と中心概念に戻る |
 | 新しいUIをユーザーが理解できない | 新規性の利益と学習コストを比較していない | 慣れた経路との比較と再利用テストを行う |
 | 終了できない | 合否基準も残存リスクの扱いもない | 採用条件、期限、保留範囲を先に定める |
-
-## 9. 参考資料と適用範囲
-
-- Design Council, The Double Diamond：https://www.designcouncil.org.uk/resources/the-double-diamond/
-  - 問題の探索・定義と、解決策の展開・検証を分ける考え方を参考にした。
-- Nielsen Norman Group, 10 Usability Heuristics for User Interface Design：https://www.nngroup.com/articles/ten-usability-heuristics/
-  - 状態の可視性、ユーザーによる制御、一貫性、誤りの防止と回復など、操作品質の点検に用いる。
-- W3C WAI, WCAG 2 Overview：https://www.w3.org/WAI/standards-guidelines/wcag/
-- W3C, WCAG 2.2：https://www.w3.org/TR/WCAG22/
-  - アクセシビリティの基準として参照する。
-
-参照確認日：2026年11月8日。本書はこれらの文献の転載ではなく、ユーザー体験全体を反復的に再設計するための実務手順として構成したものである。
