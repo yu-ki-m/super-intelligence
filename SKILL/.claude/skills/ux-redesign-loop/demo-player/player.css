@@ -134,7 +134,10 @@
 .uxd-pane__tabs .ds-tabs__tab { flex: 1; }
 .uxd-count { margin-left: 4px; font-variant-numeric: tabular-nums; color: var(--ds-color-text-description); }
 
-.uxd-scenehead { padding: var(--ds-space-s) var(--ds-space-m); border-bottom: 1px solid var(--ds-color-border-divider); display: grid; gap: 6px; }
+.uxd-scenehead { position: relative; padding: var(--ds-space-s) var(--ds-space-m); border-bottom: 1px solid var(--ds-color-border-divider); display: grid; gap: 6px; }
+/* 会話を見せるかの切り替え（場面の番号の行の右に置く） */
+.uxd-mode { position: absolute; top: calc(var(--ds-space-s) - 6px); right: var(--ds-space-m); }
+.uxd-scenehead__no { min-height: 22px; display: flex; align-items: center; padding-right: 180px; }
 .uxd-scenehead__no { font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); font-variant-numeric: tabular-nums; }
 .uxd-scenehead__title { margin: 0; font-size: var(--ds-font-size-heading-s); line-height: 22px; }
 .uxd-scenehead__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
@@ -179,6 +182,17 @@
 .uxd-beat--wide { grid-template-columns: minmax(0, 1fr); }
 .uxd-beat.is-past { opacity: .62; }
 .uxd-beat.is-past:hover, .uxd-beat.is-past:focus-within { opacity: 1; }
+/* この先の手：まだ進めていないことが分かるよう、薄く・色を抑えて出す。重ねると濃くなり、押すとそこへ進む */
+.uxd-beat.is-future { opacity: .42; filter: saturate(.35); }
+.uxd-beat.is-future:hover, .uxd-beat.is-future:focus-visible { opacity: .8; filter: none; }
+/* 線の種類だけを点線にする。状況の札は左にしか線がないので、border-style を変えると線のない三辺に既定の太さ（約 3px）の線が出る。
+   状況の札は、左の線を細い点線にするだけにする */
+.uxd-beat.is-future .uxd-bubble, .uxd-beat.is-future .uxd-do, .uxd-beat.is-future .uxd-note { border-style: dashed; }
+.uxd-beat.is-future .uxd-situation { border-left: 1px dashed var(--ds-color-border-input); }
+.uxd-beat.is-past:focus-visible, .uxd-beat.is-future:focus-visible { outline: 2px solid var(--ds-color-focus-ring); outline-offset: 4px; border-radius: 12px; }
+/* 今の手とこの先の手の境目 */
+.uxd-ahead { display: flex; align-items: center; gap: 8px; margin: 2px 0; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); }
+.uxd-ahead::before, .uxd-ahead::after { content: ""; flex: 1; border-top: 1px dashed var(--ds-color-border-input); }
 .uxd-beat.is-new { animation: uxd-rise var(--ds-motion-duration-slow) var(--ds-motion-ease-enter) both; }
 @keyframes uxd-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .uxd-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 2px 0 4px; font-size: var(--ds-font-size-body-s); line-height: 16px; color: var(--ds-color-text-description); }
@@ -212,6 +226,11 @@
 .uxd-think-tag { display: inline-flex; align-items: center; gap: 3px; color: var(--ds-color-text-description); }
 .uxd-think-tag .ds-icon { width: 12px; height: 12px; }
 .uxd.hide-think .uxd-beat--think { display: none; }
+.uxd.hide-say .uxd-beat--say { display: none; }
+/* 会話を隠したとき、見せる手が無い場面に出す説明 */
+.uxd-hidden-note { margin: 0; padding: 8px 12px; border: 1px dashed var(--ds-color-border-input); border-radius: 10px; color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); line-height: 1.7; }
+.uxd-hidden-note .ds-btn--link { padding: 0 4px; min-height: 0; height: auto; font-size: inherit; }
+.uxd-hidden-note.is-current { box-shadow: 0 0 0 2px var(--ds-color-focus-ring); }
 
 /* 状況の説明（語り手） */
 .uxd-situation {
@@ -260,8 +279,13 @@
 .uxd-scene { display: flex; align-items: center; gap: 8px; margin-top: var(--ds-space-s); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); font-weight: var(--ds-font-weight-bold); }
 .uxd-scene::after { content: ""; flex: 1; height: 1px; background: var(--ds-color-border-divider); }
 .uxd-scene:first-child { margin-top: 0; }
-.uxd-past { display: grid; gap: var(--ds-space-s); }
-.uxd-past[open] { padding-bottom: var(--ds-space-xs); }
+.uxd-scene--current { color: var(--ds-color-text-body); }
+.uxd-scene--current::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ds-color-btn-primary-bg); }
+.uxd-scene__tag { margin-left: 4px; padding: 0 6px; border: 1px dashed var(--ds-color-border-input); border-radius: 4px; font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); white-space: nowrap; }
+.uxd-future > summary { color: var(--ds-color-text-description); font-weight: var(--ds-font-weight-normal); }
+.uxd-jump { padding: 0; min-height: 0; height: auto; font-size: var(--ds-font-size-body-s); }
+.uxd-past { display: block; }
+.uxd-past__body { display: flex; flex-direction: column; gap: var(--ds-space-s); padding: var(--ds-space-s) 0 var(--ds-space-xs); }
 .uxd-past > summary { list-style: none; cursor: pointer; margin-top: 0; }
 .uxd-past > summary::-webkit-details-marker { display: none; }
 .uxd-past > summary::before { content: "▸"; font-size: 10px; transition: transform var(--ds-motion-duration-fast) var(--ds-motion-ease-standard); }

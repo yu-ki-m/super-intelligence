@@ -5,7 +5,7 @@
  * 台本の書き方は references/demo.md にある。画面は次の 2 つに分かれる。
  *   左：プロトタイプ（iframe）。台本の state を demo-bridge.js 経由で送り、画面を場面に合わせて切り替える。
  *   右：登場人物の発言・心の声・状況の説明・画面の操作、設計チームの仮説と未確認事項。
- * 操作：→ / Space 次へ、← 前へ、Home はじめ、End おわり、P 自動再生、M メモ、1〜9 場面へ移る。
+ * 操作：→ / Space 次へ、← 前へ、Home はじめ、End おわり、P 自動再生、M メモ、C 会話の表示の切り替え、1〜9 場面へ移る。
  * URL の #s=3&b=2 で「3 番目の場面の 2 手目」を直接開ける（スクリーンショット用）。
  */
 (function () {
@@ -110,7 +110,7 @@
   if (problems.length && window.console) console.warn('[仮説デモ] 台本の問題', problems);
 
   /* ---------- 状態 ---------- */
-  var settings = Object.assign({ think: true, notes: true, labels: true, highlight: true, speed: 1 }, load('uxdemo-settings', {}));
+  var settings = Object.assign({ say: true, think: true, notes: true, labels: true, highlight: true, speed: 1 }, load('uxdemo-settings', {}));
   var memoKey = 'uxdemo-memo:' + (D.id || '') + ':' + decodeURIComponent(location.pathname);
   var memos = Object.assign({ scenes: {}, hyps: {} }, load(memoKey, {}));
   var flat = [];
@@ -118,16 +118,23 @@
   var lastSi = -2;
   var view = 'log';
   var playing = false, playTimer = 0;
+  var choiceInputs = {};   // 表示の設定のチェック（「解説だけ」の切り替えと揃えるため）
   var applyId = 0, protoReady = false, readyTimer = 0;
 
   function visible(b) {
+    if (b.type === 'say' && !settings.say) return false;
     if (b.type === 'think' && !settings.think) return false;
     if ((b.type === 'hypothesis' || b.type === 'question') && !settings.notes) return false;
     return true;
   }
   function buildFlat() {
     flat = [];
-    D.scenes.forEach(function (sc, si) { sc.beats.forEach(function (b, bi) { if (visible(b)) flat.push({ si: si, bi: bi }); }); });
+    D.scenes.forEach(function (sc, si) {
+      var n = flat.length;
+      sc.beats.forEach(function (b, bi) { if (visible(b)) flat.push({ si: si, bi: bi }); });
+      // 見せる手が 1 つもない場面（会話だけの場面を「解説だけ」で見たとき）も飛ばさない。画面の切り替わりは見せる
+      if (flat.length === n && sc.beats.length) flat.push({ si: si, bi: sc.beats.length - 1, empty: true });
+    });
   }
   function pos(i) {
     if (i < 0) return { si: 0, bi: -1, intro: true };
@@ -171,6 +178,7 @@
     h('div', { class: 'ds-menu__list' },
       h('p', { class: 'ds-menu__group', style: 'margin:0', text: '表示するもの' }),
       h('div', { class: 'uxd-settings' },
+        choice('say', '発言'),
         choice('think', '心の声'),
         choice('notes', '仮説・未確認（設計チームの書き込み）'),
         choice('labels', '根拠のラベル'),
@@ -278,7 +286,7 @@
   window.addEventListener('resize', function () { paneWidth = setPane(paneWidth); });
 
   function choice(key, text) {
-    var input = h('input', { type: 'checkbox', checked: settings[key] !== false, onchange: function () { settings[key] = input.checked; save('uxdemo-settings', settings); applySettings(true); } });
+    var input = choiceInputs[key] = h('input', { type: 'checkbox', checked: settings[key] !== false, onchange: function () { settings[key] = input.checked; save('uxdemo-settings', settings); applySettings(true); } });
     return h('label', { class: 'ds-choice' }, input, h('span', { text: text }));
   }
   function themeItem(value, text, ic) {
@@ -382,9 +390,9 @@
     } else {
       el = h('div', { class: cls + ' uxd-beat--wide' }, h('p', { class: 'uxd-situation', text: String(b.text || '') }));
     }
-    if (state && state.indexOf('is-past') >= 0) {
+    if (state && (state.indexOf('is-past') >= 0 || state.indexOf('is-future') >= 0)) {
       el.tabIndex = 0;
-      el.title = 'ここまで戻る';
+      el.title = state.indexOf('is-past') >= 0 ? 'ここまで戻る' : 'ここへ進む';
       el.style.cursor = 'pointer';
       var idx = flatIndex(si, bi);
       el.addEventListener('click', function () { stop(); go(idx); });
@@ -429,33 +437,82 @@
         h('button', { class: 'ds-btn ds-btn--primary', type: 'button', onclick: downloadMd }, icon('download'), 'メモを書き出す')));
   }
 
+  /* 会話の欄には、台本の全体を並べる。今の場面は、これまでの手・今の手・この先の手を順に出し、この先の手は薄く出す。
+     終わった場面とこれからの場面は畳んだ見出しにし、開けば読める。押した手へ移れるので、先の場面へもすぐ飛べる。
+     畳んだ・開いたは、進めても描き直しても保つ */
+  var openScenes = {};   // 開いている見出し（キー：'intro' または場面の番号）
+  function foldable(key, cls, summaryKids, kids) {
+    // 中身は間隔を付けた箱で包む。details の中身はブラウザが用意した 1 つの入れ物に入るので、
+    // details 自体に gap を指定しても、中の手と手のあいだには効かない
+    var d = h('details', { class: 'uxd-past ' + cls }, h('summary', { class: 'uxd-scene' }, summaryKids), h('div', { class: 'uxd-past__body' }, kids));
+    if (openScenes[key]) d.open = true;
+    d.addEventListener('toggle', function () { openScenes[key] = d.open; });
+    return d;
+  }
+  function hiddenNote(isCur) {
+    return h('p', { class: 'uxd-hidden-note' + (isCur ? ' is-current' : '') },
+      'この場面の手は、いまの表示の設定ではすべて隠れている（発言・心の声など）。画面は場面に合わせて切り替えている。',
+      h('button', { class: 'ds-btn ds-btn--link', type: 'button', onclick: function () { setConversation(true); } }, '会話も見る'));
+  }
+  function sceneLabel(si) {
+    var sc = D.scenes[si];
+    return '場面 ' + (si + 1) + (sc.time ? '　' + sc.time : '') + '　' + (sc.title || '');
+  }
   function renderLog(animateCurrent) {
     var p = pos(cur);
     log.textContent = '';
-    if (p.intro) { log.appendChild(introCard()); return; }
-    log.appendChild(h('details', { class: 'uxd-past' }, h('summary', { class: 'uxd-scene' }, 'はじめに　目的・登場人物・仮説'), introCard()));
-    for (var si = 0; si <= p.si; si++) {
-      var sc = D.scenes[si];
-      var label = '場面 ' + (si + 1) + (sc.time ? '　' + sc.time : '') + '　' + (sc.title || '');
-      // 終わった場面は畳む（今の場面に目を向けるため）。開けば読み返せ、押した手まで戻れる
-      var past = si < p.si || p.end;
-      var box = past ? h('details', { class: 'uxd-past' }, h('summary', { class: 'uxd-scene' }, label)) : log;
-      if (!past) log.appendChild(h('div', { class: 'uxd-scene' }, label));
-      var upto = past ? sc.beats.length - 1 : p.bi;
-      for (var bi = 0; bi <= upto; bi++) {
-        var b = sc.beats[bi];
-        if (!visible(b)) continue;
-        var isCur = !p.end && si === p.si && bi === p.bi;
-        box.appendChild(renderBeat(b, si, bi, isCur ? 'is-current' + (animateCurrent ? ' is-new' : '') : 'is-past'));
+    if (p.intro) log.appendChild(introCard());
+    else log.appendChild(foldable('intro', 'uxd-done', 'はじめに　目的・登場人物・仮説', introCard()));
+    D.scenes.forEach(function (sc, si) {
+      var phase = p.intro ? 'future' : p.end || si < p.si ? 'past' : si === p.si ? 'current' : 'future';
+      var beats = [];
+      var aheadPlaced = false;
+      sc.beats.forEach(function (b, bi) {
+        if (!visible(b)) return;
+        var state;
+        if (phase === 'past') state = 'is-past';
+        else if (phase === 'future') state = 'is-future';
+        else if (bi < p.bi) state = 'is-past';
+        else if (bi === p.bi) state = 'is-current' + (animateCurrent ? ' is-new' : '');
+        else {
+          state = 'is-future';
+          if (!aheadPlaced) { beats.push(h('div', { class: 'uxd-ahead', role: 'separator' }, 'この先（まだ進めていない）')); aheadPlaced = true; }
+        }
+        beats.push(renderBeat(b, si, bi, state));
+      });
+      var visibleCount = sc.beats.filter(visible).length;
+      if (!visibleCount) beats.push(hiddenNote(phase === 'current'));
+      if (phase === 'current') {
+        log.appendChild(h('div', { class: 'uxd-scene uxd-scene--current' }, sceneLabel(si)));
+        beats.forEach(function (el) { log.appendChild(el); });
+        return;
       }
-      if (past) log.appendChild(box);
-    }
+      var first = flat.findIndex(function (f) { return f.si === si; });
+      var jump = phase === 'future' && first >= 0
+        ? h('div', null, h('button', { class: 'ds-btn ds-btn--link uxd-jump', type: 'button', onclick: function () { stop(); go(first); } }, icon('arrow-right'), 'この場面から見る'))
+        : null;
+      var summary = [sceneLabel(si), phase === 'future' ? h('span', { class: 'uxd-scene__tag', text: 'これから ・ ' + visibleCount + ' 手' }) : null];
+      log.appendChild(foldable(String(si), phase === 'past' ? 'uxd-done' : 'uxd-future', summary, [jump].concat(beats)));
+    });
     if (p.end) log.appendChild(endCard());
   }
 
+  /* 会話（発言と心の声）を見せるか、状況・画面の操作・仮説などの解説だけを見せるかの切り替え。C キーでも切り替わる */
+  function modeSwitch() {
+    var all = settings.say && settings.think, only = !settings.say && !settings.think;
+    var b1 = h('button', { type: 'button', 'aria-pressed': String(all), title: '発言・心の声も見せる（C）', onclick: function () { setConversation(true); } }, '会話と解説');
+    var b2 = h('button', { type: 'button', 'aria-pressed': String(only), title: '状況・画面の操作・仮説だけを見せる（C）', onclick: function () { setConversation(false); } }, '解説だけ');
+    return h('div', { class: 'ds-segmented ds-segmented--s uxd-mode', role: 'group', 'aria-label': '会話を見せるか' }, b1, b2);
+  }
+  function setConversation(on) {
+    settings.say = on; settings.think = on;
+    save('uxdemo-settings', settings);
+    applySettings(true);
+  }
   function renderSceneHead() {
     var p = pos(cur);
     sceneHead.textContent = '';
+    sceneHead.appendChild(modeSwitch());
     if (p.intro) {
       sceneHead.appendChild(h('div', { class: 'uxd-scenehead__no', text: 'はじめに' }));
       sceneHead.appendChild(h('h2', { class: 'uxd-scenehead__title', text: D.title || '' }));
@@ -568,9 +625,11 @@
     if (!el) { scroll.scrollTo({ top: 0, behavior: 'auto' }); return; }
     var box = scroll.getBoundingClientRect(), r = el.getBoundingClientRect();
     var top = r.top - box.top + scroll.scrollTop;          // 欄の中での位置
-    var want = top + r.height - scroll.clientHeight + 32;   // 下端が見えるところ
-    if (r.height > scroll.clientHeight - 64) want = top - 16;
-    if (want > scroll.scrollTop || top < scroll.scrollTop) scroll.scrollTo({ top: Math.max(0, want), behavior: instant || reduce ? 'auto' : 'smooth' });
+    var bottom = top + r.height;
+    // 今の手が欄から外れたときだけ動かす。動かすときは、今の手を欄の上から 3 割ほどの所に置き、この先の手も見えるようにする
+    if (top >= scroll.scrollTop + 8 && bottom <= scroll.scrollTop + scroll.clientHeight - 24) return;
+    var want = r.height > scroll.clientHeight * 0.6 ? top - 16 : top - scroll.clientHeight * 0.3;
+    scroll.scrollTo({ top: Math.max(0, want), behavior: instant || reduce ? 'auto' : 'smooth' });
   }
 
   /* ---------- プロトタイプとのやり取り ---------- */
@@ -649,6 +708,8 @@
   }
 
   function applySettings(rerender) {
+    Object.keys(choiceInputs).forEach(function (k) { choiceInputs[k].checked = settings[k] !== false; });
+    app.classList.toggle('hide-say', !settings.say);
     app.classList.toggle('hide-think', !settings.think);
     app.classList.toggle('hide-notes', !settings.notes);
     app.classList.toggle('hide-labels', !settings.labels);
@@ -766,6 +827,7 @@
     else if (e.key === 'End') { e.preventDefault(); stop(); go(flat.length); }
     else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePlay(); }
     else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); toggleMemo(true); }
+    else if (e.key === 'c' || e.key === 'C') { e.preventDefault(); setConversation(!(settings.say || settings.think)); }
     else if (/^[1-9]$/.test(e.key)) { var si = Number(e.key) - 1; var i = flat.findIndex(function (f) { return f.si === si; }); if (i >= 0) { stop(); go(i); } }
   });
 

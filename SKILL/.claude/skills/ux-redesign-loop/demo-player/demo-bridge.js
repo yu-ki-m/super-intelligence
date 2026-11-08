@@ -88,6 +88,39 @@
     raf = requestAnimationFrame(place);
   }
 
+  /* 対象が見えるようにスクロールする。scrollIntoView は使わない。scrollIntoView は、はみ出しを隠しているだけの枠
+     （overflow: hidden。スマートフォンの端末の画面など）までスクロールし、枠の中身をずらしてしまう。端末の画面がずれると、
+     画面の下に隠してあるキーボードの部品が見えてしまう。ここでは、縦や横に送れる欄（overflow: auto / scroll）とページだけを動かす。
+     mode：'center' は欄の中央へ（欄の高さの 7 割を超える要素は上端へ。中央に合わせると見出しが隠れるため）、
+           'ifneeded' は欄から外れているときだけ中央へ */
+  function reveal(el, mode, smooth) {
+    var shift = 0;   // 内側の欄を動かした分、外側から見た要素の位置がずれる
+    var node = el.parentElement;
+    var boxes = [];
+    while (node && node !== document.body && node !== document.documentElement) {
+      var cs = getComputedStyle(node);
+      if (/(auto|scroll|overlay)/.test(cs.overflowY) && node.scrollHeight > node.clientHeight + 1) boxes.push(node);
+      node = node.parentElement;
+    }
+    var se = document.scrollingElement || document.documentElement;
+    if (se.scrollHeight > se.clientHeight + 1) boxes.push(null);   // null はページ
+    boxes.forEach(function (box) {
+      var r = el.getBoundingClientRect();
+      var top = r.top - shift, bottom = r.bottom - shift;
+      var bt = box ? box.getBoundingClientRect().top : 0;
+      var bh = box ? box.clientHeight : window.innerHeight;
+      var visible = top >= bt && bottom <= bt + bh;
+      if (mode === 'ifneeded' && visible) return;
+      var dy = r.height > bh * 0.7 ? top - bt - 12 : (top + r.height / 2) - (bt + bh / 2);
+      var cur = box ? box.scrollTop : se.scrollTop;
+      var max = (box ? box.scrollHeight : se.scrollHeight) - bh;
+      var next = Math.max(0, Math.min(max, cur + dy));
+      if (Math.abs(next - cur) < 1) return;
+      (box || window).scrollTo({ top: next, behavior: smooth ? 'smooth' : 'auto' });
+      shift += next - cur;
+    });
+  }
+
   function highlight(selector, label, spot, quiet) {
     if (!selector) { hide(); return null; }
     var el = null;
@@ -96,15 +129,8 @@
     ensureRing();
     cancelAnimationFrame(raf);
     target = el;
-    var r = el.getBoundingClientRect();
-    if (quiet) {
-      // 前の手と同じ画面・同じ対象：見えていれば動かさない。見えていないときだけ、すぐに移す
-      if (r.bottom < 0 || r.top > window.innerHeight) el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
-    } else {
-      // 画面の高さの 7 割を超える要素は、中央に合わせると上端（見出しや説明）が隠れるので、上端に合わせる
-      var tall = r.height > window.innerHeight * 0.7;
-      el.scrollIntoView({ block: tall ? 'start' : 'center', inline: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
-    }
+    // 前の手と同じ画面・同じ対象（quiet）なら、見えていれば動かさず、見えていないときだけすぐに移す
+    reveal(el, quiet ? 'ifneeded' : 'center', !quiet && !reduce);
     tag.textContent = label || '';
     tag.style.opacity = label ? '1' : '0';
     ring.style.opacity = '1';

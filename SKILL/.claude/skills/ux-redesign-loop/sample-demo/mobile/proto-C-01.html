@@ -5,7 +5,7 @@
   - 検証する仮説：H-01 まとめて承認、H-02 外れた規定と値を並べる、H-03 差し戻しの理由を選ぶ、H-04 通信が切れても判断を端末に残す
   - 模擬している部分：申請のデータは JavaScript で作った架空のもの。通信の切断・申請者の出し直し・経理の差し戻しは状態の切替えで模擬
   - 未実装：領収書の写真の拡大、承認済みと設定のタブ、検索（画面に「未実装」と表示）
-  - デザインシステム：既定の DS（sample-design-system-mobile）、見た目はミニマル。端末の枠（device.css / device.js）で表示する。DS 外の部品：なし
+  - デザインシステム：既定の DS（sample-design-system-mobile）、見た目はミニマル。端末の枠（device.css / device.js）で表示し、下の操作の帯は 3 つのボタン（戻る・ホーム・履歴）に固定する（data-nav-fixed）。DS 外の部品：なし
   - デモ：demo-bridge.js を読み込み、window.uxDemoApply で台本の状態を受け取る。デモの中では端末の操作盤（検証用）を隠す
   - データ：実在の会社・店・電話番号を使わない（references/prototype.md の「データ」）
 -->
@@ -127,7 +127,7 @@
 </svg>
 
 <div class="dv-stage">
-  <div class="dv-phone" data-frame="mint" data-app-name="経費精算" data-app-icon="経" data-battery="64" data-time="8:10" id="phone">
+  <div class="dv-phone" data-frame="mint" data-nav="buttons" data-nav-fixed data-app-name="経費精算" data-app-icon="経" data-battery="64" data-time="8:10" id="phone">
     <div class="dv-phone__glass">
       <div class="dv-screen">
         <div class="dv-viewport">
@@ -210,6 +210,10 @@
     phone.dataset.time = S.time;
     const t = document.querySelector('.dv-time'); if (t) t.textContent = S.time;
     const detail = S.screen === 'detail';
+    // 描き直す前に、アプリの中の焦点を外す。入力欄に焦点があるまま描き直すと、入力欄だけが消えて
+    // 焦点が外れたことが伝わらず、端末のキーボード（device.js）が出たまま残るため
+    const focused = document.activeElement;
+    if (focused && app.contains(focused)) focused.blur();
     app.innerHTML = `<div class="ds-app__stack">${detail ? detailScreen() : inboxScreen()}</div>
       <nav class="ds-tabbar" aria-label="アプリの行き先"${detail ? ' hidden' : ''}>
         <button type="button" class="ds-tabbar__item" aria-current="page"><span class="ds-tabbar__icon">${icon('inbox')}${needItems().length + (S.approvedBulk ? 0 : okItems().length) ? `<span class="ds-count">${needItems().length + (S.approvedBulk ? 0 : okItems().length)}</span>` : ''}</span>承認待ち</button>
@@ -365,10 +369,28 @@
     if (b.dataset.ev === 'acct') set({ approvedBulk: true, acct: true, time: '16:30' });
   });
 
+  /* ---------- 端末の「戻る」 ----------
+     端末の戻るボタン・端から払う・Esc は、device.js が ds.back() を呼ぶ。このプロトタイプは画面とシートを
+     状態から描いていて ds.push / ds.open を使わないので、ds.back の前にこの画面の戻り方を当てる。
+     戻れないとき（承認待ちの画面）は ds.back に任せ、端末はホーム画面へ移る */
+  function appBack() {
+    if (S.sheet) { set({ sheet: null }); return true; }
+    if (S.screen === 'detail') { set({ screen: 'inbox', item: null }); return true; }
+    return false;
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!window.ds || !ds.back) return;
+    const dsBack = ds.back;
+    ds.back = scope => appBack() || dsBack(scope);
+  });
+
   /* ---------- デモから状態を当てる ---------- */
   window.uxDemoApply = function (state) {
     S = Object.assign({}, DEFAULT, state);
     render();
+    // 触っているうちにホーム画面へ移っていたら、アプリへ戻す（デモの場面はアプリの中の出来事）
+    const home = document.querySelector('.dv-home');
+    if (home && !home.hidden && window.dv && dv.openApp) dv.openApp(document.getElementById('phone'));
   };
   // device.js が時刻の帯を作ったあとで描く（時刻を合わせるため）
   window.addEventListener('load', render);
