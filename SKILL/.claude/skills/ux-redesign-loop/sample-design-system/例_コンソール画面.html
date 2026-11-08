@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja" data-look="console">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CVE-2021-23337 の判定 | Sample Console</title>
+<script>
+  /* 保存した画面の明るさと見た目を、描画の前に当てる（違う見た目が一瞬出るのを防ぐ） */
+  try {
+    const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    const l = localStorage.getItem('ds-look'); if (l === 'console') document.documentElement.dataset.look = l; else if (l === 'minimal') delete document.documentElement.dataset.look;
+  } catch (_) {}
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="components.js" defer></script>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 4.5v.5"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 6v4M8 12v.5"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
+  <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V10M8 12v.5"/></symbol>
+  <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
+  <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
+  <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+  <symbol id="ds-i-angle-right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="ds-i-angle-left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="ds-i-caret-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="ds-i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V2H2v9h3"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-more" viewBox="0 0 16 16"><path d="M8 3v.5M8 8v.5M8 13v.5" stroke-width="2.5"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="ds-i-bulb" viewBox="0 0 16 16"><path d="M6 12.5h4M6.5 15h3M5.5 10.5C4.3 9.6 3.5 8.3 3.5 6.5a4.5 4.5 0 0 1 9 0c0 1.8-.8 3.1-2 4z"/></symbol>
+  <symbol id="ds-i-terminal" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-tree" viewBox="0 0 16 16"><path d="M3 2v11h5M3 7h5"/><rect x="9" y="5" width="5" height="4" rx="1"/><rect x="9" y="11" width="5" height="4" rx="1"/></symbol>
+  <symbol id="ds-i-trophy" viewBox="0 0 16 16"><path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0zM4.5 3.5H2v1a2.5 2.5 0 0 0 2.5 2.5M11.5 3.5H14v1A2.5 2.5 0 0 1 11.5 7M8 9.5V12M5 14.5h6M6 12h4"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-filter" viewBox="0 0 16 16"><path d="M1.5 2.5h13l-5 6v5l-3 1.5v-6.5z"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-folder" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 2h6.5v8h-13z"/></symbol>
+  <symbol id="ds-i-paperclip" viewBox="0 0 16 16"><path d="M13.5 7.5l-5.8 5.8a3.5 3.5 0 0 1-5-5L8.5 2.5a2.3 2.3 0 0 1 3.3 3.3L6 11.6a1.2 1.2 0 0 1-1.7-1.7L9.5 4.7"/></symbol>
+  <symbol id="ds-i-medal" viewBox="0 0 16 16"><circle cx="8" cy="10" r="4.5"/><path d="M5 6.5L3 1.5h3.5L8 5M11 6.5l2-5H9.5L8 5M8 8.2l.6 1.2 1.3.2-1 .9.3 1.3L8 11.2l-1.2.6.3-1.3-1-.9 1.3-.2z"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-target" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1"/></symbol>
+  <symbol id="ds-i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></symbol>
+  <symbol id="ds-i-moon" viewBox="0 0 16 16"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></symbol>
+  <symbol id="ds-i-theme" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13A6.5 6.5 0 0 0 8 1.5z" fill="currentColor"/></symbol>
+  <symbol id="ds-i-scale" viewBox="0 0 16 16"><path d="M8 1.5v13M4.5 14.5h7M2.5 4.5h11M2.5 4.5L.5 9a2 2 0 0 0 4 0zM13.5 4.5l-2 4.5a2 2 0 0 0 4 0z"/></symbol>
+  <symbol id="ds-i-sidebar" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/><path d="M4 6.5L3 8l1 1.5"/></symbol>
+  <symbol id="ds-i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-arrow-up" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+  <symbol id="ds-i-compose" viewBox="0 0 16 16"><path d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M12 1.5l2.5 2.5L8 10.5H5.5V8z"/></symbol>
+  <symbol id="ds-i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+  <symbol id="ds-i-monitor" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="ds-i-cloud" viewBox="0 0 16 16"><path d="M4.5 13a3 3 0 0 1-.4-6A4.5 4.5 0 0 1 12.8 7a3 3 0 0 1-.3 6z"/></symbol>
+  <symbol id="ds-i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 0 1 4 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 0 1-4-4L5 7.5"/></symbol>
+  <symbol id="ds-i-globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c2 2 2 11 0 13M8 1.5c-2 2-2 11 0 13"/></symbol>
+  <symbol id="ds-i-panel-right" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></symbol>
+  <symbol id="ds-i-panel-bottom" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M1.5 10h13"/></symbol>
+  <symbol id="ds-i-maximize" viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></symbol>
+  <symbol id="ds-i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-4 2.5-7.5 4.5"/></symbol>
+  <symbol id="ds-i-bars" viewBox="0 0 16 16"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"/></symbol>
+  <symbol id="ds-i-sliders" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-paperclip-2" viewBox="0 0 16 16"><path d="M10.5 5L5.8 9.7a1.2 1.2 0 0 0 1.7 1.7l5-5a2.6 2.6 0 0 0-3.7-3.7L3.7 7.8a4 4 0 0 0 5.7 5.7L13 9.9"/></symbol>
+</svg>
+
+<div class="ds-app ds-app--with-panel">
+  <header class="ds-topnav">
+    <a class="ds-topnav__brand" href="index.html"><svg class="ds-icon"><use href="#ds-i-shield"/></svg>Sample Console</a>
+    <span class="ds-topnav__divider"></span>
+    <label class="ds-topnav__search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input type="search" placeholder="CVE・パッケージを検索"></label>
+    <span class="ds-topnav__spacer"></span>
+    <span class="ds-timer" role="timer" aria-label="セッションの残り時間"><svg class="ds-icon"><use href="#ds-i-clock"/></svg><span id="timer-text">12:30</span></span>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="通知"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></button>
+    <details class="ds-menu ds-menu--end">
+      <summary class="ds-btn ds-btn--icon" style="color:inherit" aria-label="見た目"><svg class="ds-icon"><use href="#ds-i-monitor"/></svg></summary>
+      <div class="ds-menu__list" role="menu" aria-label="見た目">
+        <p class="ds-menu__group" style="margin:0">見た目</p>
+        <button class="ds-menu__item" role="menuitemradio" data-look-choice="minimal" aria-checked="false">ミニマル<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-look-choice="console" aria-checked="true">コンソール<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+      </div>
+    </details>
+    <details class="ds-menu ds-menu--end">
+      <summary class="ds-btn ds-btn--icon" style="color:inherit" aria-label="画面の明るさ"><svg class="ds-icon"><use href="#ds-i-theme"/></svg></summary>
+      <div class="ds-menu__list" role="menu" aria-label="画面の明るさ">
+        <p class="ds-menu__group" style="margin:0">画面の明るさ</p>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="auto" aria-checked="true"><svg class="ds-icon"><use href="#ds-i-theme"/></svg>パソコンの設定に合わせる<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="light" aria-checked="false"><svg class="ds-icon"><use href="#ds-i-sun"/></svg>明るい<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="dark" aria-checked="false"><svg class="ds-icon"><use href="#ds-i-moon"/></svg>暗い<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+      </div>
+    </details>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="ヘルプ"><svg class="ds-icon"><use href="#ds-i-help"/></svg></button>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="設定"><svg class="ds-icon"><use href="#ds-i-settings"/></svg></button>
+    <span class="ds-topnav__divider"></span>
+    <span class="ds-topnav__item">shop-frontend</span>
+    <span class="ds-topnav__item">yamada ▾</span>
+  </header>
+
+  <div class="ds-subbar">
+    <button class="ds-btn ds-btn--icon" aria-label="メニューを開閉" data-toggle-panel="sidenav"><svg class="ds-icon"><use href="#ds-i-menu"/></svg></button>
+    <ol class="ds-breadcrumb">
+      <li><a href="#">OSS 脆弱性診断</a></li>
+      <li><a href="#">shop-frontend</a></li>
+      <li><span aria-current="page">CVE-2021-23337</span></li>
+    </ol>
+  </div>
+
+  <nav class="ds-sidenav" id="sidenav" aria-label="診断メニュー">
+    <p class="ds-sidenav__title">OSS 脆弱性診断</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#">ダッシュボード</a></li>
+    </ul>
+    <p class="ds-sidenav__section">検出結果 <span class="ds-badge">4</span></p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#" aria-current="page">CVE-2021-23337</a></li>
+      <li><a class="ds-sidenav__link" href="#">CVE-2022-24999</a></li>
+      <li><a class="ds-sidenav__link" href="#">CVE-2023-26136</a></li>
+      <li><a class="ds-sidenav__link" href="#">CVE-2024-4068</a></li>
+    </ul>
+    <p class="ds-sidenav__section">資料</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#">真陽性の条件</a></li>
+      <li><a class="ds-sidenav__link" href="#">偽陽性のパターン</a></li>
+    </ul>
+  </nav>
+
+  <main class="ds-main">
+    <div class="ds-flash" style="margin-top:var(--ds-space-xs)">
+      <svg class="ds-icon"><use href="#ds-i-info"/></svg>
+      <div class="ds-flash__content">この検出結果を含め、未判定は 4 件です。<kbd class="ds-kbd">T</kbd> で真陽性、<kbd class="ds-kbd">F</kbd> で偽陽性を選べます。</div>
+      <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="閉じる" data-dismiss=".ds-flash"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+    </div>
+
+    <div class="ds-page-header">
+      <div>
+        <h1 class="ds-h1">CVE-2021-23337 の判定 <a class="ds-link ds-link--info" href="#" aria-label="真陽性の条件を開く" data-open-panel="help" onclick="event.preventDefault()"><svg class="ds-icon"><use href="#ds-i-help"/></svg></a></h1>
+        <p class="ds-page-header__description">検出結果・依存関係・ソースコードを見比べて、真陽性か偽陽性かを決める。</p>
+      </div>
+      <div class="ds-btn-group">
+        <a class="ds-btn" href="#"><svg class="ds-icon"><use href="#ds-i-external"/></svg>CVE の詳細</a>
+      </div>
+    </div>
+
+    <div class="ds-stack">
+      <section class="ds-container">
+        <div class="ds-container__header"><h2 class="ds-container__title">検出結果</h2></div>
+        <div class="ds-container__body">
+          <dl class="ds-kv ds-kv--divided" style="--ds-cols:4">
+            <div><dt>パッケージ</dt><dd class="ds-mono">lodash</dd></div>
+            <div><dt>影響を受ける版</dt><dd class="ds-mono">&lt; 4.17.21</dd></div>
+            <div><dt>深刻度</dt><dd><span class="ds-severity ds-severity--high">高（CVSS 7.2）</span></dd></div>
+            <div><dt>指摘されたメソッド</dt><dd class="ds-mono">_.template()</dd></div>
+          </dl>
+          <hr class="ds-divider">
+          <p style="margin:0">template 関数の options に外から渡した値が入ると、任意のコードを実行されるおそれがある（コマンドインジェクション）。</p>
+          <div class="ds-version-range ds-version-range--hit" style="--ds-from:0%;--ds-to:70%;--ds-at:60%;max-width:640px">
+            <div class="ds-version-range__track" role="img" aria-label="入っている版 4.17.20 は、影響を受ける範囲 4.17.21 未満に入っている">
+              <div class="ds-version-range__affected"></div>
+              <div class="ds-version-range__marker"><span class="ds-version-range__marker-label">4.17.20</span></div>
+            </div>
+            <div class="ds-version-range__ticks"><span style="left:0">4.0.0</span><span style="left:70%">4.17.21（修正）</span><span style="left:100%">最新</span></div>
+            <div class="ds-version-range__legend"><span><i class="ds-version-range__swatch"></i>影響を受ける範囲</span><span><i class="ds-version-range__swatch ds-version-range__swatch--marker"></i>入っている版：範囲の中</span></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="ds-grid">
+        <section class="ds-container">
+          <div class="ds-container__header">
+            <div>
+              <h2 class="ds-container__title">依存関係</h2>
+              <p class="ds-container__description">package-lock.json から作成</p>
+            </div>
+          </div>
+          <div class="ds-container__body ds-stack ds-stack--s">
+            <ul class="ds-tree">
+              <li>shop-frontend <span class="ds-tree__version">1.0.0</span>
+                <ul>
+                  <li>express <span class="ds-tree__version">4.18.2</span></li>
+                  <li><span class="ds-tree__hit">lodash</span> <span class="ds-tree__version">4.17.20</span></li>
+                  <li>axios <span class="ds-tree__version">1.6.0</span></li>
+                </ul>
+              </li>
+            </ul>
+            <div class="ds-alert ds-alert--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-alert__content">インストールされているバージョンは <span class="ds-mono">4.17.20</span>。影響を受ける範囲に入っている。</div></div>
+          </div>
+        </section>
+
+        <section class="ds-container">
+          <div class="ds-container__header">
+            <div>
+              <h2 class="ds-container__title">判定の条件</h2>
+              <p class="ds-container__description">条件ごとに答え、根拠を付ける。</p>
+            </div>
+          </div>
+          <div class="ds-container__body">
+            <ol class="ds-criteria">
+              <li>
+                <span>インストールされている</span>
+                <div class="ds-segmented ds-segmented--s" role="group" aria-label="インストールされているか"><button aria-pressed="true">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="false" data-tone="neutral">未確認</button></div>
+                <div class="ds-criteria__evidence"><a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-package"/></svg>lodash@4.17.20</a></div>
+              </li>
+              <li>
+                <span>バージョンが対象</span>
+                <div class="ds-segmented ds-segmented--s" role="group" aria-label="バージョンが対象か"><button aria-pressed="true">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="false" data-tone="neutral">未確認</button></div>
+                <div class="ds-criteria__evidence"><a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-file"/></svg>package-lock.json:1284</a></div>
+              </li>
+              <li>
+                <span>指摘のメソッドを呼んでいる</span>
+                <div class="ds-segmented ds-segmented--s" role="group" aria-label="メソッドを呼んでいるか"><button aria-pressed="true">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="false" data-tone="neutral">未確認</button></div>
+                <div class="ds-criteria__evidence"><a class="ds-evidence" href="#code"><svg class="ds-icon ds-icon--s"><use href="#ds-i-file"/></svg>src/routes/search.js:14</a></div>
+              </li>
+              <li>
+                <span>指摘の機能を使っている</span>
+                <div class="ds-segmented ds-segmented--s" role="group" aria-label="機能を使っているか"><button aria-pressed="false">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="true" data-tone="neutral">未確認</button></div>
+                <div class="ds-criteria__evidence"></div>
+              </li>
+            </ol>
+          </div>
+        </section>
+      </div>
+
+      <section class="ds-container" id="code">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ソースコード</h2>
+            <p class="ds-container__description"><span class="ds-mono">_.template</span> の呼び出しを 1 件見つけました。</p>
+          </div>
+          <div class="ds-search" style="width:280px"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" value="_.template" aria-label="コードを検索"></div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush">
+          <div class="ds-split" style="--ds-split:220px">
+            <div class="ds-split__pane" style="padding:var(--ds-space-xs)">
+              <ul class="ds-filetree" aria-label="ファイル">
+                <li><details open><summary class="ds-filetree__item"><svg class="ds-icon"><use href="#ds-i-folder"/></svg>src</summary>
+                  <ul>
+                    <li><details open><summary class="ds-filetree__item"><svg class="ds-icon"><use href="#ds-i-folder"/></svg>routes</summary>
+                      <ul>
+                        <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>cart.js</a></li>
+                        <li><a class="ds-filetree__item" href="#" aria-current="true"><svg class="ds-icon"><use href="#ds-i-file"/></svg>search.js<span class="ds-filetree__count">1</span></a></li>
+                      </ul></details></li>
+                    <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>app.js</a></li>
+                  </ul></details></li>
+                <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>package.json</a></li>
+              </ul>
+            </div>
+            <button class="ds-split__handle"></button>
+            <div class="ds-split__pane" style="padding:var(--ds-space-xs) var(--ds-space-m) var(--ds-space-m) 0">
+          <div class="ds-code">
+            <div class="ds-code-tabs" role="tablist">
+              <div class="ds-code-tab" role="tab" aria-selected="true">search.js<span class="ds-code-tab__close" role="button" aria-label="search.js を閉じる"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></span></div>
+              <div class="ds-code-tab" role="tab" aria-selected="false">package.json<span class="ds-code-tab__close" role="button" aria-label="package.json を閉じる"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></span></div>
+            </div>
+            <div class="ds-code__header"><svg class="ds-icon"><use href="#ds-i-code"/></svg>src/routes/search.js</div>
+<pre class="ds-code__body" style="--ds-code-start:9"><span class="ds-code__line"><span class="k">const</span> _ = <span class="f">require</span>(<span class="s">'lodash'</span>);</span><span class="ds-code__line"></span><span class="ds-code__line"><span class="k">module</span>.exports = (req, res) =&gt; {</span><span class="ds-code__line">  <span class="c">// 検索結果の見出しを利用者の指定した形式で作る</span></span><span class="ds-code__line ds-code__line--hit">  <span class="k">const</span> title = _.<span class="f">template</span>(req.query.format)({ keyword: req.query.q });</span><span class="ds-code__line">  res.<span class="f">json</span>({ title });</span><span class="ds-code__line">};</span></pre>
+          </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ds-container">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">判定</h2>
+            <p class="ds-container__description">確定すると変更できない。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <fieldset class="ds-field" style="border:0;margin:0;padding:0">
+            <legend class="ds-field__label">結果</legend>
+            <div class="ds-tiles">
+              <label class="ds-tile ds-choice"><input type="radio" name="verdict" value="tp"><span class="ds-choice__text"><span><span class="ds-verdict ds-verdict--tp">真陽性</span></span><span class="ds-text-small">インストール・バージョン・呼び出し・機能の使用がすべて当てはまる。対応が必要。</span></span></label>
+              <label class="ds-tile ds-choice"><input type="radio" name="verdict" value="fp"><span class="ds-choice__text"><span><span class="ds-verdict ds-verdict--fp">偽陽性</span></span><span class="ds-text-small">どれかが当てはまらない。理由を下で選ぶ。</span></span></label>
+            </div>
+          </fieldset>
+          <div class="ds-field">
+            <label class="ds-field__label" for="reason">根拠 <span class="ds-optional">- 任意</span></label>
+            <span class="ds-field__description">見たファイルと行を書くと、振り返りで確認できる。</span>
+            <textarea class="ds-textarea" id="reason" placeholder="例：src/routes/search.js 14 行目で利用者の入力を template に渡している"></textarea>
+          </div>
+          <div class="ds-hint" id="hint">
+            <div class="ds-hint__header"><svg class="ds-icon"><use href="#ds-i-lock"/></svg>ヒント<span class="ds-hint__cost">開くと記録に残ります</span></div>
+            <div class="ds-hint__body"><button class="ds-btn" id="hint-open">ヒントを開く</button></div>
+          </div>
+          <div id="result" hidden></div>
+        </div>
+        <div class="ds-container__footer" style="text-align:end">
+          <div class="ds-btn-group">
+            <button class="ds-btn ds-btn--link">あとで判定する</button>
+            <button class="ds-btn ds-btn--primary" id="submit" disabled>判定を確定</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <aside class="ds-help-panel" id="help" aria-label="ヘルプ">
+    <div class="ds-help-panel__header">
+      <h2 class="ds-help-panel__title">真陽性の条件</h2>
+      <button class="ds-btn ds-btn--icon" aria-label="ヘルプを閉じる" data-close-panel="help"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+    </div>
+    <p>次の 4 つがすべて当てはまるとき、真陽性になる。</p>
+    <ul>
+      <li>対象の OSS がインストールされている</li>
+      <li>バージョンが影響を受ける範囲にある</li>
+      <li>指摘のメソッドをコードで呼んでいる</li>
+      <li>指摘の機能を実際に使っている</li>
+    </ul>
+    <h4>よくある偽陽性</h4>
+    <ul>
+      <li>似た名前の別のパッケージ</li>
+      <li>バージョンが対象外</li>
+      <li>別の OSS に含まれているが使っていない</li>
+    </ul>
+    <h4>キー操作</h4>
+    <p><kbd class="ds-kbd">T</kbd> 真陽性　<kbd class="ds-kbd">F</kbd> 偽陽性</p>
+  </aside>
+
+  <footer class="ds-footer">
+    <a href="#">フィードバック</a>
+    <a href="index.html">デザインシステム</a>
+    <span class="ds-footer__end">Sample Console</span>
+  </footer>
+</div>
+
+<dialog class="ds-modal" id="confirm" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <div class="ds-modal__header">
+      <h2 class="ds-modal__title" id="confirm-title">判定を確定しますか？</h2>
+      <button class="ds-btn ds-btn--icon" value="cancel" aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+    </div>
+    <div class="ds-modal__body ds-stack ds-stack--s">
+      <p style="margin:0" id="confirm-text"></p>
+      <div class="ds-alert ds-alert--warning" id="confirm-warn"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-alert__content">「指摘の機能を使っている」がまだ未確認です。</div></div>
+    </div>
+    <div class="ds-modal__footer">
+      <button class="ds-btn ds-btn--link" value="cancel">戻る</button>
+      <button class="ds-btn ds-btn--primary" value="ok">確定する</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  // 見た目の確認用の動き（本実装ではない）
+  const submit = document.getElementById('submit');
+  const confirmDialog = document.getElementById('confirm');
+  const radios = document.querySelectorAll('input[name="verdict"]');
+  radios.forEach(r => r.addEventListener('change', () => submit.disabled = false));
+
+  // 判定の条件の切り替え・コードのタブ・ファイルの一覧・分割画面の動きは components.js
+
+  // キー操作: T で真陽性、F で偽陽性
+  document.addEventListener('keydown', e => {
+    if ((e.target instanceof Element && e.target.closest('input, textarea')) || confirmDialog.open) return;
+    const v = { t: 'tp', f: 'fp' }[e.key.toLowerCase()];
+    const r = v && document.querySelector(`input[name="verdict"][value="${v}"]:not(:disabled)`);
+    if (r) { r.checked = true; r.dispatchEvent(new Event('change')); }
+  });
+
+  // セッションの残り時間（1 分を切ると黄、0 で赤）
+  let left = 12 * 60 + 30;
+  const timer = document.querySelector('.ds-timer'), timerText = document.getElementById('timer-text');
+  setInterval(() => {
+    if (left <= 0) return;
+    left--;
+    timerText.textContent = left ? `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}` : '時間切れ';
+    timer.classList.toggle('ds-timer--warning', left > 0 && left < 60);
+    timer.classList.toggle('ds-timer--expired', left === 0);
+  }, 1000);
+
+  // ヒント
+  document.getElementById('hint-open').addEventListener('click', () => {
+    const h = document.getElementById('hint');
+    h.classList.add('ds-hint--open');
+    h.querySelector('use').setAttribute('href', '#ds-i-bulb');
+    h.querySelector('.ds-hint__cost').textContent = '開いた記録あり';
+    h.querySelector('.ds-hint__body').textContent = 'format は利用者が URL で指定できる値です。その値が template の第 1 引数に入っています。';
+  });
+
+  // 確定の前に確認する
+  submit.addEventListener('click', () => {
+    const v = document.querySelector('input[name="verdict"]:checked').value;
+    document.getElementById('confirm-text').innerHTML = `CVE-2021-23337 を <span class="ds-verdict ds-verdict--${v}">${v === 'tp' ? '真陽性' : '偽陽性'}</span> として確定します。確定すると変更できません。`;
+    const unknown = document.querySelector('.ds-criteria [data-tone="neutral"][aria-pressed="true"]');
+    document.getElementById('confirm-warn').hidden = !unknown;
+    confirmDialog.showModal();
+  });
+  confirmDialog.addEventListener('close', () => {
+    if (confirmDialog.returnValue !== 'ok') return;
+    const v = document.querySelector('input[name="verdict"]:checked').value;
+    const box = document.getElementById('result');
+    box.hidden = false;
+    box.innerHTML = `<div class="ds-alert ds-alert--success"><svg class="ds-icon"><use href="#ds-i-success"/></svg><div class="ds-alert__content"><div class="ds-alert__title">判定を保存しました</div>CVE-2021-23337 を <span class="ds-verdict ds-verdict--${v}">${v === 'tp' ? '真陽性' : '偽陽性'}</span> として記録し、担当者に知らせました。</div></div>`;
+    ds.toast({ title: '判定を保存しました', message: `CVE-2021-23337 を${v === 'tp' ? '真陽性' : '偽陽性'}として記録しました。`, tone: 'success' });
+    submit.disabled = true;
+    document.querySelectorAll('input[name="verdict"]').forEach(r => r.disabled = true);
+  });
+</script>
+</body>
+</html>

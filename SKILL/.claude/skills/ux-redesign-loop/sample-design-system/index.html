@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>汎用デザインシステム</title>
+<script>
+  /* 保存した画面の明るさと見た目を、描画の前に当てる（違う見た目が一瞬出るのを防ぐ） */
+  try {
+    const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    const l = localStorage.getItem('ds-look'); if (l === 'console') document.documentElement.dataset.look = l; else if (l === 'minimal') delete document.documentElement.dataset.look;
+  } catch (_) {}
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<script src="components.js" defer></script>
+<script src="stage.js" defer></script>
+<style>
+  /* 一覧ページだけで使う見た目 */
+  .cat-section { scroll-margin-top: 64px; }
+  .cat-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--ds-space-s); }
+  .cat-swatch { border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-input); overflow: hidden; }
+  .cat-swatch__chip { height: 48px; }
+  .cat-swatch__meta { padding: var(--ds-space-xxs) var(--ds-space-xs); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); }
+  .cat-swatch__meta code { display: block; color: var(--ds-color-text-description); font-family: var(--ds-font-family-mono); overflow-wrap: anywhere; }
+  .cat-space { display: flex; align-items: center; gap: var(--ds-space-s); }
+  .cat-space__bar { height: 16px; background: var(--ds-chart-1); border-radius: 2px; }
+  .cat-radius { width: 96px; height: 56px; border: 2px solid var(--ds-color-border-selected); background: var(--ds-color-bg-selected); display: grid; place-items: center; font-size: var(--ds-font-size-body-s); }
+  .cat-note { margin: 0; color: var(--ds-color-text-secondary); }
+  .cat-code { font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-body-s); background: var(--ds-color-bg-subtle); padding: 1px 4px; border-radius: 4px; }
+  .cat-type td:first-child { white-space: nowrap; }
+  .cat-ease { display: flex; flex-direction: column; gap: var(--ds-space-xs); }
+  .cat-ease > div { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: var(--ds-space-s); height: 24px; }
+  .cat-ease__track { position: relative; height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); }
+  .cat-ease__track i { position: absolute; top: 50%; left: 0; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: var(--ds-color-btn-primary-bg); }
+</style>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 4.5v.5"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 6v4M8 12v.5"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
+  <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V10M8 12v.5"/></symbol>
+  <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
+  <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
+  <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+  <symbol id="ds-i-angle-right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="ds-i-angle-left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="ds-i-caret-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="ds-i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V2H2v9h3"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-more" viewBox="0 0 16 16"><path d="M8 3v.5M8 8v.5M8 13v.5" stroke-width="2.5"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="ds-i-bulb" viewBox="0 0 16 16"><path d="M6 12.5h4M6.5 15h3M5.5 10.5C4.3 9.6 3.5 8.3 3.5 6.5a4.5 4.5 0 0 1 9 0c0 1.8-.8 3.1-2 4z"/></symbol>
+  <symbol id="ds-i-terminal" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-tree" viewBox="0 0 16 16"><path d="M3 2v11h5M3 7h5"/><rect x="9" y="5" width="5" height="4" rx="1"/><rect x="9" y="11" width="5" height="4" rx="1"/></symbol>
+  <symbol id="ds-i-trophy" viewBox="0 0 16 16"><path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0zM4.5 3.5H2v1a2.5 2.5 0 0 0 2.5 2.5M11.5 3.5H14v1A2.5 2.5 0 0 1 11.5 7M8 9.5V12M5 14.5h6M6 12h4"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-filter" viewBox="0 0 16 16"><path d="M1.5 2.5h13l-5 6v5l-3 1.5v-6.5z"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-folder" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 2h6.5v8h-13z"/></symbol>
+  <symbol id="ds-i-paperclip" viewBox="0 0 16 16"><path d="M13.5 7.5l-5.8 5.8a3.5 3.5 0 0 1-5-5L8.5 2.5a2.3 2.3 0 0 1 3.3 3.3L6 11.6a1.2 1.2 0 0 1-1.7-1.7L9.5 4.7"/></symbol>
+  <symbol id="ds-i-medal" viewBox="0 0 16 16"><circle cx="8" cy="10" r="4.5"/><path d="M5 6.5L3 1.5h3.5L8 5M11 6.5l2-5H9.5L8 5M8 8.2l.6 1.2 1.3.2-1 .9.3 1.3L8 11.2l-1.2.6.3-1.3-1-.9 1.3-.2z"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-target" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1"/></symbol>
+  <symbol id="ds-i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></symbol>
+  <symbol id="ds-i-moon" viewBox="0 0 16 16"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></symbol>
+  <symbol id="ds-i-theme" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13A6.5 6.5 0 0 0 8 1.5z" fill="currentColor"/></symbol>
+  <symbol id="ds-i-scale" viewBox="0 0 16 16"><path d="M8 1.5v13M4.5 14.5h7M2.5 4.5h11M2.5 4.5L.5 9a2 2 0 0 0 4 0zM13.5 4.5l-2 4.5a2 2 0 0 0 4 0z"/></symbol>
+  <symbol id="ds-i-sidebar" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/><path d="M4 6.5L3 8l1 1.5"/></symbol>
+  <symbol id="ds-i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-arrow-up" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+  <symbol id="ds-i-compose" viewBox="0 0 16 16"><path d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M12 1.5l2.5 2.5L8 10.5H5.5V8z"/></symbol>
+  <symbol id="ds-i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+  <symbol id="ds-i-monitor" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="ds-i-cloud" viewBox="0 0 16 16"><path d="M4.5 13a3 3 0 0 1-.4-6A4.5 4.5 0 0 1 12.8 7a3 3 0 0 1-.3 6z"/></symbol>
+  <symbol id="ds-i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 0 1 4 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 0 1-4-4L5 7.5"/></symbol>
+  <symbol id="ds-i-globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c2 2 2 11 0 13M8 1.5c-2 2-2 11 0 13"/></symbol>
+  <symbol id="ds-i-panel-right" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></symbol>
+  <symbol id="ds-i-panel-bottom" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M1.5 10h13"/></symbol>
+  <symbol id="ds-i-maximize" viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></symbol>
+  <symbol id="ds-i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-4 2.5-7.5 4.5"/></symbol>
+  <symbol id="ds-i-bars" viewBox="0 0 16 16"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"/></symbol>
+  <symbol id="ds-i-sliders" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-paperclip-2" viewBox="0 0 16 16"><path d="M10.5 5L5.8 9.7a1.2 1.2 0 0 0 1.7 1.7l5-5a2.6 2.6 0 0 0-3.7-3.7L3.7 7.8a4 4 0 0 0 5.7 5.7L13 9.9"/></symbol>
+</svg>
+
+<div class="ds-app">
+  <header class="ds-topnav">
+    <a class="ds-topnav__brand" href="#"><svg class="ds-icon"><use href="#ds-i-sliders"/></svg>デザインシステム</a>
+    <span class="ds-topnav__divider"></span>
+    <label class="ds-topnav__search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input type="search" placeholder="検索"></label>
+    <span class="ds-topnav__spacer"></span>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="通知"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></button>
+    <details class="ds-menu ds-menu--end">
+      <summary class="ds-btn ds-btn--icon" style="color:inherit" aria-label="見た目"><svg class="ds-icon"><use href="#ds-i-monitor"/></svg></summary>
+      <div class="ds-menu__list" role="menu" aria-label="見た目">
+        <p class="ds-menu__group" style="margin:0">見た目</p>
+        <button class="ds-menu__item" role="menuitemradio" data-look-choice="minimal" aria-checked="true">ミニマル<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-look-choice="console" aria-checked="false">コンソール<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+      </div>
+    </details>
+    <details class="ds-menu ds-menu--end">
+      <summary class="ds-btn ds-btn--icon" style="color:inherit" aria-label="画面の明るさ"><svg class="ds-icon"><use href="#ds-i-theme"/></svg></summary>
+      <div class="ds-menu__list" role="menu" aria-label="画面の明るさ">
+        <p class="ds-menu__group" style="margin:0">画面の明るさ</p>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="auto" aria-checked="true"><svg class="ds-icon"><use href="#ds-i-theme"/></svg>パソコンの設定に合わせる<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="light" aria-checked="false"><svg class="ds-icon"><use href="#ds-i-sun"/></svg>明るい<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+        <button class="ds-menu__item" role="menuitemradio" data-theme-choice="dark" aria-checked="false"><svg class="ds-icon"><use href="#ds-i-moon"/></svg>暗い<svg class="ds-icon ds-menu__check"><use href="#ds-i-check"/></svg></button>
+      </div>
+    </details>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="ヘルプ"><svg class="ds-icon"><use href="#ds-i-help"/></svg></button>
+    <span class="ds-topnav__divider"></span>
+    <span class="ds-topnav__item">汎用デザインシステム</span>
+  </header>
+
+  <div class="ds-subbar">
+    <button class="ds-btn ds-btn--icon" aria-label="メニューを開閉" data-toggle-panel="sidenav"><svg class="ds-icon"><use href="#ds-i-menu"/></svg></button>
+    <ol class="ds-breadcrumb">
+      <li><a href="#">デザインシステム集</a></li>
+      <li><span aria-current="page">デザインシステム</span></li>
+    </ol>
+  </div>
+
+  <nav class="ds-sidenav" id="sidenav" aria-label="目次">
+    <p class="ds-sidenav__title">デザインシステム</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#principles" aria-current="page">原則</a></li>
+      <li><a class="ds-sidenav__link" href="#looks">見た目の切り替え</a></li>
+    </ul>
+    <p class="ds-sidenav__section">基礎</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#color">色</a></li>
+      <li><a class="ds-sidenav__link" href="#type">文字</a></li>
+      <li><a class="ds-sidenav__link" href="#space">余白・角丸</a></li>
+      <li><a class="ds-sidenav__link" href="#motion">動き</a></li>
+      <li><a class="ds-sidenav__link" href="#stage-section">舞台（タイトル画面）</a></li>
+      <li><a class="ds-sidenav__link" href="#layout">画面の骨組み</a></li>
+    </ul>
+    <p class="ds-sidenav__section">部品</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#button">ボタン・リンク</a></li>
+      <li><a class="ds-sidenav__link" href="#form">入力</a></li>
+      <li><a class="ds-sidenav__link" href="#choice">選択</a></li>
+      <li><a class="ds-sidenav__link" href="#notice">通知</a></li>
+      <li><a class="ds-sidenav__link" href="#container">コンテナ</a></li>
+      <li><a class="ds-sidenav__link" href="#table">表</a></li>
+      <li><a class="ds-sidenav__link" href="#status">バッジ・ステータス</a></li>
+      <li><a class="ds-sidenav__link" href="#nav">タブ・進み具合</a></li>
+      <li><a class="ds-sidenav__link" href="#menu">メニュー</a></li>
+      <li><a class="ds-sidenav__link" href="#modal">モーダル</a></li>
+      <li><a class="ds-sidenav__link" href="#tip">ツールチップ・ポップオーバー</a></li>
+      <li><a class="ds-sidenav__link" href="#expand">展開・切り替え</a></li>
+      <li><a class="ds-sidenav__link" href="#collection">一覧の絞り込み・ページ送り</a></li>
+      <li><a class="ds-sidenav__link" href="#loading">空の状態・読み込み中</a></li>
+      <li><a class="ds-sidenav__link" href="#help">ヘルプパネル・キー</a></li>
+      <li><a class="ds-sidenav__link" href="#workbench">作業台の骨組み</a></li>
+      <li><a class="ds-sidenav__link" href="#stepper">段階の表示</a></li>
+      <li><a class="ds-sidenav__link" href="#settings">設定の行</a></li>
+      <li><a class="ds-sidenav__link" href="#option">選べる行の一覧</a></li>
+      <li><a class="ds-sidenav__link" href="#meter">使用量の棒</a></li>
+    </ul>
+    <p class="ds-sidenav__section">調べる・判定する・学ぶ画面</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#game">深刻度・判定</a></li>
+      <li><a class="ds-sidenav__link" href="#code">コード表示</a></li>
+      <li><a class="ds-sidenav__link" href="#tree">依存関係ツリー</a></li>
+      <li><a class="ds-sidenav__link" href="#criteria">確認の条件・根拠</a></li>
+      <li><a class="ds-sidenav__link" href="#terminal">ターミナル</a></li>
+      <li><a class="ds-sidenav__link" href="#license">ライセンス</a></li>
+      <li><a class="ds-sidenav__link" href="#hint">ヒント</a></li>
+      <li><a class="ds-sidenav__link" href="#timer">残り時間・点数・結果</a></li>
+      <li><a class="ds-sidenav__link" href="#scenario">選ぶカード</a></li>
+      <li><a class="ds-sidenav__link" href="#source">ファイルの一覧・タブ・分割</a></li>
+      <li><a class="ds-sidenav__link" href="#search-results">コードの検索結果</a></li>
+      <li><a class="ds-sidenav__link" href="#version">バージョンの範囲</a></li>
+      <li><a class="ds-sidenav__link" href="#brief">依頼書</a></li>
+      <li><a class="ds-sidenav__link" href="#coach-section">操作の案内</a></li>
+      <li><a class="ds-sidenav__link" href="#achievement">実績のバッジ</a></li>
+      <li><a class="ds-sidenav__link" href="#matrix">組み合わせ表</a></li>
+    </ul>
+    <hr class="ds-sidenav__divider">
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="例_コンソール画面.html">画面の例：コンソール <svg class="ds-icon"><use href="#ds-i-angle-right"/></svg></a></li>
+      <li><a class="ds-sidenav__link" href="例_作業台画面.html">画面の例：作業台 <svg class="ds-icon"><use href="#ds-i-angle-right"/></svg></a></li>
+    </ul>
+  </nav>
+
+  <main class="ds-main">
+    <div class="ds-page-header">
+      <div>
+        <h1 class="ds-h1">デザインシステム <a class="ds-link ds-link--info" href="#principles" aria-label="説明"><svg class="ds-icon"><use href="#ds-i-help"/></svg></a></h1>
+        <p class="ds-page-header__description">業務の画面・作業道具の画面を作るための部品集。部品は共通で、見た目を「ミニマル」と「コンソール」から、画面の明るさを「明るい」と「暗い」から選べる。</p>
+      </div>
+      <div class="ds-btn-group">
+        <a class="ds-btn" href="tokens.css">tokens.css</a>
+        <a class="ds-btn" href="components.css">components.css</a>
+        <a class="ds-btn" href="例_コンソール画面.html">画面の例：コンソール</a>
+        <a class="ds-btn ds-btn--primary" href="例_作業台画面.html">画面の例：作業台</a>
+      </div>
+    </div>
+
+    <div class="ds-stack">
+
+      <!-- 原則 -->
+      <section id="principles" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">原則</h2></div>
+        <div class="ds-container__body">
+          <dl class="ds-kv ds-kv--divided" style="--ds-cols:4">
+            <div><dt><b>道具は静かに、中身を主役に</b></dt><dd class="ds-text-secondary">画面の枠・ナビ・帯は控えめにする。目立たせるのは、利用者が読む情報と、次に押す操作だけ。</dd></div>
+            <div><dt><b>アクセントは絞る</b></dt><dd class="ds-text-secondary">塗りつぶしの主ボタンは 1 画面に 1 つまで。アクセントの色は、主ボタン・選択・リンクなど意味のある所だけに使う。</dd></div>
+            <div><dt><b>判断の根拠を並べて見せる</b></dt><dd class="ds-text-secondary">一覧・詳細・根拠（資料・コード・記録）を 1 画面に並べ、見比べながら判断できるようにする。</dd></div>
+            <div><dt><b>色だけで意味を伝えない</b></dt><dd class="ds-text-secondary">状態・深刻度・判定は、必ずアイコンか文字を色と一緒に出す。どの見た目・明るさでも、文字と背景の明るさの差を 4.5 以上にする。</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- 見た目の切り替え -->
+      <section id="looks" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">見た目の切り替え</h2>
+            <p class="ds-container__description">部品のクラスと HTML は共通のまま、見た目を 2 つから選べる。<code class="cat-code">&lt;html data-look="console"&gt;</code> でコンソール、何も付けなければミニマル。明るい画面・暗い画面とは別に選べる（組み合わせは 4 通り）。上部ナビの <svg class="ds-icon"><use href="#ds-i-monitor"/></svg> でも切り替えられる。</p>
+          </div>
+          <div class="ds-btn-group">
+            <button class="ds-btn" data-look-choice="minimal">ミニマルにする</button>
+            <button class="ds-btn" data-look-choice="console">コンソールにする</button>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush ds-table-wrap">
+          <table class="ds-table">
+            <thead><tr><th>部分</th><th>ミニマル（既定）</th><th>コンソール</th></tr></thead>
+            <tbody>
+              <tr><td>向いている画面</td><td>エディターや AI ツールのような、中身を読み書きする作業道具</td><td>管理画面・クラウドコンソールのような、一覧と設定が中心の業務画面</td></tr>
+              <tr><td>アクセント</td><td>青。主ボタン・チェック・トグル・選択の輪だけ</td><td>インディゴ。主ボタン・通常のボタンの枠と文字・今いる項目・タブ</td></tr>
+              <tr><td>上部ナビ・フッター</td><td>地と同じ色。線 1 本で区切る</td><td>どちらの画面でも濃い帯</td></tr>
+              <tr><td>通常のボタン</td><td>灰色の面と淡い枠</td><td>白地にアクセント色の枠と文字</td></tr>
+              <tr><td>タブ・切り替えボタン</td><td>溝の中の明るい面</td><td>タブは下線、切り替えボタンはアクセントの塗り</td></tr>
+              <tr><td>フラッシュ</td><td>浮いた面と色付きのアイコン</td><td>種類の色で塗りつぶし、白い文字</td></tr>
+              <tr><td>角丸</td><td>大きめ（ボタン 8、カード 14px）</td><td>控えめ（ボタン 6、カード 8px）</td></tr>
+              <tr><td>文字</td><td>Inter → Segoe UI → Noto Sans JP、太字 600</td><td>Noto Sans JP、太字 700</td></tr>
+              <tr><td>部品の高さ</td><td>34px（上部ナビ 44px）</td><td>32px（上部ナビ 48px）</td></tr>
+              <tr><td>ターミナル</td><td>画面の明るさに合わせる</td><td>どちらの画面でも暗い</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 色 -->
+      <section id="color" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">色</h2>
+            <p class="ds-container__description">画面では「意味トークン」（--ds-color-*）を使う。意味トークンは明るい画面と暗い画面の値を両方持ち、上部ナビの <svg class="ds-icon"><use href="#ds-i-theme"/></svg>（明るさ）や <svg class="ds-icon"><use href="#ds-i-monitor"/></svg>（見た目）で切り替えると見本の値も変わる。基本パレットは、どちらの画面でも同じ色にしたい所だけで使う。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <h3 class="ds-h4">意味トークン（文字・背景・線・ボタン）</h3>
+          <div class="cat-swatches" data-swatches="--ds-color-text-body --ds-color-text-secondary --ds-color-text-description --ds-color-text-disabled --ds-color-text-link --ds-color-text-link-hover --ds-color-bg-page --ds-color-bg-container --ds-color-bg-raised --ds-color-bg-sidenav --ds-color-bg-input --ds-color-bg-subtle --ds-color-bg-muted --ds-color-bg-selected --ds-color-segment-bg --ds-color-segment-active --ds-color-border-container --ds-color-border-divider --ds-color-border-input --ds-color-border-focus --ds-color-btn-primary-bg --ds-color-btn-primary-bg-hover --ds-color-btn-normal-bg --ds-color-btn-normal-border --ds-color-btn-normal-text --ds-color-bg-topnav --ds-color-bg-footer --ds-color-terminal-bg"></div>
+          <h3 class="ds-h4">状態</h3>
+          <div class="cat-swatches" data-swatches="--ds-color-info --ds-color-info-bg --ds-color-success --ds-color-success-bg --ds-color-warning --ds-color-warning-border --ds-color-warning-bg --ds-color-error --ds-color-error-bg --ds-color-meter-fill --ds-color-meter-hatch --ds-color-meter-marker"></div>
+          <h3 class="ds-h4">コード表示</h3>
+          <div class="cat-swatches" data-swatches="--ds-color-code-bg --ds-color-code-line-number --ds-color-code-highlight-bg --ds-color-code-highlight-border --ds-color-code-keyword --ds-color-code-string --ds-color-code-comment --ds-color-code-function"></div>
+          <h3 class="ds-h4">ニュートラル</h3>
+          <div class="cat-swatches" data-swatches="--ds-neutral-0 --ds-neutral-100 --ds-neutral-200 --ds-neutral-250 --ds-neutral-300 --ds-neutral-350 --ds-neutral-400 --ds-neutral-450 --ds-neutral-500 --ds-neutral-600 --ds-neutral-650 --ds-neutral-700 --ds-neutral-750 --ds-neutral-800 --ds-neutral-850 --ds-neutral-900 --ds-neutral-950 --ds-neutral-1000"></div>
+          <h3 class="ds-h4">プライマリ・お知らせの色</h3>
+          <div class="cat-swatches" data-swatches="--ds-primary-50 --ds-primary-100 --ds-primary-200 --ds-primary-300 --ds-primary-400 --ds-primary-500 --ds-primary-600 --ds-primary-700 --ds-primary-800 --ds-primary-900 --ds-primary-1000 --ds-info-50 --ds-info-600"></div>
+          <h3 class="ds-h4">グラフの分類色（この順に使う）</h3>
+          <div class="cat-swatches" data-swatches="--ds-chart-1 --ds-chart-2 --ds-chart-3 --ds-chart-4 --ds-chart-5 --ds-chart-6"></div>
+        </div>
+      </section>
+
+      <!-- 文字 -->
+      <section id="type" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">文字</h2>
+            <p class="ds-container__description">ミニマルは Inter を第一候補にし、無い環境では Segoe UI、日本語は Noto Sans JP などで表示する（太字 600）。コンソールは Noto Sans JP を第一候補にする（太字 700）。括弧の中はコンソールの値。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush ds-table-wrap">
+          <table class="ds-table cat-type">
+            <thead><tr><th>見本</th><th>クラス</th><th>大きさ / 行の高さ / 太さ</th><th>使う場所</th></tr></thead>
+            <tbody>
+              <tr><td><span class="ds-h1">ページの名前</span></td><td><code class="cat-code">.ds-h1</code></td><td>26 / 32 / 600（24 / 30 / 700）</td><td>ページ名（1 画面に 1 つ）</td></tr>
+              <tr><td><span class="ds-h2">まとまりの見出し</span></td><td><code class="cat-code">.ds-h2</code> <code class="cat-code">.ds-container__title</code></td><td>18 / 24 / 600（20 / 24 / 700）</td><td>コンテナ・設定のまとまりの見出し</td></tr>
+              <tr><td><span class="ds-h3">小見出し</span></td><td><code class="cat-code">.ds-h3</code></td><td>16 / 22 / 600（18 / 22 / 700）</td><td>小見出し</td></tr>
+              <tr><td><span class="ds-h4">区切りの見出し</span></td><td><code class="cat-code">.ds-h4</code></td><td>15 / 20 / 600（16 / 20 / 700）</td><td>コンテナ内の区切り</td></tr>
+              <tr><td>本文の文字です。</td><td>（指定なし）</td><td>14 / 20 / 400</td><td>本文、表、入力欄</td></tr>
+              <tr><td><span class="ds-text-small">説明と制約の文字です。</span></td><td><code class="cat-code">.ds-text-small</code></td><td>12 / 16 / 400</td><td>入力欄の説明、注記</td></tr>
+              <tr><td><span class="ds-value-large">12</span></td><td><code class="cat-code">.ds-value-large</code></td><td>34 / 40 / 400（28 / 36 / 400）</td><td>件数・割合など目立たせる数値</td></tr>
+              <tr><td><span class="ds-hero__title" style="font-size:24px;line-height:32px">何をしますか？</span></td><td><code class="cat-code">.ds-hero__title</code></td><td>32 / 40 / 600（28 / 36 / 700）</td><td>何も無い本文の中央の問いかけ</td></tr>
+              <tr><td><span class="ds-mono">lodash@4.17.20</span></td><td><code class="cat-code">.ds-mono</code></td><td>—</td><td>識別子・バージョン・パス</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 余白・角丸 -->
+      <section id="space" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">余白・角丸</h2></div>
+        <div class="ds-container__body">
+          <div class="ds-grid">
+            <div class="ds-stack ds-stack--xs" id="space-list"></div>
+            <div class="ds-row" style="align-items:flex-start">
+              <div class="cat-radius" style="border-radius:var(--ds-radius-badge)" data-radius="badge"></div>
+              <div class="cat-radius" style="border-radius:var(--ds-radius-button)" data-radius="button"></div>
+              <div class="cat-radius" style="border-radius:var(--ds-radius-input)" data-radius="input"></div>
+              <div class="cat-radius" style="border-radius:var(--ds-radius-alert)" data-radius="alert"></div>
+              <div class="cat-radius" style="border-radius:var(--ds-radius-container)" data-radius="container"></div>
+              <div class="cat-radius" style="border-radius:var(--ds-radius-composer)" data-radius="composer"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 動き -->
+      <section id="motion" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">動き</h2>
+            <p class="ds-container__description">状態が変わるとき、形がつながって見えるように動かす。部品を使えば自動で付くので、画面の側で書くことはほとんど無い。動きを減らす設定の人には、すべて動かさない（長さが 0 になる）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-table-wrap">
+            <table class="ds-table">
+              <thead><tr><th>動き</th><th>付く部品</th><th>仕組み</th></tr></thead>
+              <tbody>
+                <tr><td>選択の印が隣へ滑る</td><td>タブ、切り替えボタン、パネルのタブ、コードのタブ、ページ送り、段階の表示</td><td>選んだ項目の見た目を写した印を置き、ばねの動きで移す（自動）</td></tr>
+                <tr><td>浮かんで現れ、沈んで消える</td><td>メニュー、ポップオーバー、モーダル（後ろの暗さも）、トースト</td><td>開閉を受け取って動かす（自動）。モーダルは Esc と <code class="cat-code">&lt;form method="dialog"&gt;</code> の両方</td></tr>
+                <tr><td>高さ・幅が伸び縮みする</td><td>展開できる区切り、ファイルの一覧、下のパネル、右のパネル、サイドナビ</td><td>開閉の印は閉じた向きへ同時に戻る。パネルの中身は形を保ったまま切り取る</td></tr>
+                <tr><td>縮んで消え、後ろが詰まる</td><td>フラッシュ、アラート、絞り込みの札、コードのタブ、トースト</td><td><code class="cat-code">data-dismiss</code> を付けたボタン、または <code class="cat-code">ds.remove(要素)</code>。間の余白ごと縮める</td></tr>
+                <tr><td>並べ替えで行が移る</td><td>並べ替えできる表（<code class="cat-code">th[aria-sort]</code>）</td><td>行を実際に並べ替え、各行が前の位置から滑る（FLIP）。比べる値はセルの <code class="cat-code">data-sort-value</code> があればそれ</td></tr>
+                <tr><td>順に浮かび上がる</td><td>本文・作業台の中身・<code class="cat-code">.ds-stack</code> の子</td><td>ページを開いたときと、あとから出てきたとき。間隔は <code class="cat-code">--ds-motion-stagger</code></td></tr>
+                <tr><td>数え上がる・伸びる</td><td>大きな数値、使用量、進み具合、点数の円、版の範囲</td><td>画面に入ったときに 1 回だけ</td></tr>
+                <tr><td>手応え</td><td>ボタン（押すと縮む）、トグル（ばね）、チェック（弾む）、押せるカード（重ねると浮く）</td><td>CSS だけ</td></tr>
+                <tr><td>画面全体が入れ替わる</td><td>見た目・明るさの切り替え</td><td>View Transitions（使えないブラウザでは、すぐに切り替わる）</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ds-grid">
+            <div class="ds-stack ds-stack--s">
+              <h3 class="ds-h4">速さの変わり方</h3>
+              <div class="cat-ease" id="cat-ease">
+                <div><code class="cat-code">standard</code><span class="cat-ease__track"><i data-ease="--ds-motion-ease-standard"></i></span></div>
+                <div><code class="cat-code">enter</code><span class="cat-ease__track"><i data-ease="--ds-motion-ease-enter"></i></span></div>
+                <div><code class="cat-code">exit</code><span class="cat-ease__track"><i data-ease="--ds-motion-ease-exit"></i></span></div>
+                <div><code class="cat-code">spring</code><span class="cat-ease__track"><i data-ease="--ds-motion-ease-spring"></i></span></div>
+                <div><code class="cat-code">bounce</code><span class="cat-ease__track"><i data-ease="--ds-motion-ease-bounce"></i></span></div>
+              </div>
+              <div class="ds-row"><button class="ds-btn" id="cat-ease-play">動かしてみる</button><span class="ds-text-small">長さは <code class="cat-code">--ds-motion-duration-slow</code>（320ms）</span></div>
+            </div>
+            <div class="ds-stack ds-stack--s">
+              <h3 class="ds-h4">トースト</h3>
+              <p class="cat-note" style="margin:0"><code class="cat-code">ds.toast({ title, message, tone, duration })</code> で画面の右下に出す。積み重なって動き、時間がたつと消える。重ねると止まる。</p>
+              <div class="ds-btn-group">
+                <button class="ds-btn" data-cat-toast="success">成功</button>
+                <button class="ds-btn" data-cat-toast="info">お知らせ</button>
+                <button class="ds-btn" data-cat-toast="warning">注意</button>
+                <button class="ds-btn" data-cat-toast="error">エラー</button>
+              </div>
+              <h3 class="ds-h4" style="margin-top:var(--ds-space-s)">並べ替え（FLIP）</h3>
+              <p class="cat-note" style="margin:0"><code class="cat-code">ds.flip(要素の一覧, () =&gt; { 並びを変える })</code> で、前の位置から新しい位置へ滑らせる。</p>
+              <div class="ds-row"><button class="ds-btn" id="cat-shuffle">並べ替える</button></div>
+              <div class="ds-chips" id="cat-shuffle-list">
+                <span class="ds-severity ds-severity--critical">緊急</span>
+                <span class="ds-severity ds-severity--high">高</span>
+                <span class="ds-severity ds-severity--medium">中</span>
+                <span class="ds-severity ds-severity--low">低</span>
+                <span class="ds-severity ds-severity--info">情報</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 特殊な画面: 舞台 -->
+      <section id="stage-section" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">舞台（タイトル画面） <span class="ds-badge">特殊な画面</span></h2>
+            <p class="ds-container__description">ゲームのタイトル画面など、作業の前の入口の画面だけで使う。立体の中を漂う粒と、近い粒を結ぶ線の背景（<code class="cat-code">stage.js</code>）の上に、中央の札（<code class="cat-code">.ds-stage__card</code>）を置く。<code class="cat-code">stage.js</code> は必要なページだけで読み込む。マウスを動かすと背景が少し傾く。全画面の見本は <a class="ds-link" href="例_タイトル画面.html">タイトル画面の例</a>。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush" style="overflow:hidden;border-radius:0 0 var(--ds-radius-container) var(--ds-radius-container)">
+          <div class="ds-stage ds-stage--embed" data-stage-density="0.8">
+            <canvas class="ds-stage__canvas" aria-hidden="true"></canvas>
+            <div class="ds-stage__bar"><span class="ds-stage__brand"><svg class="ds-icon"><use href="#ds-i-shield"/></svg>Sample Workbench</span></div>
+            <div class="ds-stage__center">
+              <div class="ds-stage__card">
+                <span class="ds-stage__eyebrow"><span class="ds-stage__eyebrow-dot" aria-hidden="true"></span>新しい課題が 2 件あります</span>
+                <h3 class="ds-stage__title">検出結果を見抜く</h3>
+                <p class="ds-stage__lead">ツールが報告した脆弱性を調べ、本当に対応が必要かを判定する。</p>
+                <div class="ds-stage__actions">
+                  <a class="ds-btn ds-btn--primary" href="例_タイトル画面.html">はじめる</a>
+                  <button class="ds-btn"><svg class="ds-icon"><use href="#ds-i-refresh"/></svg>続きから<span class="ds-stage__btn-meta">課題 3・きのう 21:40</span></button>
+                </div>
+              </div>
+            </div>
+            <div class="ds-stage__foot"><span>v0.3.0</span><span></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 骨組み -->
+      <section id="layout" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">画面の骨組み</h2></div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <p class="cat-note">このページ自体が骨組みの見本。<code class="cat-code">.ds-app</code> の中に、上から順に次を置く。</p>
+          <div class="ds-table-wrap">
+            <table class="ds-table">
+              <thead><tr><th>部品</th><th>クラス</th><th>決まりごと</th></tr></thead>
+              <tbody>
+                <tr><td>上部ナビ</td><td><code class="cat-code">.ds-topnav</code></td><td>高さ 44px（コンソール 48px）。ミニマルは地と同じ色で下に細い線だけ、コンソールは濃い帯。製品名・検索・通知・設定・利用者名を置く。</td></tr>
+                <tr><td>上部ナビの下の帯</td><td><code class="cat-code">.ds-subbar</code></td><td>高さ 40px。左にメニュー開閉ボタンとパンくず。</td></tr>
+                <tr><td>サイドナビ</td><td><code class="cat-code">.ds-sidenav</code></td><td>幅 288px（コンソール 280px）。今いる項目は <code class="cat-code">aria-current="page"</code>。ミニマルは本文より一段違う面で、今いる項目は灰色の面と太字、見出しは小さく薄い文字。コンソールは今いる項目がアクセント色の太字に薄い背景、見出しは太字。</td></tr>
+                <tr><td>本文</td><td><code class="cat-code">.ds-main</code></td><td>左右 24px。<code class="cat-code">.ds-page-header</code> の下にコンテナを 20px 間隔で縦に並べる。</td></tr>
+                <tr><td>フッター</td><td><code class="cat-code">.ds-footer</code></td><td>文字 12px。ミニマルはサイドナビと同じ面で上に細い線、コンソールは濃い帯。</td></tr>
+                <tr><td>作業台</td><td><code class="cat-code">.ds-workbench</code></td><td>上部の帯を持たない骨組み。左のナビ・本文・右のパネルを並べる（下の「作業台の骨組み」と画面の例）。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ボタン -->
+      <section id="button" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ボタン・リンク</h2>
+            <p class="ds-container__description">ボタンは高さ 34px・角丸 8px（コンソール 32px・6px）・枠 1px。主ボタン（アクセントの塗りつぶし）は 1 画面に 1 つ。通常のボタンは、ミニマルでは灰色の面、コンソールではアクセント色の枠と文字。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-btn-group">
+            <button class="ds-btn ds-btn--primary">保存する</button>
+            <button class="ds-btn">下書きを保存</button>
+            <button class="ds-btn ds-btn--link">キャンセル</button>
+            <button class="ds-btn" disabled>無効</button>
+            <button class="ds-btn ds-btn--primary" disabled>無効（主）</button>
+            <button class="ds-btn ds-btn--icon" aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+            <button class="ds-btn"><svg class="ds-icon"><use href="#ds-i-external"/></svg>詳細を開く</button>
+          </div>
+          <p style="margin:0">
+            <a class="ds-link" href="#">下線付きのリンク</a>（文中）・
+            <a class="ds-link ds-link--secondary" href="#">下線なしのリンク</a>（一覧の中）・
+            見出しの横の <a class="ds-link ds-link--info" href="#" aria-label="説明"><svg class="ds-icon"><use href="#ds-i-help"/></svg></a>・
+            <a class="ds-link" href="#">外部のページ <svg class="ds-icon"><use href="#ds-i-external"/></svg></a>
+          </p>
+        </div>
+      </section>
+
+      <!-- 入力 -->
+      <section id="form" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">入力</h2></div>
+        <div class="ds-container__body">
+          <div class="ds-grid">
+            <div class="ds-field">
+              <label class="ds-field__label" for="f1">プロジェクト名</label>
+              <input class="ds-input" id="f1" placeholder="例：社内ポータルの改修">
+              <span class="ds-field__constraint">60 文字まで。</span>
+            </div>
+            <div class="ds-field">
+              <label class="ds-field__label" for="f2">対象のリポジトリ</label>
+              <span class="ds-field__description">対象のアプリケーションを選ぶ。</span>
+              <select class="ds-select" id="f2"><option>shop-frontend</option><option>shop-api</option></select>
+            </div>
+            <div class="ds-field">
+              <label class="ds-field__label" for="f3">メモ <span class="ds-optional">- 任意</span></label>
+              <textarea class="ds-textarea" id="f3" placeholder="根拠にした資料と箇所を書く"></textarea>
+              <span class="ds-field__constraint">500 文字まで。</span>
+            </div>
+            <div class="ds-field">
+              <label class="ds-field__label" for="f4">チケット番号</label>
+              <input class="ds-input" id="f4" value="ABC12" aria-invalid="true" aria-describedby="f4e">
+              <span class="ds-field__error" id="f4e"><svg class="ds-icon"><use href="#ds-i-error"/></svg>ABC-123 のように、英字・ハイフン・数字の形で入力してください。</span>
+            </div>
+            <div class="ds-field">
+              <label class="ds-field__label" for="f5">検索</label>
+              <div class="ds-search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" id="f5" type="search" placeholder="名前で検索"></div>
+            </div>
+            <div class="ds-field">
+              <label class="ds-field__label" for="f6">無効な入力欄</label>
+              <input class="ds-input" id="f6" value="変更できません" disabled>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 選択 -->
+      <section id="choice" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">選択</h2></div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-grid">
+            <fieldset class="ds-field" style="border:0;margin:0;padding:0">
+              <legend class="ds-field__label">ラジオボタン</legend>
+              <label class="ds-choice"><input type="radio" name="r1" checked><span class="ds-choice__text">自分の担当だけ</span></label>
+              <label class="ds-choice"><input type="radio" name="r1"><span class="ds-choice__text">チームの全件</span></label>
+              <label class="ds-choice"><input type="radio" name="r1" disabled><span class="ds-choice__text">ほかの部署も含める（使えない）</span></label>
+            </fieldset>
+            <fieldset class="ds-field" style="border:0;margin:0;padding:0">
+              <legend class="ds-field__label">チェックボックス・トグル</legend>
+              <label class="ds-choice"><input type="checkbox" checked><span class="ds-choice__text">完了したものを隠す</span></label>
+              <label class="ds-choice"><input type="checkbox"><span class="ds-choice__text">優先度が中以上だけ</span></label>
+              <label class="ds-toggle"><input type="checkbox" checked>通知を受け取る</label>
+            </fieldset>
+          </div>
+          <fieldset class="ds-field" style="border:0;margin:0;padding:0">
+            <legend class="ds-field__label">タイル</legend>
+            <span class="ds-field__description">説明が要る選択肢はタイルにする。選んだタイルはアクセント色の枠と薄い背景。</span>
+            <div class="ds-tiles" style="--ds-cols:3">
+              <label class="ds-tile ds-choice"><input type="radio" name="t1" checked><span class="ds-choice__text"><span>スタンダード</span><span class="ds-text-small">基本の機能だけを使う。</span></span></label>
+              <label class="ds-tile ds-choice"><input type="radio" name="t1"><span class="ds-choice__text"><span>プロ</span><span class="ds-text-small">承認の流れと操作の記録を足す。</span></span></label>
+              <label class="ds-tile ds-choice"><input type="radio" name="t1" disabled><span class="ds-choice__text"><span>エンタープライズ</span><span class="ds-text-small">契約の担当者に問い合わせると選べる。</span></span></label>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      <!-- 通知 -->
+      <section id="notice" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">通知</h2>
+            <p class="ds-container__description">フラッシュは画面の上に出す通知（操作の結果やお知らせ）。ミニマルは浮いた面と色付きのアイコン、コンソールは種類の色で塗りつぶす。アラートは本文の中に置く枠付きの通知（その場所の注意）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <div class="ds-flash"><svg class="ds-icon"><use href="#ds-i-info"/></svg><div class="ds-flash__content"><div class="ds-flash__title">新しい機能を追加しました</div>一覧を CSV で書き出せるようになりました。 <a class="ds-link" href="#">詳しく見る</a></div><button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></div>
+          <div class="ds-flash ds-flash--success"><svg class="ds-icon"><use href="#ds-i-success"/></svg><div class="ds-flash__content">保存しました。</div></div>
+          <div class="ds-flash ds-flash--error"><svg class="ds-icon"><use href="#ds-i-error"/></svg><div class="ds-flash__content">保存できませんでした。通信を確かめてもう一度保存してください。</div><button class="ds-btn">再試行</button></div>
+          <div class="ds-alert"><svg class="ds-icon"><use href="#ds-i-info"/></svg><div class="ds-alert__content"><div class="ds-alert__title">ヒント</div><kbd class="ds-kbd">/</kbd> を押すと、すぐに検索欄に入力できます。</div></div>
+          <div class="ds-alert ds-alert--success"><svg class="ds-icon"><use href="#ds-i-success"/></svg><div class="ds-alert__content">設定を反映しました。次に開いたときから使われます。</div></div>
+          <div class="ds-alert ds-alert--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-alert__content">よく似た名前のパッケージがあります：<span class="ds-mono">lodash</span> と <span class="ds-mono">lodahs</span></div><button class="ds-btn">比べる</button></div>
+          <div class="ds-alert ds-alert--error"><svg class="ds-icon"><use href="#ds-i-error"/></svg><div class="ds-alert__content"><div class="ds-alert__title">保存できません</div>必須の項目が 2 つ空いています。</div></div>
+        </div>
+      </section>
+
+      <!-- コンテナ -->
+      <section id="container" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">コンテナ</h2></div>
+        <div class="ds-container__body ds-stack">
+          <p class="cat-note">内容のまとまりは、枠 1px のコンテナに入れる。見出しの下に区切り線を引く。見出し・説明・右上の操作・本文・下部のリンクを持てる。</p>
+          <div class="ds-grid" style="--ds-cols:3">
+            <div class="ds-container">
+              <div class="ds-container__header">
+                <h2 class="ds-container__title">今週の進み具合 <a class="ds-link ds-link--info" href="#" aria-label="説明"><svg class="ds-icon"><use href="#ds-i-help"/></svg></a></h2>
+                <button class="ds-btn">詳細</button>
+              </div>
+              <div class="ds-container__body">
+                <dl class="ds-kv" style="--ds-cols:1">
+                  <div><dt>完了率</dt><dd class="ds-value-large">83%</dd></div>
+                  <div><dt>完了した件数</dt><dd class="ds-value-large">12</dd></div>
+                </dl>
+              </div>
+              <div class="ds-container__footer"><a class="ds-link ds-link--secondary" href="#">一覧へ</a></div>
+            </div>
+            <div class="ds-container">
+              <div class="ds-container__header">
+                <div>
+                  <h2 class="ds-container__title">未対応 <span class="ds-counter">(4)</span></h2>
+                  <p class="ds-container__description">期限：本日 18:00</p>
+                </div>
+              </div>
+              <div class="ds-container__body ds-stack ds-stack--xs">
+                <a class="ds-link ds-link--secondary" href="#">ABC-101 ログイン画面の文言を直す</a>
+                <a class="ds-link ds-link--secondary" href="#">ABC-104 一覧の並べ替えを足す</a>
+                <a class="ds-link ds-link--secondary" href="#">ABC-108 CSV の文字化け</a>
+                <a class="ds-link ds-link--secondary" href="#">ABC-112 通知の設定を分ける</a>
+              </div>
+            </div>
+            <div class="ds-container">
+              <div class="ds-container__header"><h2 class="ds-container__title">進み具合</h2></div>
+              <div class="ds-container__body ds-stack ds-stack--s">
+                <div class="ds-progress"><span>設計</span><div class="ds-progress__track"><div class="ds-progress__bar" style="--ds-value:75%"></div></div><span class="ds-text-small">6 / 8 件</span></div>
+                <div class="ds-progress"><span>実装</span><div class="ds-progress__track"><div class="ds-progress__bar" style="--ds-value:10%"></div></div><span class="ds-text-small">1 / 10 件</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 表 -->
+      <section id="table" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">表 <span class="ds-counter">(3)</span></h2>
+            <p class="ds-container__description">コンテナの本文に余白なし（<code class="cat-code">.ds-container__body--flush</code>）で入れる。選択中の行は薄いアクセント色。</p>
+          </div>
+          <div class="ds-btn-group"><button class="ds-btn">CSV で出力</button></div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush ds-table-wrap">
+          <table class="ds-table">
+            <thead><tr><th>CVE</th><th>パッケージ</th><th>深刻度</th><th>判定</th></tr></thead>
+            <tbody>
+              <tr aria-selected="true"><td><a class="ds-link" href="#">CVE-2021-23337</a></td><td class="ds-mono">lodash@4.17.20</td><td><span class="ds-severity ds-severity--high">高</span></td><td><span class="ds-verdict ds-verdict--pending">未判定</span></td></tr>
+              <tr><td><a class="ds-link" href="#">CVE-2022-24999</a></td><td class="ds-mono">qs@6.5.2</td><td><span class="ds-severity ds-severity--high">高</span></td><td><span class="ds-verdict ds-verdict--tp">真陽性</span></td></tr>
+              <tr><td><a class="ds-link" href="#">CVE-2023-26136</a></td><td class="ds-mono">tough-cookie@4.1.2</td><td><span class="ds-severity ds-severity--medium">中</span></td><td><span class="ds-verdict ds-verdict--fp">偽陽性</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- バッジ・ステータス -->
+      <section id="status" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">バッジ・ステータス</h2></div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-row">
+            <span class="ds-badge">0</span>
+            <span class="ds-badge ds-badge--blue">新規</span>
+            <span class="ds-badge ds-badge--red">期限切れ</span>
+            <span class="ds-badge ds-badge--green">完了</span>
+          </div>
+          <div class="ds-row">
+            <span class="ds-status ds-status--success"><svg class="ds-icon"><use href="#ds-i-success"/></svg>完了</span>
+            <span class="ds-status ds-status--error"><svg class="ds-icon"><use href="#ds-i-error"/></svg>失敗</span>
+            <span class="ds-status ds-status--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>要確認</span>
+            <span class="ds-status ds-status--info"><svg class="ds-icon"><use href="#ds-i-info"/></svg>実行中</span>
+            <span class="ds-status ds-status--pending"><svg class="ds-icon"><use href="#ds-i-pending"/></svg>未着手</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- タブ・進み具合 -->
+      <section id="nav" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">タブ・手順</h2></div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-tabs" role="tablist">
+            <button class="ds-tabs__tab" role="tab" aria-selected="true">検出結果</button>
+            <button class="ds-tabs__tab" role="tab" aria-selected="false">依存関係</button>
+            <button class="ds-tabs__tab" role="tab" aria-selected="false">ソースコード</button>
+          </div>
+          <ol class="ds-steps">
+            <li class="is-done">インストールされているか</li>
+            <li aria-current="step">バージョンが対象か</li>
+            <li>指摘のメソッドを呼んでいるか</li>
+            <li>指摘の機能を使っているか</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- メニュー -->
+      <section id="menu" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">メニュー</h2>
+            <p class="ds-container__description">ボタンから開く操作の一覧。<code class="cat-code">&lt;details class="ds-menu"&gt;</code> で作るので、JavaScript がなくても開閉できる。取り消せない操作は赤（<code class="cat-code">.ds-menu__item--danger</code>）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body" style="min-height:260px">
+          <div class="ds-row" style="align-items:flex-start">
+            <details class="ds-menu">
+              <summary class="ds-btn">操作 <svg class="ds-icon ds-caret"><use href="#ds-i-caret-down"/></svg></summary>
+              <div class="ds-menu__list" role="menu">
+                <p class="ds-menu__group" style="margin:0">判定</p>
+                <button class="ds-menu__item" role="menuitem">真陽性にする</button>
+                <button class="ds-menu__item" role="menuitem">偽陽性にする</button>
+                <button class="ds-menu__item" role="menuitem" disabled>保留にする（使えない）</button>
+                <div class="ds-menu__divider" role="separator"></div>
+                <button class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-copy"/></svg>CVE 番号をコピー <kbd class="ds-kbd">C</kbd></button>
+                <button class="ds-menu__item ds-menu__item--danger" role="menuitem">判定を取り消す</button>
+              </div>
+            </details>
+            <details class="ds-menu">
+              <summary class="ds-btn ds-btn--icon ds-tooltip" data-tooltip="その他の操作" aria-label="その他の操作"><svg class="ds-icon"><use href="#ds-i-more"/></svg></summary>
+              <div class="ds-menu__list" role="menu">
+                <button class="ds-menu__item" role="menuitem">名前を変える</button>
+                <button class="ds-menu__item" role="menuitem">複製する</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- モーダル -->
+      <section id="modal" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">モーダル</h2>
+            <p class="ds-container__description">取り消せない操作の確認や、短い入力に使う。<code class="cat-code">&lt;dialog class="ds-modal"&gt;</code> を <code class="cat-code">showModal()</code> で開く。Esc で閉じる。主ボタンは右端。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <button class="ds-btn" onclick="document.getElementById('demo-modal').showModal()">確認のモーダルを開く</button>
+        </div>
+      </section>
+
+      <!-- ツールチップ・ポップオーバー -->
+      <section id="tip" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ツールチップ・ポップオーバー</h2>
+            <p class="ds-container__description">ツールチップはアイコンだけのボタンの名前（1 行、マウスを重ねると出る）。ポップオーバーは用語の説明など数行の補足（クリックで開く、点線の下線が目印）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body" style="min-height:200px">
+          <div class="ds-row" style="align-items:flex-start">
+            <button class="ds-btn ds-btn--icon ds-tooltip" data-tooltip="コピー" aria-label="コピー"><svg class="ds-icon"><use href="#ds-i-copy"/></svg></button>
+            <button class="ds-btn ds-btn--icon ds-tooltip" data-tooltip="再読み込み" aria-label="再読み込み"><svg class="ds-icon"><use href="#ds-i-refresh"/></svg></button>
+            <span>この検出は
+              <details class="ds-popover">
+                <summary>偽陽性</summary>
+                <div class="ds-popover__content">
+                  <div class="ds-popover__title">偽陽性とは</div>
+                  ツールが脆弱性ありと報告したが、実際には影響を受けない検出。例：バージョンが対象外、指摘のメソッドを呼んでいない。
+                </div>
+              </details>
+              の可能性がある。</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 展開・切り替え -->
+      <section id="expand" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">展開・切り替え</h2></div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-grid">
+            <div class="ds-stack ds-stack--xs">
+              <details class="ds-expandable" open>
+                <summary>CVE の説明</summary>
+                <div class="ds-expandable__content">template 関数の options に外から渡した値が入ると、任意のコードを実行されるおそれがある。</div>
+              </details>
+              <details class="ds-expandable">
+                <summary>参考情報</summary>
+                <div class="ds-expandable__content">NVD、GitHub Advisory の記載。</div>
+              </details>
+            </div>
+            <details class="ds-expandable ds-expandable--container" open>
+              <summary>詳しい設定</summary>
+              <div class="ds-expandable__content">枠付きは、コンテナの中で補足をまとめるときに使う。</div>
+            </details>
+          </div>
+          <div class="ds-row">
+            <div class="ds-segmented" role="group" aria-label="依存関係の表示">
+              <button aria-pressed="true"><svg class="ds-icon"><use href="#ds-i-tree"/></svg>ツリー</button>
+              <button aria-pressed="false"><svg class="ds-icon"><use href="#ds-i-list"/></svg>一覧</button>
+            </div>
+            <span class="cat-note">表示の切り替えに使う（<code class="cat-code">.ds-segmented</code>、押されたものは <code class="cat-code">aria-pressed="true"</code>）。</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 一覧の絞り込み・ページ送り -->
+      <section id="collection" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">検出結果 <span class="ds-counter">(24)</span></h2>
+            <p class="ds-container__description">一覧の上に、検索・絞り込み・ページ送りを置く（<code class="cat-code">.ds-table-toolbar</code>）。列名を押すと並べ替える（<code class="cat-code">aria-sort</code>）。</p>
+          </div>
+          <div class="ds-btn-group">
+            <button class="ds-btn">まとめて判定</button>
+          </div>
+        </div>
+        <div class="ds-table-toolbar">
+          <div class="ds-search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" placeholder="CVE・パッケージで検索" aria-label="検索"></div>
+          <select class="ds-select" aria-label="深刻度"><option>深刻度：すべて</option><option>高以上</option></select>
+          <div class="ds-table-toolbar__end">
+            <ul class="ds-pagination" aria-label="ページ">
+              <li><button disabled aria-label="前のページ"><svg class="ds-icon"><use href="#ds-i-angle-left"/></svg></button></li>
+              <li><button aria-current="page">1</button></li>
+              <li><button>2</button></li>
+              <li><button>3</button></li>
+              <li><button aria-label="次のページ"><svg class="ds-icon"><use href="#ds-i-angle-right"/></svg></button></li>
+            </ul>
+            <button class="ds-btn ds-btn--icon ds-tooltip" data-tooltip="表示の設定" aria-label="表示の設定"><svg class="ds-icon"><use href="#ds-i-settings"/></svg></button>
+          </div>
+          <div class="ds-table-toolbar__chips ds-chips">
+            <span class="ds-chip">判定：未判定<button aria-label="判定の絞り込みを外す"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></button></span>
+            <span class="ds-chip">種類：直接の依存<button aria-label="種類の絞り込みを外す"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></button></span>
+            <button class="ds-btn ds-btn--link" style="min-height:24px;padding:0 8px">すべて外す</button>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush ds-table-wrap">
+          <table class="ds-table" id="sort-demo">
+            <thead><tr>
+              <th class="ds-table__select"><label class="ds-choice"><input type="checkbox" aria-label="すべて選ぶ"></label></th>
+              <th aria-sort="ascending"><button>CVE</button></th>
+              <th aria-sort="none"><button>パッケージ</button></th>
+              <th aria-sort="none"><button>深刻度</button></th>
+              <th>判定</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><label class="ds-choice"><input type="checkbox" aria-label="選ぶ"></label></td><td><a class="ds-link" href="#">CVE-2021-23337</a></td><td class="ds-mono">lodash@4.17.20</td><td><span class="ds-severity ds-severity--high">高</span></td><td><span class="ds-verdict ds-verdict--pending">未判定</span></td></tr>
+              <tr><td><label class="ds-choice"><input type="checkbox" aria-label="選ぶ"></label></td><td><a class="ds-link" href="#">CVE-2024-4068</a></td><td class="ds-mono">braces@3.0.2</td><td><span class="ds-severity ds-severity--high">高</span></td><td><span class="ds-verdict ds-verdict--pending">未判定</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 空の状態・読み込み中 -->
+      <section id="loading" class="ds-container cat-section">
+        <div class="ds-container__header"><h2 class="ds-container__title">空の状態・読み込み中</h2></div>
+        <div class="ds-container__body">
+          <div class="ds-grid" style="--ds-cols:3">
+            <div class="ds-empty" style="border:1px dashed var(--ds-color-border-container);border-radius:var(--ds-radius-input)">
+              <svg class="ds-icon ds-icon--l"><use href="#ds-i-inbox"/></svg>
+              <div class="ds-empty__title">未判定の検出はありません</div>
+              <div>すべて判定しました。結果を確かめましょう。</div>
+              <button class="ds-btn">結果を見る</button>
+            </div>
+            <div class="ds-empty" style="border:1px dashed var(--ds-color-border-container);border-radius:var(--ds-radius-input)">
+              <span class="ds-spinner ds-spinner--l" role="status" aria-label="読み込み中"></span>
+              <div>依存関係を調べています…</div>
+              <div class="ds-row" style="justify-content:center">
+                <button class="ds-btn ds-btn--primary" aria-busy="true" disabled><span class="ds-spinner"></span>保存中</button>
+              </div>
+            </div>
+            <div class="ds-stack ds-stack--s" style="padding:var(--ds-space-m);border:1px dashed var(--ds-color-border-container);border-radius:var(--ds-radius-input)" aria-hidden="true">
+              <span class="ds-skeleton ds-skeleton--title"></span>
+              <span class="ds-skeleton"></span>
+              <span class="ds-skeleton" style="width:80%"></span>
+              <span class="ds-skeleton" style="width:60%"></span>
+            </div>
+          </div>
+          <p class="cat-note" style="margin-top:var(--ds-space-s)">回る印（<code class="cat-code">.ds-spinner</code>）は短い待ち、形だけの仮表示（<code class="cat-code">.ds-skeleton</code>）は一覧や表の初回の読み込みに使う。読み込み中のボタンは押せなくし、文言を「保存中」などに変える。</p>
+        </div>
+      </section>
+
+      <!-- ヘルプパネル・キー -->
+      <section id="help" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ヘルプパネル・キー表示</h2>
+            <p class="ds-container__description">ヘルプパネルは画面の右に開く説明（<code class="cat-code">.ds-app--with-panel</code> と <code class="cat-code">.ds-help-panel</code>）。見出しの横の ? を押すと開く。実際の配置は「画面の例」を参照。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-grid">
+          <aside class="ds-help-panel" style="border:1px solid var(--ds-color-border-container);border-radius:var(--ds-radius-input)">
+            <div class="ds-help-panel__header">
+              <h3 class="ds-help-panel__title">真陽性の条件</h3>
+              <button class="ds-btn ds-btn--icon" aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+            </div>
+            <p>次の 4 つがすべて当てはまるとき、真陽性になる。</p>
+            <ul>
+              <li>対象の OSS がインストールされている</li>
+              <li>バージョンが影響を受ける範囲にある</li>
+              <li>指摘のメソッドをコードで呼んでいる</li>
+              <li>指摘の機能を実際に使っている</li>
+            </ul>
+            <h4>関連</h4>
+            <p><a class="ds-link" href="#">偽陽性のパターン</a></p>
+          </aside>
+          <div class="ds-stack ds-stack--xs">
+            <p class="cat-note" style="margin:0">キー表示（<code class="cat-code">.ds-kbd</code>）は、ショートカットの案内に使う。</p>
+            <p style="margin:0"><kbd class="ds-kbd">T</kbd> 真陽性　<kbd class="ds-kbd">F</kbd> 偽陽性　<kbd class="ds-kbd">Ctrl</kbd> + <kbd class="ds-kbd">Enter</kbd> 確定　<kbd class="ds-kbd">/</kbd> 検索</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 作業台の骨組み -->
+      <section id="workbench" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">作業台の骨組み</h2>
+            <p class="ds-container__description">上部の帯を持たない骨組み（<code class="cat-code">.ds-workbench</code>）。左のナビ（題名・検索・一覧・下の操作）、本文（題名の行と中身）、本文の下のパネル（ターミナル）、右のパネル（タブと中身）を並べる。題名の行のボタンで下と右のパネルを開閉し、下のパネルは上の端で高さを変える（<code class="cat-code">.ds-workbench__bottom</code>）。見本は高さを縮めて表示している。何も無い本文には大きな問いかけ（<code class="cat-code">.ds-hero</code>）と入力の大きな枠（<code class="cat-code">.ds-composer</code>）を置く。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush" style="overflow:hidden;border-radius:0 0 var(--ds-radius-container) var(--ds-radius-container)">
+          <div class="ds-workbench" style="height:620px;grid-template-columns:240px minmax(0,1fr) auto">
+            <aside class="ds-workbench__sidebar" aria-label="一覧">
+              <div class="ds-workbench__brand">
+                <button class="ds-btn ds-btn--icon" aria-label="ナビを閉じる"><svg class="ds-icon"><use href="#ds-i-sidebar"/></svg></button>
+                <span>Sample</span>
+                <button class="ds-btn ds-btn--icon" aria-label="戻る"><svg class="ds-icon"><use href="#ds-i-arrow-left"/></svg></button>
+                <button class="ds-btn ds-btn--icon" aria-label="進む"><svg class="ds-icon"><use href="#ds-i-arrow-right"/></svg></button>
+              </div>
+              <label class="ds-workbench__search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input placeholder="検索" aria-label="検索"><button class="ds-btn ds-btn--icon" type="button" aria-label="新しい調査"><svg class="ds-icon"><use href="#ds-i-compose"/></svg></button></label>
+              <div class="ds-workbench__sidebar-body">
+                <p class="ds-sidenav__section" style="margin-top:4px">shop-frontend</p>
+                <ul class="ds-sidenav__list">
+                  <li><a class="ds-sidenav__link" href="#" aria-current="page">CVE-2021-23337</a></li>
+                  <li><a class="ds-sidenav__link" href="#">CVE-2022-24999</a></li>
+                  <li><a class="ds-sidenav__link" href="#">CVE-2023-26136</a></li>
+                </ul>
+              </div>
+              <div class="ds-workbench__sidebar-footer">
+                <button class="ds-btn ds-btn--icon" aria-label="設定"><svg class="ds-icon"><use href="#ds-i-settings"/></svg></button>
+                <button class="ds-btn ds-btn--icon" aria-label="変更の履歴"><svg class="ds-icon"><use href="#ds-i-branch"/></svg></button>
+                <button class="ds-btn ds-btn--icon" aria-label="集計"><svg class="ds-icon"><use href="#ds-i-bars"/></svg></button>
+              </div>
+            </aside>
+            <div class="ds-workbench__main">
+              <div class="ds-titlebar">
+                <ol class="ds-breadcrumb"><li><a href="#">shop-frontend</a></li><li><span aria-current="page">新しい調査</span></li></ol>
+                <button class="ds-btn ds-btn--icon" aria-label="ターミナルを開閉" data-toggle-panel="demo-bottom"><svg class="ds-icon"><use href="#ds-i-panel-bottom"/></svg></button>
+                <button class="ds-btn ds-btn--icon" aria-label="右のパネルを開閉" data-toggle-panel="demo-panel"><svg class="ds-icon"><use href="#ds-i-panel-right"/></svg></button>
+              </div>
+              <div class="ds-workbench__content" style="display:grid;place-items:center">
+                <div class="ds-hero" style="padding:0;width:100%">
+                  <h3 class="ds-hero__title">何を調べますか？</h3>
+                  <p class="ds-hero__desc">左の一覧から選ぶか、アシスタントに相談する</p>
+                  <div class="ds-composer">
+                    <textarea class="ds-composer__input" rows="2" placeholder="質問を入力。@ でファイル、/ でコマンド" aria-label="アシスタントへの質問"></textarea>
+                    <div class="ds-composer__toolbar">
+                      <button class="ds-btn ds-btn--icon" aria-label="ファイルを添える"><svg class="ds-icon"><use href="#ds-i-paperclip-2"/></svg></button>
+                      <span class="ds-composer__spacer"></span>
+                      <button class="ds-btn ds-btn--link"><svg class="ds-icon"><use href="#ds-i-sparkle"/></svg>アシスタント</button>
+                      <button class="ds-composer__send" aria-label="送る"><svg class="ds-icon"><use href="#ds-i-arrow-up"/></svg></button>
+                    </div>
+                  </div>
+                  <div class="ds-composer__meta" style="width:min(720px,100%)"><span><svg class="ds-icon ds-icon--s"><use href="#ds-i-lock"/></svg>読み取りだけ</span></div>
+                </div>
+              </div>
+              <section class="ds-workbench__bottom" id="demo-bottom" aria-label="ターミナル" style="--ds-bottom-height:150px">
+                <button class="ds-workbench__bottom-handle" aria-label="ターミナルの高さを変える"></button>
+                <div class="ds-panel-header" role="tablist">
+                  <button class="ds-panel-tab" role="tab" aria-selected="true"><svg class="ds-icon"><use href="#ds-i-terminal"/></svg>ターミナル</button>
+                  <span class="ds-panel-header__label">bash — shop-frontend</span>
+                  <div class="ds-panel-header__end">
+                    <button class="ds-btn ds-btn--icon" aria-label="新しいターミナル"><svg class="ds-icon"><use href="#ds-i-plus"/></svg></button>
+                    <button class="ds-btn ds-btn--icon" aria-label="ターミナルを閉じる" data-close-panel="demo-bottom"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+                  </div>
+                </div>
+                <div class="ds-terminal ds-terminal--fill">
+                  <div class="ds-terminal__scroll">
+<pre class="ds-terminal__body"><span class="path">~/work/shop-frontend</span> <span class="branch">main</span> <span class="p">$</span> npm ls lodash
+shop-frontend@1.0.0 <span class="m">/work/shop-frontend</span>
+└── <span class="hl">lodash@4.17.20</span>
+</pre>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <aside class="ds-workbench__panel" id="demo-panel" aria-label="右のパネル" style="width:300px">
+              <div class="ds-panel-header" role="tablist">
+                <button class="ds-panel-tab" role="tab" aria-selected="false"><svg class="ds-icon"><use href="#ds-i-file"/></svg>ファイル</button>
+                <button class="ds-panel-tab" role="tab" aria-selected="true"><svg class="ds-icon"><use href="#ds-i-help"/></svg>ヘルプ</button>
+                <details class="ds-menu">
+                  <summary class="ds-btn ds-btn--icon" aria-label="パネルを足す"><svg class="ds-icon"><use href="#ds-i-plus"/></svg></summary>
+                  <div class="ds-menu__list" role="menu">
+                    <button class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-globe"/></svg>ブラウザー<span class="ds-menu__shortcut">B</span></button>
+                    <button class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-terminal"/></svg>ターミナル<span class="ds-menu__shortcut">T</span></button>
+                    <button class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-file"/></svg>ファイル<span class="ds-menu__shortcut">F</span></button>
+                    <button class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-help"/></svg>ヘルプ<span class="ds-menu__shortcut">H</span></button>
+                  </div>
+                </details>
+                <div class="ds-panel-header__end">
+                  <button class="ds-btn ds-btn--icon" aria-label="広げる"><svg class="ds-icon"><use href="#ds-i-maximize"/></svg></button>
+                </div>
+              </div>
+              <div class="ds-workbench__panel-body">
+                <div class="ds-empty">
+                  <span class="ds-empty__icon"><svg class="ds-icon"><use href="#ds-i-globe"/></svg></span>
+                  <div class="ds-empty__title">まだ何も開いていません</div>
+                  <div>ファイルを開くか、? を押すと、ここに出ます。</div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- 段階の表示 -->
+      <section id="stepper" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">段階の表示</h2>
+            <p class="ds-container__description">番号付きの段階（<code class="cat-code">.ds-stepper</code>）。今の段階は明るい面（<code class="cat-code">aria-current="step"</code>）、済んだ段階はアクセント色の丸のチェック（<code class="cat-code">.is-done</code>）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <ol class="ds-stepper">
+            <li class="is-done"><span class="ds-stepper__num"><svg class="ds-icon"><use href="#ds-i-check"/></svg></span>依頼を読む</li>
+            <li aria-current="step"><span class="ds-stepper__num">2</span>調べる</li>
+            <li><span class="ds-stepper__num">3</span>判定する</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 設定の行 -->
+      <section id="settings" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">設定の行</h2>
+            <p class="ds-container__description">見出しと説明を左、操作（セレクト・トグル）を右に置いた行を、枠の中に並べる（<code class="cat-code">.ds-settings</code> と <code class="cat-code">.ds-setting</code>）。まとまりの見出しは枠の外（<code class="cat-code">.ds-settings__group-title</code>）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <h3 class="ds-settings__group-title">通知</h3>
+          <div class="ds-settings">
+            <div class="ds-setting">
+              <div class="ds-setting__text"><span class="ds-setting__title">判定の結果の通知</span><span class="ds-setting__desc">判定を確定したときに、担当者へ知らせる。</span></div>
+              <div class="ds-setting__control"><select class="ds-select" aria-label="判定の結果の通知"><option>すぐに知らせる</option><option>1 日の終わりにまとめる</option></select></div>
+            </div>
+            <div class="ds-setting">
+              <div class="ds-setting__text"><span class="ds-setting__title">操作の案内</span><span class="ds-setting__desc">初めて開く画面で、部品を順に指して説明する。</span></div>
+              <div class="ds-setting__control"><label class="ds-toggle"><input type="checkbox" aria-label="操作の案内"></label></div>
+            </div>
+          </div>
+          <h3 class="ds-settings__group-title">表示</h3>
+          <div class="ds-settings">
+            <div class="ds-setting">
+              <div class="ds-setting__text"><span class="ds-setting__title">行番号</span><span class="ds-setting__desc">コードの左に行番号を出す。根拠の札の行と照らし合わせるときに使う。</span></div>
+              <div class="ds-setting__control"><label class="ds-toggle"><input type="checkbox" checked aria-label="行番号"></label></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 選べる行の一覧 -->
+      <section id="option" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">選べる行の一覧</h2>
+            <p class="ds-container__description">チェック・アイコン・名前と補足・右端の状態を 1 行に並べる（<code class="cat-code">.ds-option</code>）。選んだ行はアクセント色の枠と薄い面。上に選んだ数と「すべて選ぶ」を置ける。チェックの無い行は、状態を見せるだけの一覧になる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-grid">
+          <div class="ds-stack ds-stack--xs">
+            <div class="ds-option-list__header"><span id="option-count">2 / 3 件を選択</span><span><button class="ds-btn ds-btn--link" id="option-all">すべて選ぶ</button><button class="ds-btn ds-btn--link" id="option-none">選ばない</button></span></div>
+            <ul class="ds-option-list" id="option-list">
+              <li><label class="ds-option"><span class="ds-choice"><input type="checkbox" checked></span><svg class="ds-icon ds-option__icon"><use href="#ds-i-package"/></svg><span class="ds-option__text"><span class="ds-option__title">shop-frontend</span><span class="ds-option__sub ds-mono">npm・依存 214 件</span></span><span class="ds-option__meta">検出 6 件</span></label></li>
+              <li><label class="ds-option"><span class="ds-choice"><input type="checkbox" checked></span><svg class="ds-icon ds-option__icon"><use href="#ds-i-package"/></svg><span class="ds-option__text"><span class="ds-option__title">shop-api</span><span class="ds-option__sub ds-mono">npm・依存 98 件</span></span><span class="ds-option__meta">検出 3 件</span></label></li>
+              <li><label class="ds-option"><span class="ds-choice"><input type="checkbox"></span><svg class="ds-icon ds-option__icon"><use href="#ds-i-package"/></svg><span class="ds-option__text"><span class="ds-option__title">admin-console</span><span class="ds-option__sub ds-mono">maven・依存 57 件</span></span><span class="ds-option__meta">検出 0 件</span></label></li>
+            </ul>
+          </div>
+          <ul class="ds-option-list">
+            <li><div class="ds-option" style="cursor:default"><svg class="ds-icon ds-option__icon"><use href="#ds-i-monitor"/></svg><span class="ds-option__text"><span class="ds-option__title">検証用の環境</span><span class="ds-option__sub">接続済み</span></span><span class="ds-status ds-status--success"><svg class="ds-icon"><use href="#ds-i-check"/></svg>準備完了</span></div></li>
+            <li><div class="ds-option" style="cursor:default"><svg class="ds-icon ds-option__icon"><use href="#ds-i-sparkle"/></svg><span class="ds-option__text"><span class="ds-option__title">AI アシスタント</span><span class="ds-option__sub">質問に答えられます</span></span><span class="ds-status ds-status--success"><svg class="ds-icon"><use href="#ds-i-check"/></svg>準備完了</span></div></li>
+            <li><div class="ds-option" style="cursor:default"><svg class="ds-icon ds-option__icon"><use href="#ds-i-cloud"/></svg><span class="ds-option__text"><span class="ds-option__title">結果の共有</span><span class="ds-option__sub">チームに結果を送る</span></span><span class="ds-option__meta">ログイン <svg class="ds-icon ds-icon--s"><use href="#ds-i-angle-right"/></svg></span></div></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 使用量の棒 -->
+      <section id="meter" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">使用量の棒</h2>
+            <p class="ds-container__description">残りの量を大きな数字と棒で示す（<code class="cat-code">.ds-meter</code>）。塗った部分が残り、斜線が使った分、縦の線が目安（このペースなら足りる位置）、右の札が戻るまでの時間。残りは <code class="cat-code">--ds-value</code>、目安は <code class="cat-code">--ds-at</code>（%）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <div class="ds-meter">
+            <div><div class="ds-meter__label">残り時間</div><div class="ds-meter__value">74%<span class="ds-meter__unit">残り</span></div></div>
+            <div class="ds-meter__bar" style="--ds-value:74%;--ds-at:58%" role="img" aria-label="残り時間 74%。目安は 58%"><span class="ds-meter__fill"></span><span class="ds-meter__marker"></span><span class="ds-meter__tag"><svg class="ds-icon"><use href="#ds-i-clock"/></svg>11:06</span></div>
+          </div>
+          <div class="ds-meter ds-meter--warning">
+            <div><div class="ds-meter__label">今月の書き出し</div><div class="ds-meter__value">1<span class="ds-meter__unit">/ 3 回 残り</span></div></div>
+            <div class="ds-meter__bar" style="--ds-value:33%;--ds-at:66%" role="img" aria-label="書き出しの残り 1 回。目安は 2 回"><span class="ds-meter__fill"></span><span class="ds-meter__marker"></span><span class="ds-meter__tag"><svg class="ds-icon"><use href="#ds-i-refresh"/></svg>来月 1 日に 3 回</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 深刻度・判定 -->
+      <section id="game" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">深刻度・判定</h2>
+            <p class="ds-container__description">深刻度は 5 段階（CVSS の区分、障害の重さ、優先度など）。判定は、検出や申請を「対応が必要か」で仕分けた結果。色に必ず文字を添える。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-row">
+            <span class="ds-severity ds-severity--critical">緊急</span>
+            <span class="ds-severity ds-severity--high">高</span>
+            <span class="ds-severity ds-severity--medium">中</span>
+            <span class="ds-severity ds-severity--low">低</span>
+            <span class="ds-severity ds-severity--info">情報</span>
+          </div>
+          <div class="ds-row">
+            <span class="ds-verdict ds-verdict--tp"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>真陽性</span>
+            <span class="ds-verdict ds-verdict--fp"><svg class="ds-icon"><use href="#ds-i-success"/></svg>偽陽性</span>
+            <span class="ds-verdict ds-verdict--pending">未判定</span>
+          </div>
+          <p class="cat-note">対応が必要（<code class="cat-code">--tp</code>、真陽性・該当）は赤、対応不要（<code class="cat-code">--fp</code>、偽陽性・非該当）は緑、未判定（<code class="cat-code">--pending</code>）は灰色の点線。</p>
+        </div>
+      </section>
+
+      <!-- コード表示 -->
+      <section id="code" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">コード表示</h2>
+            <p class="ds-container__description">行番号付き。注目してほしい行は黄色の背景と左の線で示す（<code class="cat-code">.ds-code__line--hit</code>）。開始行は <code class="cat-code">--ds-code-start</code>（表示したい最初の行番号 − 1）で指定する。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <div class="ds-code">
+            <div class="ds-code__header"><svg class="ds-icon"><use href="#ds-i-code"/></svg>src/routes/search.js<div class="ds-btn-group"><button class="ds-btn ds-btn--icon" aria-label="コピー"><svg class="ds-icon"><use href="#ds-i-copy"/></svg></button></div></div>
+<pre class="ds-code__body" style="--ds-code-start:11"><span class="ds-code__line"><span class="k">const</span> _ = <span class="f">require</span>(<span class="s">'lodash'</span>);</span><span class="ds-code__line"></span><span class="ds-code__line"><span class="c">// 検索条件の初期値をまとめる</span></span><span class="ds-code__line ds-code__line--hit"><span class="k">const</span> query = _.<span class="f">template</span>(req.query.format)(params);</span><span class="ds-code__line"><span class="k">return</span> res.<span class="f">json</span>({ query });</span></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 依存関係ツリー -->
+      <section id="tree" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">依存関係ツリー</h2>
+            <p class="ds-container__description">何が何に含まれているかを入れ子で見せる。当てはまる項目には印（<code class="cat-code">.ds-tree__hit</code>）を付ける。見本は、対象のパッケージが直接入っているのか、別のパッケージに含まれているのか。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <ul class="ds-tree">
+            <li>shop-frontend <span class="ds-tree__version">1.0.0</span>
+              <ul>
+                <li>express <span class="ds-tree__version">4.18.2</span>
+                  <ul><li><span class="ds-tree__hit">qs</span> <span class="ds-tree__version">6.11.0</span></li></ul>
+                </li>
+                <li><span class="ds-tree__hit">lodash</span> <span class="ds-tree__version">4.17.20</span></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 確認の条件・根拠 -->
+      <section id="criteria" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">確認の条件・根拠</h2>
+            <p class="ds-container__description">判断に要る条件に、それぞれ「はい・いいえ・未確認」で答え、根拠（ファイルと行、資料など）を札で付ける（<code class="cat-code">.ds-criteria</code>、<code class="cat-code">.ds-evidence</code>）。札を押すとその場所を開く。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <ol class="ds-criteria">
+            <li>
+              <span>対象の OSS がインストールされている</span>
+              <div class="ds-segmented ds-segmented--s" role="group" aria-label="インストールされているか">
+                <button aria-pressed="true">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="false" data-tone="neutral">未確認</button>
+              </div>
+              <div class="ds-criteria__evidence"><a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-package"/></svg>lodash@4.17.20</a></div>
+            </li>
+            <li>
+              <span>バージョンが影響を受ける範囲にある</span>
+              <div class="ds-segmented ds-segmented--s" role="group" aria-label="バージョンが対象か">
+                <button aria-pressed="true">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="false" data-tone="neutral">未確認</button>
+              </div>
+              <div class="ds-criteria__evidence"><a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-file"/></svg>package-lock.json:1284</a></div>
+            </li>
+            <li>
+              <span>指摘のメソッドをコードで呼んでいる</span>
+              <div class="ds-segmented ds-segmented--s" role="group" aria-label="メソッドを呼んでいるか">
+                <button aria-pressed="false">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="true" data-tone="neutral">未確認</button>
+              </div>
+              <div class="ds-criteria__evidence"></div>
+            </li>
+            <li>
+              <span>指摘の機能を実際に使っている</span>
+              <div class="ds-segmented ds-segmented--s" role="group" aria-label="機能を使っているか">
+                <button aria-pressed="false">はい</button><button aria-pressed="false">いいえ</button><button aria-pressed="true" data-tone="neutral">未確認</button>
+              </div>
+              <div class="ds-criteria__evidence"></div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ターミナル -->
+      <section id="terminal" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ターミナル</h2>
+            <p class="ds-container__description">コマンドの入力と結果を見せる。ミニマルでは画面の明るさに合わせ、コンソールではどちらの画面でも暗くする。見本では <code class="cat-code">npm ls lodash</code> と <code class="cat-code">grep -rn template src</code> を入力できる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <div class="ds-terminal">
+            <div class="ds-terminal__header"><svg class="ds-icon"><use href="#ds-i-terminal"/></svg>shop-frontend — bash</div>
+<pre class="ds-terminal__body" id="term-out"><span class="p">$ </span>npm ls lodash
+shop-frontend@1.0.0 <span class="m">/work/shop-frontend</span>
+└── <span class="hl">lodash@4.17.20</span>
+</pre>
+            <form class="ds-terminal__input" id="term-form"><span class="p">$</span><input id="term-in" aria-label="コマンド" autocomplete="off" spellcheck="false" placeholder="コマンドを入力"></form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ライセンス -->
+      <section id="license" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ライセンス</h2>
+            <p class="ds-container__description">OSS のライセンスを、SPDX の名前と種類を並べて出す。種類が分からないものは点線。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <div class="ds-row">
+            <span class="ds-license ds-license--permissive">MIT<span class="ds-license__kind">許容型</span></span>
+            <span class="ds-license ds-license--permissive">Apache-2.0<span class="ds-license__kind">許容型</span></span>
+            <span class="ds-license ds-license--weak">LGPL-2.1<span class="ds-license__kind">弱いコピーレフト</span></span>
+            <span class="ds-license ds-license--strong">GPL-3.0<span class="ds-license__kind">強いコピーレフト</span></span>
+            <span class="ds-license ds-license--strong">AGPL-3.0<span class="ds-license__kind">強いコピーレフト</span></span>
+            <span class="ds-license ds-license--proprietary">商用<span class="ds-license__kind">独自</span></span>
+            <span class="ds-license ds-license--unknown">不明<span class="ds-license__kind">記載なし</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ヒント -->
+      <section id="hint" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ヒント</h2>
+            <p class="ds-container__description">押すまで中身を見せない補足（答え・解説など）。右に開く前の注意を書ける（<code class="cat-code">.ds-hint__cost</code>）。中身を隠したい場合は、開く前は HTML に入れない（開発者ツールで読めてしまうため）。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-grid">
+          <div class="ds-hint" id="hint-demo">
+            <div class="ds-hint__header"><svg class="ds-icon"><use href="#ds-i-lock"/></svg>ヒント 2<span class="ds-hint__cost">開くと記録に残ります</span></div>
+            <div class="ds-hint__body"><button class="ds-btn" id="hint-open">ヒントを開く</button></div>
+          </div>
+          <div class="ds-hint ds-hint--open">
+            <div class="ds-hint__header"><svg class="ds-icon"><use href="#ds-i-bulb"/></svg>ヒント 1<span class="ds-hint__cost">開いた記録あり</span></div>
+            <div class="ds-hint__body">利用者の入力が <span class="ds-mono">_.template</span> の第 1 引数に届くかを見てみましょう。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 残り時間・点数・結果 -->
+      <section id="timer" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">残り時間・点数・結果</h2>
+            <p class="ds-container__description">残り時間（締め切り・期限・試験の時間）は 1 分を切ると黄、0 で赤。上部ナビにも置ける。点数・ランク・結果の一覧は、テストや評価の結果に使い、項目ごとに正誤と点数を並べる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack">
+          <div class="ds-row">
+            <span class="ds-timer" role="timer" aria-label="残り時間 12分30秒"><svg class="ds-icon"><use href="#ds-i-clock"/></svg>12:30</span>
+            <span class="ds-timer ds-timer--warning" role="timer"><svg class="ds-icon"><use href="#ds-i-clock"/></svg>00:45</span>
+            <span class="ds-timer ds-timer--expired" role="timer"><svg class="ds-icon"><use href="#ds-i-clock"/></svg>時間切れ</span>
+          </div>
+          <div class="ds-grid">
+            <div class="ds-score">
+              <div class="ds-score__ring" style="--ds-value:83" role="img" aria-label="正解率 83%"><div class="ds-score__value">83<span class="ds-score__unit">点 / 100</span></div></div>
+              <dl class="ds-kv" style="--ds-cols:1">
+                <div><dt>ランク</dt><dd><span class="ds-rank">A</span></dd></div>
+                <div><dt>正解</dt><dd>5 / 6 件・ヒント 1 回</dd></div>
+              </dl>
+            </div>
+            <ul class="ds-result-list">
+              <li class="ds-result ds-result--correct"><svg class="ds-icon"><use href="#ds-i-success"/></svg><div><div class="ds-result__title">CVE-2022-24999 qs</div><div class="ds-result__detail">偽陽性と判定 — バージョンが対象外</div></div><span class="ds-result__points">+20</span></li>
+              <li class="ds-result ds-result--incorrect"><svg class="ds-icon"><use href="#ds-i-error"/></svg><div><div class="ds-result__title">CVE-2021-23337 lodash</div><div class="ds-result__detail">偽陽性と判定 — 正しくは真陽性（14 行目で呼び出し）</div></div><span class="ds-result__points">0</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 選ぶカード -->
+      <section id="scenario" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">選ぶカード</h2>
+            <p class="ds-container__description">課題・コース・テンプレートなどを選ぶ画面に並べる（<code class="cat-code">.ds-scenario</code>）。種類・所要時間・難しさ（<code class="cat-code">.ds-difficulty</code>）・状態を出す。まだ選べないものは <code class="cat-code">--locked</code>。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <div class="ds-grid" style="--ds-cols:3">
+            <article class="ds-scenario">
+              <div class="ds-scenario__meta"><span>セキュリティ研修</span><span><svg class="ds-icon ds-icon--s"><use href="#ds-i-clock"/></svg>15 分</span><span>難しさ <span class="ds-difficulty" role="img" aria-label="難しさ 1 / 3"><span class="is-on"></span><span></span><span></span></span></span></div>
+              <h3 class="ds-scenario__title">パスワードと多要素認証</h3>
+              <p style="margin:0" class="ds-text-secondary">安全なパスワードの作り方と、多要素認証の設定を学ぶ。</p>
+              <div class="ds-scenario__footer"><span class="ds-status ds-status--success"><svg class="ds-icon"><use href="#ds-i-trophy"/></svg>修了</span><button class="ds-btn">もう一度</button></div>
+            </article>
+            <article class="ds-scenario">
+              <div class="ds-scenario__meta"><span>セキュリティ研修</span><span><svg class="ds-icon ds-icon--s"><use href="#ds-i-clock"/></svg>25 分</span><span>難しさ <span class="ds-difficulty" role="img" aria-label="難しさ 2 / 3"><span class="is-on"></span><span class="is-on"></span><span></span></span></span></div>
+              <h3 class="ds-scenario__title">怪しいメールの見分け方</h3>
+              <p style="margin:0" class="ds-text-secondary">送り主・リンク・添付ファイルの確かめ方を学ぶ。</p>
+              <div class="ds-scenario__footer"><span class="ds-status ds-status--pending"><svg class="ds-icon"><use href="#ds-i-pending"/></svg>未着手</span><button class="ds-btn ds-btn--primary">始める</button></div>
+            </article>
+            <article class="ds-scenario ds-scenario--locked">
+              <div class="ds-scenario__meta"><span>セキュリティ研修</span><span><svg class="ds-icon ds-icon--s"><use href="#ds-i-clock"/></svg>20 分</span><span>難しさ <span class="ds-difficulty" role="img" aria-label="難しさ 3 / 3"><span class="is-on"></span><span class="is-on"></span><span class="is-on"></span></span></span></div>
+              <h3 class="ds-scenario__title">情報漏えいの初動</h3>
+              <p style="margin:0">前のコースを修了すると選べる。</p>
+              <div class="ds-scenario__footer"><span class="ds-status"><svg class="ds-icon"><use href="#ds-i-lock"/></svg>ロック中</span><button class="ds-btn" disabled>始める</button></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ファイルの一覧・コードのタブ・分割画面 -->
+      <section id="source" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">ファイルの一覧・コードのタブ・分割画面</h2>
+            <p class="ds-container__description">ソースを読む場面の組み合わせ。左にファイルの一覧（<code class="cat-code">.ds-filetree</code>）、右に開いたファイルのタブ（<code class="cat-code">.ds-code-tabs</code>）とコード。境目（<code class="cat-code">.ds-split</code>）はドラッグか ← → キーで幅を変えられる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-container__body--flush">
+          <div class="ds-split" style="--ds-split:240px;height:300px">
+            <div class="ds-split__pane" style="padding:var(--ds-space-xs)">
+              <ul class="ds-filetree" aria-label="ファイル">
+                <li><details open><summary class="ds-filetree__item"><svg class="ds-icon"><use href="#ds-i-folder"/></svg>src</summary>
+                  <ul>
+                    <li><details open><summary class="ds-filetree__item"><svg class="ds-icon"><use href="#ds-i-folder"/></svg>routes</summary>
+                      <ul>
+                        <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>cart.js</a></li>
+                        <li><a class="ds-filetree__item" href="#" aria-current="true"><svg class="ds-icon"><use href="#ds-i-file"/></svg>search.js<span class="ds-filetree__count">1</span></a></li>
+                      </ul></details></li>
+                    <li><details><summary class="ds-filetree__item"><svg class="ds-icon"><use href="#ds-i-folder"/></svg>views</summary>
+                      <ul><li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>mail.js</a></li></ul></details></li>
+                    <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>app.js</a></li>
+                  </ul></details></li>
+                <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>package.json</a></li>
+                <li><a class="ds-filetree__item" href="#"><svg class="ds-icon"><use href="#ds-i-file"/></svg>package-lock.json</a></li>
+              </ul>
+            </div>
+            <button class="ds-split__handle"></button>
+            <div class="ds-split__pane" style="padding:var(--ds-space-xs) var(--ds-space-xs) var(--ds-space-xs) 0">
+              <div class="ds-code">
+                <div class="ds-code-tabs" role="tablist">
+                  <div class="ds-code-tab" role="tab" aria-selected="false">app.js<span class="ds-code-tab__close" role="button" aria-label="app.js を閉じる"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></span></div>
+                  <div class="ds-code-tab" role="tab" aria-selected="true">search.js<span class="ds-code-tab__close" role="button" aria-label="search.js を閉じる"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></span></div>
+                  <div class="ds-code-tab" role="tab" aria-selected="false">package.json<span class="ds-code-tab__close" role="button" aria-label="package.json を閉じる"><svg class="ds-icon ds-icon--s"><use href="#ds-i-close"/></svg></span></div>
+                </div>
+<pre class="ds-code__body" style="--ds-code-start:12"><span class="ds-code__line"><span class="k">module</span>.exports = (req, res) =&gt; {</span><span class="ds-code__line">  <span class="c">// 検索結果の見出しを利用者の指定した形式で作る</span></span><span class="ds-code__line ds-code__line--hit">  <span class="k">const</span> title = _.<span class="f">template</span>(req.query.format)({ keyword: req.query.q });</span><span class="ds-code__line">  res.<span class="f">json</span>({ title });</span><span class="ds-code__line">};</span></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- コードの検索結果 -->
+      <section id="search-results" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">コードの検索結果</h2>
+            <p class="ds-container__description">プロジェクト全体を検索した結果。ファイルごとにまとめ、行を押すとその行を開く。当たった文字は黄色。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <div class="ds-search" style="max-width:420px"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" value="_.template" aria-label="コードを検索"></div>
+          <ul class="ds-search-results">
+            <li><div class="ds-search-results__summary">2 ファイル・3 件</div></li>
+            <li>
+              <div class="ds-search-results__file"><svg class="ds-icon"><use href="#ds-i-file"/></svg>src/routes/search.js<span class="ds-search-results__count">1 件</span></div>
+              <a class="ds-search-results__line" href="#"><span class="ds-search-results__ln">14</span><span class="ds-search-results__code">  const title = <mark>_.template</mark>(req.query.format)({ keyword: req.query.q });</span></a>
+            </li>
+            <li>
+              <div class="ds-search-results__file"><svg class="ds-icon"><use href="#ds-i-file"/></svg>src/views/mail.js<span class="ds-search-results__count">2 件</span></div>
+              <a class="ds-search-results__line" href="#"><span class="ds-search-results__ln">8</span><span class="ds-search-results__code">const render = <mark>_.template</mark>(fs.readFileSync('mail.tpl', 'utf8'));</span></a>
+              <a class="ds-search-results__line" href="#"><span class="ds-search-results__ln">21</span><span class="ds-search-results__code">// <mark>_.template</mark> の options は固定値だけを渡す</span></a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- バージョンの範囲 -->
+      <section id="version" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">バージョンの範囲</h2>
+            <p class="ds-container__description">影響を受ける範囲（赤の斜線）と、入っている版（丸）を 1 本の線に並べる。範囲の中なら赤（<code class="cat-code">--hit</code>）、外なら緑（<code class="cat-code">--safe</code>）。位置は <code class="cat-code">--ds-from</code> <code class="cat-code">--ds-to</code> <code class="cat-code">--ds-at</code>（%）で決める。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-grid">
+          <div>
+            <div class="ds-h4" style="margin-bottom:var(--ds-space-xxs)">lodash — CVE-2021-23337</div>
+            <div class="ds-version-range ds-version-range--hit" style="--ds-from:0%;--ds-to:70%;--ds-at:60%">
+              <div class="ds-version-range__track" role="img" aria-label="入っている版 4.17.20 は、影響を受ける範囲 4.17.21 未満に入っている">
+                <div class="ds-version-range__affected"></div>
+                <div class="ds-version-range__marker"><span class="ds-version-range__marker-label">4.17.20</span></div>
+              </div>
+              <div class="ds-version-range__ticks"><span style="left:0">4.0.0</span><span style="left:70%">4.17.21（修正）</span><span style="left:100%">最新</span></div>
+              <div class="ds-version-range__legend"><span><i class="ds-version-range__swatch"></i>影響を受ける範囲（&lt; 4.17.21）</span><span><i class="ds-version-range__swatch ds-version-range__swatch--marker"></i>入っている版：範囲の中</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="ds-h4" style="margin-bottom:var(--ds-space-xxs)">qs — CVE-2022-24999</div>
+            <div class="ds-version-range ds-version-range--safe" style="--ds-from:0%;--ds-to:60%;--ds-at:80%">
+              <div class="ds-version-range__track" role="img" aria-label="入っている版 6.11.0 は、影響を受ける範囲 6.10.3 未満の外にある">
+                <div class="ds-version-range__affected"></div>
+                <div class="ds-version-range__marker"><span class="ds-version-range__marker-label">6.11.0</span></div>
+              </div>
+              <div class="ds-version-range__ticks"><span style="left:0">6.0.0</span><span style="left:60%">6.10.3（修正）</span><span style="left:100%">最新</span></div>
+              <div class="ds-version-range__legend"><span><i class="ds-version-range__swatch"></i>影響を受ける範囲（&lt; 6.10.3）</span><span><i class="ds-version-range__swatch ds-version-range__swatch--marker"></i>入っている版：範囲の外</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 依頼書 -->
+      <section id="brief" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">依頼書</h2>
+            <p class="ds-container__description">顧客や上司からの依頼・連絡。誰から・何を・いつまでに、を最初に読めるようにする。添付は札で並べる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <article class="ds-brief" style="max-width:720px">
+            <div class="ds-brief__header">
+              <span class="ds-avatar" aria-hidden="true">佐</span>
+              <div class="ds-brief__from"><span class="ds-brief__name">佐藤 美咲</span><span class="ds-brief__role">株式会社サンプル商事　情報システム部</span></div>
+              <span class="ds-brief__time">11月8日 9:12</span>
+            </div>
+            <h3 class="ds-brief__subject">EC サイトの脆弱性診断の結果を確かめてほしい</h3>
+            <div class="ds-brief__body">
+              <p>診断ツールが 6 件の脆弱性を報告しました。本当に対応が必要なものだけを、明日のリリース判定までに教えてください。</p>
+              <dl class="ds-kv" style="--ds-cols:3;margin-top:var(--ds-space-s)">
+                <div><dt>対象</dt><dd class="ds-mono">shop-frontend</dd></div>
+                <div><dt>期限</dt><dd>11月9日 18:00</dd></div>
+                <div><dt>求める結果</dt><dd>6 件の判定と根拠</dd></div>
+              </dl>
+            </div>
+            <div class="ds-brief__attachments">
+              <a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-paperclip"/></svg>scan-report.json</a>
+              <a class="ds-evidence" href="#"><svg class="ds-icon ds-icon--s"><use href="#ds-i-paperclip"/></svg>shop-frontend.zip</a>
+            </div>
+            <div class="ds-brief__footer">
+              <button class="ds-btn ds-btn--link">あとで</button>
+              <button class="ds-btn ds-btn--primary">引き受ける</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 操作の案内 -->
+      <section id="coach-section" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">操作の案内</h2>
+            <p class="ds-container__description">初めて使う人に、画面の部品を順に指して説明する。指す部品に <code class="cat-code">.ds-coach-target</code>（周りを暗くするなら <code class="cat-code">--spotlight</code>）、吹き出しは <code class="cat-code">.ds-coach</code>。見本は「次へ」で進む。</p>
+          </div>
+        </div>
+        <div class="ds-container__body">
+          <div id="coach-demo" style="position:relative;overflow:hidden;height:330px;padding:var(--ds-space-l);border:1px solid var(--ds-color-border-container);border-radius:var(--ds-radius-input);background:var(--ds-color-bg-subtle)">
+            <div class="ds-row" style="align-items:flex-start;gap:var(--ds-space-xl)">
+              <div id="coach-t1" style="width:260px;padding:var(--ds-space-s) var(--ds-space-m);border:1px solid var(--ds-color-border-container);border-radius:var(--ds-radius-input);background:var(--ds-color-bg-container)">
+                <div class="ds-text-small">検出結果</div>
+                <div><b>CVE-2021-23337</b>　<span class="ds-mono">lodash</span></div>
+              </div>
+              <div id="coach-t2" class="ds-search" style="width:260px;margin-top:6px"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" placeholder="コードを検索" aria-label="コードを検索"></div>
+              <button id="coach-t3" class="ds-btn ds-btn--primary" style="margin-top:6px">判定を確定</button>
+            </div>
+            <div class="ds-coach ds-coach--below" id="coach" role="dialog" aria-label="操作の案内">
+              <div class="ds-coach__step"></div>
+              <div class="ds-coach__title"></div>
+              <div class="ds-coach__body"></div>
+              <div class="ds-coach__footer">
+                <div class="ds-coach__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                <button class="ds-btn ds-btn--link" id="coach-skip">やめる</button>
+                <button class="ds-btn" id="coach-prev">戻る</button>
+                <button class="ds-btn ds-btn--primary" id="coach-next">次へ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 実績のバッジ -->
+      <section id="achievement" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">実績のバッジ</h2>
+            <p class="ds-container__description">研修の修了や利用の記録などの実績。取ったものは金のメダル、まだのものは点線。進み具合があるものは棒で見せる。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-grid" style="--ds-cols:3">
+          <div class="ds-achievement">
+            <span class="ds-achievement__medal"><svg class="ds-icon"><use href="#ds-i-medal"/></svg></span>
+            <div class="ds-achievement__body"><span class="ds-achievement__title">はじめの一歩</span><span class="ds-achievement__desc">最初のコースを修了した</span></div>
+            <span class="ds-achievement__date">11/8</span>
+          </div>
+          <div class="ds-achievement ds-achievement--locked">
+            <span class="ds-achievement__medal"><svg class="ds-icon"><use href="#ds-i-target"/></svg></span>
+            <div class="ds-achievement__body">
+              <span class="ds-achievement__title">続ける力</span>
+              <span class="ds-achievement__desc">10 日続けて学ぶ</span>
+              <div class="ds-progress"><div class="ds-progress__track"><div class="ds-progress__bar" style="--ds-value:60%"></div></div></div>
+            </div>
+            <span class="ds-achievement__date">6 / 10</span>
+          </div>
+          <div class="ds-achievement ds-achievement--locked">
+            <span class="ds-achievement__medal"><svg class="ds-icon"><use href="#ds-i-lock"/></svg></span>
+            <div class="ds-achievement__body"><span class="ds-achievement__title">全コース修了</span><span class="ds-achievement__desc">すべてのコースを修了する</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 組み合わせ表 -->
+      <section id="matrix" class="ds-container cat-section">
+        <div class="ds-container__header">
+          <div>
+            <h2 class="ds-container__title">組み合わせ表</h2>
+            <p class="ds-container__description">行と列の組み合わせごとに、使える・条件付き・使えない を色と文字で示す（<code class="cat-code">.ds-matrix</code>）。見本はライセンスと組み込み方の組み合わせ。</p>
+          </div>
+        </div>
+        <div class="ds-container__body ds-stack ds-stack--s">
+          <div class="ds-table-wrap">
+            <table class="ds-matrix">
+              <caption>ソースを公開しない商用製品で使えるか（組み込み方 × OSS のライセンス）</caption>
+              <thead><tr><th scope="col">組み込み方</th><th scope="col">MIT</th><th scope="col">Apache-2.0</th><th scope="col">LGPL-2.1</th><th scope="col">GPL-3.0</th><th scope="col">AGPL-3.0</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">ライブラリとして動的リンク</th>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--cond"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>条件付き</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ng"><svg class="ds-icon"><use href="#ds-i-close"/></svg>使えない</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ng"><svg class="ds-icon"><use href="#ds-i-close"/></svg>使えない</span></td></tr>
+                <tr><th scope="row">改変して一緒に配布</th>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--cond"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>条件付き</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--cond"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>条件付き</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ng"><svg class="ds-icon"><use href="#ds-i-close"/></svg>使えない</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ng"><svg class="ds-icon"><use href="#ds-i-close"/></svg>使えない</span></td></tr>
+                <tr><th scope="row">配布せずサーバーで提供</th>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ok"><svg class="ds-icon"><use href="#ds-i-check"/></svg>使える</span></td>
+                  <td><span class="ds-matrix__cell ds-matrix__cell--ng"><svg class="ds-icon"><use href="#ds-i-close"/></svg>使えない</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ds-alert ds-alert--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-alert__content">表の判定は部品の見本。実際の判断に使う前に、ライセンスに詳しい人に確かめること。</div></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="ds-footer">
+    <a href="#">フィードバック</a>
+    <a href="#">ヘルプ</a>
+    <span class="ds-footer__end">汎用デザインシステム</span>
+  </footer>
+</div>
+
+<dialog class="ds-modal" id="demo-modal" aria-labelledby="demo-modal-title">
+  <form method="dialog">
+    <div class="ds-modal__header">
+      <h2 class="ds-modal__title" id="demo-modal-title">判定を確定しますか？</h2>
+      <button class="ds-btn ds-btn--icon" value="cancel" aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+    </div>
+    <div class="ds-modal__body ds-stack ds-stack--s">
+      <p style="margin:0">CVE-2021-23337 を <span class="ds-verdict ds-verdict--tp">真陽性</span> として確定します。確定すると変更できません。</p>
+      <div class="ds-alert ds-alert--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-alert__content">「指摘の機能を使っているか」がまだ未確認です。</div></div>
+    </div>
+    <div class="ds-modal__footer">
+      <button class="ds-btn ds-btn--link" value="cancel">戻る</button>
+      <button class="ds-btn ds-btn--primary" value="ok">確定する</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  // 色見本: tokens.css の値をその場で読む（値をここに二重に書かない）。
+  // 意味トークンは light-dark() なので、実際に塗った色を読み、今の明るさでの値を出す。明るさが変わったら描き直す。
+  const root = getComputedStyle(document.documentElement);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;width:0;height:0;visibility:hidden';
+  document.body.appendChild(probe);
+  const toHex = c => {
+    const m = c.match(/^rgba?\(([^)]+)\)$/);
+    if (!m) return c;
+    const [r, g, b, a] = m[1].split(/[\s,/]+/).map(Number);
+    const hex = '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+    return a !== undefined && a < 1 ? `${hex}（不透明度 ${Math.round(a * 100)}%）` : hex;
+  };
+  const renderSwatches = () => document.querySelectorAll('[data-swatches]').forEach(box => {
+    box.innerHTML = '';
+    box.dataset.swatches.split(/\s+/).forEach(name => {
+      probe.style.background = `var(${name})`;
+      const value = toHex(getComputedStyle(probe).backgroundColor);
+      const el = document.createElement('div');
+      el.className = 'cat-swatch';
+      el.innerHTML = `<div class="cat-swatch__chip" style="background:var(${name})"></div>
+        <div class="cat-swatch__meta">${value}<code>${name}</code></div>`;
+      box.appendChild(el);
+    });
+  });
+  renderSwatches();
+  document.addEventListener('ds-themechange', renderSwatches);
+  document.addEventListener('ds-lookchange', renderSwatches);
+  // 角丸の見本: 今の見た目での値を書く
+  const renderRadius = () => document.querySelectorAll('[data-radius]').forEach(el => {
+    el.textContent = `${el.dataset.radius} ${parseFloat(getComputedStyle(el).borderTopLeftRadius)}`;
+  });
+  renderRadius();
+  document.addEventListener('ds-lookchange', renderRadius);
+  // 余白の見本
+  const spaceList = document.getElementById('space-list');
+  ['xxxs','xxs','xs','s','m','l','xl','xxl','xxxl'].forEach(k => { // 余白は両方の見た目で同じ
+    const v = root.getPropertyValue('--ds-space-' + k).trim();
+    spaceList.insertAdjacentHTML('beforeend',
+      `<div class="cat-space"><code class="cat-code" style="width:9em">--ds-space-${k}</code><span style="width:3em">${v}</span><span class="cat-space__bar" style="width:${v}"></span></div>`);
+  });
+  // サイドナビの現在地
+  document.querySelectorAll('.ds-sidenav__link[href^="#"]').forEach(a => a.addEventListener('click', () => {
+    document.querySelectorAll('.ds-sidenav__link').forEach(x => x.removeAttribute('aria-current'));
+    a.setAttribute('aria-current', 'page');
+  }));
+  // タブ・切り替えボタン・メニュー・分割画面・ファイルの一覧の動きは components.js
+  // チュートリアルの見本: 次へ・戻るで指す部品を変える
+  const coachSteps = [
+    { target: 'coach-t1', title: '検出結果を読む', body: 'ツールが報告した CVE とパッケージ。まずここから始めます。' },
+    { target: 'coach-t2', title: 'ソースを探す', body: '指摘のメソッドを、ファイルの一覧と検索で探します。' },
+    { target: 'coach-t3', title: '判定する', body: '条件をすべて確かめたら、真陽性か偽陽性かを選びます。' },
+  ];
+  let coachAt = 0;
+  const coach = document.getElementById('coach');
+  const showCoach = () => {
+    const s = coachSteps[coachAt];
+    document.querySelectorAll('#coach-demo .ds-coach-target').forEach(x => x.classList.remove('ds-coach-target', 'ds-coach-target--spotlight'));
+    const t = document.getElementById(s.target);
+    t.classList.add('ds-coach-target', 'ds-coach-target--spotlight');
+    coach.querySelector('.ds-coach__step').textContent = `手順 ${coachAt + 1} / ${coachSteps.length}`;
+    coach.querySelector('.ds-coach__title').textContent = s.title;
+    coach.querySelector('.ds-coach__body').textContent = s.body;
+    coach.querySelectorAll('.ds-coach__dots > span').forEach((d, i) => d.classList.toggle('is-on', i === coachAt));
+    // 右にはみ出さないよう寄せ、角は指す部品の左端から 24px の位置に向ける
+    const left = Math.max(8, Math.min(t.offsetLeft, coach.offsetParent.clientWidth - coach.offsetWidth - 8));
+    coach.style.left = left + 'px';
+    coach.style.setProperty('--ds-coach-arrow', Math.max(16, Math.min(t.offsetLeft - left + 24, coach.offsetWidth - 28)) + 'px');
+    coach.style.top = (t.offsetTop + t.offsetHeight + 14) + 'px';
+    document.getElementById('coach-prev').disabled = coachAt === 0;
+    document.getElementById('coach-next').textContent = coachAt === coachSteps.length - 1 ? '始める' : '次へ';
+  };
+  document.getElementById('coach-prev').addEventListener('click', () => { coachAt = Math.max(0, coachAt - 1); showCoach(); });
+  document.getElementById('coach-next').addEventListener('click', () => { coachAt = (coachAt + 1) % coachSteps.length; showCoach(); });
+  document.getElementById('coach-skip').addEventListener('click', () => { coachAt = 0; showCoach(); });
+  showCoach();
+  // 並べ替え: 同じ列を押すと昇順と降順が入れ替わる
+  document.querySelectorAll('.ds-table th[aria-sort] button').forEach(b => b.addEventListener('click', () => {
+    const th = b.parentElement;
+    const next = th.getAttribute('aria-sort') === 'ascending' ? 'descending' : 'ascending';
+    th.closest('tr').querySelectorAll('th[aria-sort]').forEach(x => x.setAttribute('aria-sort', 'none'));
+    th.setAttribute('aria-sort', next);
+  }));
+  // ページ送り
+  document.querySelectorAll('.ds-pagination').forEach(p => p.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || b.getAttribute('aria-label')) return;
+    p.querySelectorAll('button').forEach(x => x.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'page');
+  }));
+  // 絞り込みの札を外す
+  document.querySelectorAll('.ds-chip button').forEach(b => b.addEventListener('click', () => ds.remove(b.parentElement)));
+  // ヒントを開く
+  document.getElementById('hint-open').addEventListener('click', () => {
+    const h = document.getElementById('hint-demo');
+    h.classList.add('ds-hint--open');
+    h.querySelector('use').setAttribute('href', '#ds-i-bulb');
+    h.querySelector('.ds-hint__cost').textContent = '開いた記録あり';
+    h.querySelector('.ds-hint__body').textContent = '関数に渡る値が、利用者の入力から来ているかをたどりましょう。';
+  });
+  // ターミナルの見本（決まった 2 つのコマンドにだけ答える）
+  const answers = {
+    'npm ls lodash': 'shop-frontend@1.0.0 <span class="m">/work/shop-frontend</span>\n└── <span class="hl">lodash@4.17.20</span>',
+    'grep -rn template src': 'src/routes/search.js:14:  const title = _.<span class="hl">template</span>(req.query.format)({ keyword: req.query.q });',
+  };
+  const out = document.getElementById('term-out'), input = document.getElementById('term-in');
+  document.getElementById('term-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const cmd = input.value.trim(); if (!cmd) return;
+    const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const res = answers[cmd] ?? `<span class="err">${esc(cmd.split(' ')[0])}: この見本では使えないコマンドです</span>`;
+    out.insertAdjacentHTML('beforeend', `<span class="p">$ </span>${esc(cmd)}\n${res}\n`);
+    out.scrollTop = out.scrollHeight;
+    input.value = '';
+  });
+
+  // 選べる行の一覧の見本: 選んだ数を数える
+  const optBoxes = [...document.querySelectorAll('#option-list input[type=checkbox]')];
+  const optCount = () => { document.getElementById('option-count').textContent = `${optBoxes.filter(b => b.checked).length} / ${optBoxes.length} 件を選択`; };
+  optBoxes.forEach(b => b.addEventListener('change', optCount));
+  document.getElementById('option-all').addEventListener('click', () => { optBoxes.forEach(b => b.checked = true); optCount(); });
+  document.getElementById('option-none').addEventListener('click', () => { optBoxes.forEach(b => b.checked = false); optCount(); });
+
+  // 動きの見本: 速さの変わり方・トースト・並べ替え
+  document.getElementById('cat-ease-play').addEventListener('click', () => {
+    document.querySelectorAll('#cat-ease i').forEach(dot => {
+      const w = dot.parentElement.clientWidth - dot.offsetWidth;
+      ds.play(dot, [{ transform: 'translateX(0)' }, { transform: `translateX(${w}px)` }],
+        { duration: ds.ms('--ds-motion-duration-slow') * 2, easing: ds.ease(dot.dataset.ease), fill: 'forwards' });
+    });
+  });
+  const catToast = {
+    success: ['判定を保存しました', 'CVE-2021-23337 を真陽性として記録しました。'],
+    info: ['新しい検出結果があります', 'shop-api に 3 件追加されました。'],
+    warning: ['期限が近づいています', '残り 10 分です。'],
+    error: ['保存できませんでした', '通信を確かめて、もう一度保存してください。'],
+  };
+  document.querySelectorAll('[data-cat-toast]').forEach(b => b.addEventListener('click', () => {
+    const [title, message] = catToast[b.dataset.catToast];
+    ds.toast({ title, message, tone: b.dataset.catToast });
+  }));
+  document.getElementById('cat-shuffle').addEventListener('click', () => {
+    const list = document.getElementById('cat-shuffle-list');
+    const items = [...list.children];
+    let order = items.slice();
+    while (order.every((x, i) => x === items[i])) order = items.slice().sort(() => Math.random() - 0.5);
+    ds.flip(items, () => order.forEach(x => list.appendChild(x)));
+  });
+</script>
+</body>
+</html>

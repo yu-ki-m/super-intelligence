@@ -1,0 +1,1681 @@
+/*
+ * 汎用デザインシステム — コンポーネント
+ * tokens.css を先に読み込むこと。クラス名はすべて ds- で始まる。
+ * 一覧と使用例は index.html を参照。
+ * 見た目（ミニマル・コンソール）の違いは、ほとんどをトークンで吸収する。
+ * トークンだけでは表せない形の違い（タブ・フラッシュ・メニューなど）は、このファイルの最後にまとめる。
+ */
+
+/* ========== 0. 土台 ========== */
+*, *::before, *::after { box-sizing: border-box; }
+
+body.ds-body {
+  margin: 0;
+  background: var(--ds-color-bg-page);
+  color: var(--ds-color-text-body);
+  font-family: var(--ds-font-family-base);
+  font-size: var(--ds-font-size-body-m);
+  line-height: var(--ds-line-height-body-m);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* キーボード操作のときだけ見えるフォーカス枠 */
+.ds-body :focus-visible {
+  outline: var(--ds-border-width-focus) solid var(--ds-color-border-focus);
+  outline-offset: 2px;
+}
+
+.ds-icon {
+  width: var(--ds-size-icon);
+  height: var(--ds-size-icon);
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -3px;
+}
+
+.ds-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ========== 1. 文字 ========== */
+.ds-h1, .ds-h2, .ds-h3, .ds-h4 { margin: 0; font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-body); }
+/* 見出しの中にバッジ・件数・? を並べても、上下の中央で揃うようにする */
+.ds-h1, .ds-h2, .ds-h3, .ds-h4, .ds-container__title, .ds-modal__title, .ds-help-panel__title, .ds-sidenav__section {
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--ds-space-xs);
+}
+.ds-h1 { font-size: var(--ds-font-size-heading-xl); line-height: var(--ds-line-height-heading-xl); letter-spacing: var(--ds-letter-spacing-heading-xl); }
+.ds-h2 { font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); letter-spacing: var(--ds-letter-spacing-heading-l); }
+.ds-h3 { font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); letter-spacing: var(--ds-letter-spacing-heading-m); }
+.ds-h4 { font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); }
+.ds-counter { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); }
+
+.ds-text-secondary { color: var(--ds-color-text-secondary); }
+.ds-text-small {
+  font-size: var(--ds-font-size-body-s);
+  line-height: var(--ds-line-height-body-s);
+  letter-spacing: var(--ds-letter-spacing-body-s);
+  color: var(--ds-color-text-description);
+}
+.ds-mono { font-family: var(--ds-font-family-mono); }
+.ds-value-large {
+  font-size: var(--ds-font-size-display-l);
+  line-height: var(--ds-line-height-display-l);
+  color: var(--ds-color-text-accent);
+  font-weight: var(--ds-font-weight-normal);
+}
+
+/* ========== 2. リンク ========== */
+.ds-link {
+  color: var(--ds-color-text-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+.ds-link:hover { color: var(--ds-color-text-link-hover); }
+/* 一覧の中のリンク: 下線なし、ホバーで下線 */
+.ds-link--secondary { text-decoration-color: transparent; }
+.ds-link--secondary:hover { text-decoration-color: currentColor; }
+/* 見出しの横の説明リンク（? のアイコンだけ。aria-label を必ず付ける） */
+.ds-link--info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  color: var(--ds-color-text-description);
+  text-decoration: none;
+  vertical-align: middle;
+}
+.ds-link--info:hover { color: var(--ds-color-text-link); background: var(--ds-color-bg-selected); }
+.ds-link--info .ds-icon { vertical-align: 0; }
+
+/* ========== 3. ボタン ========== */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-xs);
+  min-height: var(--ds-size-control-height);
+  padding: 0 var(--ds-space-m);
+  border: var(--ds-border-width-button) solid var(--ds-color-btn-normal-border);
+  border-radius: var(--ds-radius-button);
+  background: var(--ds-color-btn-normal-bg);
+  color: var(--ds-color-btn-normal-text);
+  font: inherit;
+  font-weight: var(--ds-font-weight-bold);
+  letter-spacing: var(--ds-letter-spacing-button);
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--ds-motion-fast) var(--ds-motion-easing), color var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-btn:hover { background: var(--ds-color-btn-normal-bg-hover); color: var(--ds-color-btn-normal-text-hover); border-color: var(--ds-color-btn-normal-border-hover); }
+.ds-btn:active { background: var(--ds-color-btn-normal-bg-active); }
+
+/* 主ボタン: 1 画面に 1 つまで */
+.ds-btn--primary {
+  background: var(--ds-color-btn-primary-bg);
+  border-color: var(--ds-color-btn-primary-bg);
+  color: var(--ds-color-btn-primary-text);
+}
+.ds-btn--primary:hover { background: var(--ds-color-btn-primary-bg-hover); border-color: var(--ds-color-btn-primary-bg-hover); color: var(--ds-color-btn-primary-text); }
+.ds-btn--primary:active { background: var(--ds-color-btn-primary-bg-hover); }
+
+/* 枠のないボタン（キャンセルなど） */
+.ds-btn--link { border-color: transparent; background: transparent; color: var(--ds-color-btn-link-text); }
+.ds-btn--link:hover { border-color: transparent; background: var(--ds-color-btn-normal-bg-hover); color: var(--ds-color-btn-link-text-hover); }
+
+/* アイコンだけのボタン */
+.ds-btn--icon {
+  padding: 4px;
+  min-width: var(--ds-size-control-height);
+  border-color: transparent;
+  background: transparent;
+  color: var(--ds-color-text-secondary);
+}
+.ds-btn--icon:hover { border-color: transparent; background: var(--ds-color-btn-icon-bg-hover); color: var(--ds-color-text-body); }
+
+.ds-btn:disabled, .ds-btn[aria-disabled="true"] {
+  background: var(--ds-color-bg-disabled);
+  border-color: var(--ds-color-bg-disabled);
+  color: var(--ds-color-text-disabled);
+  cursor: default;
+}
+.ds-btn--icon:disabled { background: transparent; border-color: transparent; }
+
+.ds-btn-group { display: inline-flex; flex-wrap: wrap; gap: var(--ds-space-xs); align-items: center; }
+
+/* ========== 4. 画面の骨組み ========== */
+.ds-app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "topnav topnav"
+    "subbar subbar"
+    "sidenav main"
+    "footer footer";
+}
+
+/* 上部ナビ（ミニマルは地と同じ色で下に細い線、コンソールは濃い帯） */
+.ds-topnav {
+  grid-area: topnav;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-m);
+  height: var(--ds-size-topnav-height);
+  padding: 0 var(--ds-space-m);
+  background: var(--ds-color-bg-topnav);
+  color: var(--ds-color-topnav-text);
+  border-bottom: 1px solid var(--ds-color-topnav-border);
+  position: sticky; top: 0; z-index: 10;
+}
+.ds-topnav__brand { display: flex; align-items: center; gap: var(--ds-space-xs); font-weight: var(--ds-font-weight-bold); font-size: var(--ds-font-size-heading-s); color: inherit; text-decoration: none; white-space: nowrap; }
+.ds-topnav__search {
+  flex: 0 1 540px;
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  height: 30px;
+  padding: 0 var(--ds-space-s);
+  border: 1px solid var(--ds-color-topnav-divider);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-topnav-field);
+  color: var(--ds-color-topnav-placeholder);
+}
+.ds-topnav__search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ds-color-topnav-field-text); font: inherit; outline: none; }
+.ds-topnav__search input::placeholder { color: var(--ds-color-topnav-placeholder); font-style: var(--ds-font-style-placeholder); }
+.ds-topnav__spacer { flex: 1; }
+.ds-topnav__item { display: inline-flex; align-items: center; gap: var(--ds-space-xxs); color: inherit; text-decoration: none; padding: 0 var(--ds-space-xs); white-space: nowrap; }
+.ds-topnav__item:hover { color: var(--ds-color-topnav-text-hover); }
+.ds-topnav__divider { width: 1px; height: 20px; background: var(--ds-color-topnav-divider); }
+
+/* 上部ナビの下の帯（メニュー切替とパンくず） */
+.ds-subbar {
+  grid-area: subbar;
+  display: flex; align-items: center; gap: var(--ds-space-m);
+  height: var(--ds-size-subbar-height);
+  padding: 0 var(--ds-space-m);
+  background: var(--ds-color-bg-subbar);
+  border-bottom: 1px solid var(--ds-color-border-divider);
+}
+
+/* 左のナビゲーション */
+.ds-sidenav {
+  grid-area: sidenav;
+  width: var(--ds-size-sidenav-width);
+  border-right: 1px solid var(--ds-color-border-divider);
+  background: var(--ds-color-bg-sidenav);
+  padding: var(--ds-space-m) var(--ds-space-s) var(--ds-space-xxxl);
+  overflow-y: auto;
+}
+.ds-sidenav[hidden] { display: none; }
+.ds-sidenav__title { margin: 0 0 var(--ds-space-m); padding: 0 var(--ds-space-xs); font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); font-weight: var(--ds-font-weight-bold); }
+.ds-sidenav__section { margin: var(--ds-space-l) 0 var(--ds-space-xxs); padding: 0 var(--ds-space-xs); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); }
+.ds-sidenav__list { list-style: none; margin: 0; padding: 0; }
+.ds-sidenav__link {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  min-height: var(--ds-size-sidenav-item-height);
+  padding: 0 var(--ds-space-xs);
+  border-radius: var(--ds-radius-item);
+  color: var(--ds-color-text-secondary);
+  text-decoration: none;
+}
+.ds-sidenav__link:hover { color: var(--ds-color-sidenav-link-hover); background: var(--ds-color-bg-subtle); }
+.ds-sidenav__link > .ds-icon { color: var(--ds-color-sidenav-icon); }
+.ds-sidenav__link[aria-current="page"] { color: var(--ds-color-sidenav-current-text); font-weight: var(--ds-font-weight-bold); background: var(--ds-color-sidenav-current-bg); }
+.ds-sidenav__link[aria-current="page"] > .ds-icon { color: var(--ds-color-sidenav-current-text); }
+.ds-sidenav__divider { height: 1px; margin: var(--ds-space-m) 0; background: var(--ds-color-border-divider); border: 0; }
+
+.ds-main {
+  grid-area: main;
+  min-width: 0;
+  padding: var(--ds-space-xs) var(--ds-space-xl) var(--ds-space-xxxl);
+}
+.ds-main--no-sidenav { grid-column: 1 / -1; }
+
+.ds-footer {
+  grid-area: footer;
+  display: flex; align-items: center; gap: var(--ds-space-l);
+  padding: 7px var(--ds-space-m);
+  background: var(--ds-color-bg-footer);
+  color: var(--ds-color-footer-text);
+  border-top: 1px solid var(--ds-color-footer-border);
+  font-size: var(--ds-font-size-body-s);
+  line-height: 20px;
+}
+.ds-footer a { color: inherit; text-decoration: none; }
+.ds-footer a:hover { color: var(--ds-color-footer-text-hover); }
+.ds-footer__end { margin-inline-start: auto; }
+
+/* ページの見出し（h1 と右側の操作） */
+/* 右の操作は h1 の行に揃える（説明文の行には揃えない） */
+.ds-page-header {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: var(--ds-space-s) var(--ds-space-m);
+  margin: var(--ds-space-m) 0 var(--ds-space-l);
+}
+.ds-page-header__description { margin: var(--ds-space-xxs) 0 0; color: var(--ds-color-text-secondary); }
+
+/* 並べ方 */
+.ds-stack { display: flex; flex-direction: column; gap: var(--ds-space-l); }
+.ds-stack--s { gap: var(--ds-space-s); }
+.ds-stack--xs { gap: var(--ds-space-xs); }
+.ds-row { display: flex; flex-wrap: wrap; gap: var(--ds-space-m); align-items: center; }
+.ds-grid { display: grid; gap: var(--ds-space-l); grid-template-columns: repeat(var(--ds-cols, 2), minmax(0, 1fr)); }
+@media (max-width: 900px) { .ds-grid { grid-template-columns: 1fr; } }
+
+/* ========== 5. パンくず ========== */
+.ds-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-xs); margin: 0; padding: 0; list-style: none; }
+.ds-breadcrumb li { display: inline-flex; align-items: center; gap: var(--ds-space-xs); }
+.ds-breadcrumb li + li::before { content: "/"; color: var(--ds-color-text-description); margin-inline-end: 2px; }
+.ds-breadcrumb a { color: var(--ds-color-text-secondary); text-decoration: none; }
+.ds-breadcrumb a:hover { color: var(--ds-color-text-body); }
+.ds-breadcrumb [aria-current="page"] { color: var(--ds-color-text-body); font-weight: var(--ds-font-weight-bold); }
+
+/* ========== 6. コンテナ（カード） ========== */
+.ds-container {
+  background: var(--ds-color-bg-container);
+  border: var(--ds-border-width-container) solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-container);
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.ds-container__header {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: var(--ds-space-xs) var(--ds-space-m);
+  padding: var(--ds-space-m) var(--ds-space-l) var(--ds-space-s);
+  border-bottom: 1px solid var(--ds-color-border-subtle);
+}
+/* 右の操作（部品の高さ）を見出しの行の中央に合わせる。差は高さのトークンから計算する */
+.ds-container__header > * + * { margin-block: calc((var(--ds-line-height-heading-l) - var(--ds-size-control-height)) / 2); }
+.ds-container__title { margin: 0; font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); letter-spacing: var(--ds-letter-spacing-heading-l); font-weight: var(--ds-font-weight-bold); }
+.ds-container__description { margin: var(--ds-space-xxxs) 0 0; color: var(--ds-color-text-secondary); }
+.ds-container__body { padding: var(--ds-space-m) var(--ds-space-l) var(--ds-space-l); flex: 1; }
+.ds-container__body--flush { padding: 0; }
+.ds-container__footer {
+  padding: var(--ds-space-s) var(--ds-space-l);
+  border-top: 1px solid var(--ds-color-border-divider);
+  text-align: center;
+}
+
+/* ========== 7. フラッシュ（画面上部に浮かぶ通知） ==========
+ * 塗りつぶしにせず、浮いた面と色付きのアイコンで種類を示す */
+.ds-flash {
+  --ds-flash-tone: var(--ds-color-info);
+  display: flex; align-items: flex-start; gap: var(--ds-space-xs);
+  padding: var(--ds-space-xs) var(--ds-space-m);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-alert);
+  box-shadow: var(--ds-shadow-flash);
+  background: var(--ds-color-bg-raised);
+  color: var(--ds-color-text-body);
+}
+.ds-flash--success { --ds-flash-tone: var(--ds-color-success); }
+.ds-flash--error { --ds-flash-tone: var(--ds-color-error); }
+.ds-flash--warning { --ds-flash-tone: var(--ds-color-warning); }
+.ds-flash > .ds-icon { color: var(--ds-flash-tone); }
+.ds-flash__content { flex: 1; min-width: 0; }
+.ds-flash__title { font-weight: var(--ds-font-weight-bold); }
+.ds-flash .ds-icon { margin-top: 2px; }
+/* 通知の中のボタン
+ * ・× などアイコンだけのボタン: 枠が見えないので、通知の高さを増やさず 1 行目の中央に置く
+ * ・文字のボタン（再試行など）: 上下に 6px の余白を残し、通知を少し高くする。
+ *   文字とアイコンは 4px 下げて、ボタンの中央にそろえる */
+.ds-flash > .ds-btn, .ds-alert > .ds-btn { flex: none; }
+.ds-flash > .ds-btn--icon, .ds-alert > .ds-btn--icon { margin-block: calc((20px - var(--ds-size-control-height)) / 2); }
+.ds-flash > .ds-btn:not(.ds-btn--icon), .ds-alert > .ds-btn:not(.ds-btn--icon) { margin-block: -2px; }
+.ds-flash:has(> .ds-btn:not(.ds-btn--icon)) > :is(.ds-flash__content, .ds-icon),
+.ds-alert:has(> .ds-btn:not(.ds-btn--icon)) > :is(.ds-alert__content, .ds-icon) { margin-top: calc((var(--ds-size-control-height) - 24px) / 2); }
+.ds-flash:has(> .ds-btn:not(.ds-btn--icon)) > .ds-icon,
+.ds-alert:has(> .ds-btn:not(.ds-btn--icon)) > .ds-icon { margin-top: calc((var(--ds-size-control-height) - 24px) / 2 + 2px); }
+
+/* ========== 8. アラート（本文中の枠付き通知） ========== */
+.ds-alert {
+  display: flex; align-items: flex-start; gap: var(--ds-space-xs);
+  padding: var(--ds-space-xs) var(--ds-space-m);
+  border: var(--ds-border-width-alert) solid var(--ds-color-info);
+  border-inline-start-width: var(--ds-border-width-alert-accent);
+  border-radius: var(--ds-radius-alert);
+  background: var(--ds-color-info-bg);
+  color: var(--ds-color-text-body);
+}
+.ds-alert > .ds-icon { color: var(--ds-color-info); margin-top: 2px; }
+.ds-alert--success { border-color: var(--ds-color-success); background: var(--ds-color-success-bg); }
+.ds-alert--success > .ds-icon { color: var(--ds-color-success); }
+.ds-alert--warning { border-color: var(--ds-color-warning-border); background: var(--ds-color-warning-bg); }
+.ds-alert--warning > .ds-icon { color: var(--ds-color-warning); }
+.ds-alert--error { border-color: var(--ds-color-error); background: var(--ds-color-error-bg); }
+.ds-alert--error > .ds-icon { color: var(--ds-color-error); }
+.ds-alert__content { flex: 1; min-width: 0; }
+.ds-alert__title { font-weight: var(--ds-font-weight-bold); }
+
+/* ========== 9. 入力 ========== */
+.ds-field { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-field__label { font-weight: var(--ds-font-weight-bold); }
+.ds-field__label .ds-optional { font-weight: var(--ds-font-weight-bold); font-style: italic; }
+.ds-field__description, .ds-field__constraint { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); letter-spacing: var(--ds-letter-spacing-body-s); color: var(--ds-color-text-description); }
+.ds-field__description { margin-top: -2px; }
+.ds-field__error { display: flex; gap: var(--ds-space-xxs); align-items: center; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-error); }
+
+.ds-input, .ds-textarea, .ds-select {
+  width: 100%;
+  min-height: var(--ds-size-control-height);
+  padding: 5px var(--ds-space-s);
+  border: var(--ds-border-width-input) solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  color: var(--ds-color-text-body);
+  font: inherit;
+}
+.ds-textarea { min-height: 64px; resize: vertical; }
+.ds-input::placeholder, .ds-textarea::placeholder { color: var(--ds-color-text-description); font-style: var(--ds-font-style-placeholder); }
+.ds-input:focus, .ds-textarea:focus, .ds-select:focus {
+  outline: none;
+  border-color: var(--ds-color-border-focus);
+  box-shadow: 0 0 0 3px var(--ds-color-focus-ring);
+}
+.ds-input:disabled, .ds-textarea:disabled, .ds-select:disabled { background: var(--ds-color-bg-disabled); border-color: var(--ds-color-bg-disabled); color: var(--ds-color-text-disabled); }
+.ds-input[aria-invalid="true"], .ds-textarea[aria-invalid="true"], .ds-select[aria-invalid="true"] { border-color: var(--ds-color-error); box-shadow: inset 4px 0 0 var(--ds-color-error); }
+
+/* セレクト: 下向きの山形（色は --ds-neutral-650） */
+.ds-select {
+  appearance: none;
+  padding-inline-end: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%238c8c94' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+
+/* 検索欄（左に虫眼鏡） */
+.ds-search { position: relative; }
+.ds-search .ds-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ds-color-text-secondary); }
+.ds-search .ds-input { padding-inline-start: 36px; }
+
+/* ========== 10. ラジオ・チェックボックス・トグル ========== */
+.ds-choice { display: flex; align-items: flex-start; gap: var(--ds-space-xs); cursor: pointer; }
+.ds-choice__text { display: flex; flex-direction: column; }
+.ds-choice input[type="radio"], .ds-choice input[type="checkbox"] {
+  appearance: none; flex: none;
+  width: var(--ds-size-choice); height: var(--ds-size-choice); margin: calc((20px - var(--ds-size-choice)) / 2) 0 0;
+  border: var(--ds-border-width-choice) solid var(--ds-color-border-input);
+  background: var(--ds-color-bg-input);
+  cursor: pointer;
+}
+.ds-choice input[type="radio"] { border-radius: 50%; }
+.ds-choice input[type="radio"]:checked { border: var(--ds-border-width-choice-checked) solid var(--ds-color-border-selected); }
+.ds-choice input[type="checkbox"] { border-radius: var(--ds-radius-checkbox); }
+.ds-choice input[type="checkbox"]:checked {
+  border-color: var(--ds-color-border-selected);
+  background: var(--ds-color-border-selected) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.5l2.5 2.5L11 4' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+.ds-choice input:disabled { border-color: var(--ds-color-text-disabled); background-color: var(--ds-color-bg-disabled); cursor: default; }
+.ds-choice input:disabled + .ds-choice__text { color: var(--ds-color-text-disabled); }
+
+/* タイル（説明付きの大きな選択肢） */
+.ds-tiles { display: grid; gap: var(--ds-space-s); grid-template-columns: repeat(var(--ds-cols, 2), minmax(0, 1fr)); }
+@media (max-width: 900px) { .ds-tiles { grid-template-columns: 1fr; } }
+.ds-tile {
+  padding: var(--ds-space-xs) var(--ds-space-s) var(--ds-space-s);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-container);
+}
+.ds-tile:has(input:checked) {
+  border-color: var(--ds-color-border-selected);
+  box-shadow: inset 0 0 0 1px var(--ds-color-border-selected);
+  background: var(--ds-color-bg-selected);
+}
+.ds-tile:has(input:disabled) { background: var(--ds-color-bg-disabled); border-color: var(--ds-color-bg-disabled); }
+
+/* トグル */
+.ds-toggle { display: inline-flex; align-items: center; gap: var(--ds-space-xs); cursor: pointer; }
+.ds-toggle input {
+  appearance: none; margin: 0;
+  width: var(--ds-size-toggle-width); height: var(--ds-size-toggle-height); border-radius: calc(var(--ds-size-toggle-height) / 2);
+  background: var(--ds-color-toggle-off);
+  position: relative; cursor: pointer;
+  transition: background-color var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-toggle input::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: calc(var(--ds-size-toggle-height) - 4px); height: calc(var(--ds-size-toggle-height) - 4px); border-radius: 50%; background: var(--ds-neutral-0);
+  transition: transform var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-toggle input:checked { background: var(--ds-color-border-selected); }
+.ds-toggle input:checked::after { transform: translateX(calc(var(--ds-size-toggle-width) - var(--ds-size-toggle-height))); }
+
+/* ========== 11. バッジ・ステータス ========== */
+.ds-badge {
+  display: inline-block;
+  padding: 0 var(--ds-space-xs);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-badge-bg);
+  color: var(--ds-color-badge-text);
+  font-size: var(--ds-font-size-body-s);
+  line-height: 20px;
+  letter-spacing: var(--ds-letter-spacing-body-s);
+  white-space: nowrap;
+}
+/* 色付きのバッジは、どちらの画面でも白い文字（濃い塗りの上なので） */
+.ds-badge--blue { background: var(--ds-primary-600); color: var(--ds-neutral-0); }
+.ds-badge--red { background: var(--ds-error-600); color: var(--ds-neutral-0); }
+.ds-badge--green { background: var(--ds-success-600); color: var(--ds-neutral-0); }
+
+/* 深刻度（5 段階。CVSS の区分、障害の重さ、優先度など） */
+.ds-severity { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ds-severity::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--ds-sev, var(--ds-color-severity-info)); flex: none; }
+.ds-severity--critical { --ds-sev: var(--ds-color-severity-critical); }
+.ds-severity--high { --ds-sev: var(--ds-color-severity-high); }
+.ds-severity--medium { --ds-sev: var(--ds-color-severity-medium); }
+.ds-severity--low { --ds-sev: var(--ds-color-severity-low); }
+.ds-severity--info { --ds-sev: var(--ds-color-severity-info); }
+
+/* ステータス（アイコン＋文字） */
+.ds-status { display: inline-flex; align-items: center; gap: var(--ds-space-xxs); white-space: nowrap; }
+.ds-status--success { color: var(--ds-color-success); }
+.ds-status--error { color: var(--ds-color-error); }
+.ds-status--warning { color: var(--ds-color-warning); }
+.ds-status--info { color: var(--ds-color-info); }
+.ds-status--pending { color: var(--ds-color-text-description); }
+
+/* 判定（--tp: 対応が必要・該当、--fp: 対応不要・非該当、--pending: 未判定） */
+.ds-verdict {
+  display: inline-flex; align-items: center; gap: var(--ds-space-xxs);
+  padding: 0 var(--ds-space-xs);
+  border: 1px solid currentColor;
+  border-radius: var(--ds-radius-badge);
+  font-size: var(--ds-font-size-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  line-height: 18px;
+  white-space: nowrap;
+}
+.ds-verdict--tp { color: var(--ds-color-verdict-true-positive); background: var(--ds-color-error-bg); }
+.ds-verdict--fp { color: var(--ds-color-verdict-false-positive); background: var(--ds-color-success-bg); }
+.ds-verdict--pending { color: var(--ds-color-verdict-pending); background: var(--ds-color-bg-subtle); border-style: dashed; }
+
+/* ========== 12. 表 ========== */
+.ds-table-wrap { overflow-x: auto; }
+.ds-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ds-table th {
+  padding: var(--ds-space-xs) var(--ds-space-s);
+  text-align: start;
+  font-weight: var(--ds-font-weight-bold);
+  color: var(--ds-color-text-secondary);
+  border-bottom: 1px solid var(--ds-color-border-divider);
+  white-space: nowrap;
+}
+.ds-table td { padding: var(--ds-space-xs) var(--ds-space-s); border-bottom: 1px solid var(--ds-color-border-subtle); vertical-align: middle; }
+.ds-table th { vertical-align: middle; }
+.ds-table .ds-choice input { margin-top: 0; vertical-align: middle; }
+.ds-table tbody tr:hover td { background: var(--ds-color-bg-subtle); }
+.ds-table tbody tr[aria-selected="true"] td { background: var(--ds-color-bg-selected); border-bottom-color: var(--ds-color-border-selected); }
+.ds-table tbody tr:last-child td { border-bottom: 0; }
+.ds-table__empty { padding: var(--ds-space-xxl) var(--ds-space-s); text-align: center; color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold); }
+
+/* ========== 13. キーと値 ========== */
+.ds-kv { display: grid; gap: var(--ds-space-l) var(--ds-space-xl); grid-template-columns: repeat(var(--ds-cols, 3), minmax(0, 1fr)); margin: 0; }
+.ds-kv > div { min-width: 0; }
+.ds-kv dt { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-body); margin-bottom: var(--ds-space-xxxs); }
+.ds-kv dd { margin: 0; overflow-wrap: anywhere; }
+.ds-kv--divided > div + div { border-inline-start: 1px solid var(--ds-color-border-divider); padding-inline-start: var(--ds-space-xl); }
+@media (max-width: 900px) { .ds-kv { grid-template-columns: 1fr; } .ds-kv--divided > div + div { border: 0; padding: 0; } }
+
+/* ========== 14. タブ ========== */
+.ds-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--ds-radius-input); background: var(--ds-color-segment-bg); overflow-x: auto; max-width: 100%; }
+.ds-tabs__tab {
+  height: 28px; padding: 0 var(--ds-space-s);
+  border: 1px solid transparent; background: none; cursor: pointer;
+  font: inherit; font-weight: var(--ds-font-weight-bold);
+  color: var(--ds-color-text-secondary);
+  border-radius: var(--ds-radius-item);
+  white-space: nowrap;
+}
+.ds-tabs__tab:hover { color: var(--ds-color-text-body); }
+.ds-tabs__tab[aria-selected="true"] { color: var(--ds-color-text-body); background: var(--ds-color-segment-active); border-color: var(--ds-color-border-container); }
+
+/* ========== 15. 進み具合 ========== */
+.ds-progress { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-progress__track { height: 4px; border-radius: 2px; background: var(--ds-color-bg-muted); overflow: hidden; }
+.ds-progress__bar { height: 100%; width: var(--ds-value, 0%); background: var(--ds-color-text-link); border-radius: 2px; }
+
+/* ステップ（手順の進み） */
+.ds-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-space-s); counter-reset: ds-step; }
+.ds-steps li { display: flex; flex-direction: column; color: var(--ds-color-text-secondary); counter-increment: ds-step; }
+.ds-steps li::before { content: "手順 " counter(ds-step); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-steps li[aria-current="step"] { color: var(--ds-color-text-body); font-weight: var(--ds-font-weight-bold); }
+.ds-steps li.is-done { color: var(--ds-color-step-done); }
+
+/* ========== 16. コード表示（行番号付き。印を付けた行を目立たせる） ========== */
+.ds-code {
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-code-bg);
+  overflow: hidden;
+}
+.ds-code__header {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  padding: var(--ds-space-xxs) var(--ds-space-s);
+  border-bottom: 1px solid var(--ds-color-border-container);
+  background: var(--ds-color-bg-container);
+  font-family: var(--ds-font-family-mono);
+  font-size: var(--ds-font-size-body-s);
+  color: var(--ds-color-text-secondary);
+}
+.ds-code__header .ds-btn-group { margin-inline-start: auto; }
+.ds-code__body { margin: 0; overflow-x: auto; padding: var(--ds-space-xs) 0; font-family: var(--ds-font-family-mono); font-size: 13px; line-height: 20px; counter-reset: ds-line var(--ds-code-start, 0); }
+.ds-code__line { display: block; padding: 0 var(--ds-space-s) 0 0; white-space: pre; counter-increment: ds-line; border-inline-start: 3px solid transparent; }
+.ds-code__line::before {
+  content: counter(ds-line);
+  display: inline-block; width: 3.5em; padding-inline-end: var(--ds-space-s);
+  text-align: right; color: var(--ds-color-code-line-number); user-select: none;
+}
+.ds-code__line--hit { background: var(--ds-color-code-highlight-bg); border-inline-start-color: var(--ds-color-code-highlight-border); }
+.ds-code .k { color: var(--ds-color-code-keyword); }
+.ds-code .s { color: var(--ds-color-code-string); }
+.ds-code .c { color: var(--ds-color-code-comment); font-style: italic; }
+.ds-code .f { color: var(--ds-color-code-function); }
+
+/* 依存関係ツリー（何が何に含まれているか。当てはまる項目に印を付ける） */
+.ds-tree, .ds-tree ul { list-style: none; margin: 0; padding: 0; }
+.ds-tree ul { padding-inline-start: var(--ds-space-l); border-inline-start: 1px solid var(--ds-color-border-divider); margin-inline-start: 7px; }
+.ds-tree li { padding: 2px 0; font-family: var(--ds-font-family-mono); font-size: 13px; }
+.ds-tree .ds-tree__hit { background: var(--ds-color-code-highlight-bg); outline: 1px solid var(--ds-color-code-highlight-border); border-radius: 2px; padding: 0 4px; }
+.ds-tree .ds-tree__version { color: var(--ds-color-text-description); }
+
+/* ========== 17. 区切り線 ========== */
+.ds-divider { height: 1px; border: 0; margin: var(--ds-space-m) 0; background: var(--ds-color-border-divider); }
+
+.ds-icon--s { width: 12px; height: 12px; vertical-align: -1px; }
+.ds-icon--l { width: 32px; height: 32px; stroke-width: 1.5; }
+
+/* =====================================================================
+ * ここから追加した部品（汎用）
+ * ===================================================================== */
+
+/* ========== 18. メニュー（ボタンから開く操作の一覧） ==========
+ * <details class="ds-menu"><summary class="ds-btn">操作 …</summary><div class="ds-menu__list">…</div></details> */
+.ds-menu { position: relative; display: inline-block; }
+.ds-menu > summary { list-style: none; }
+.ds-menu > summary::-webkit-details-marker { display: none; }
+.ds-menu > summary .ds-caret { transition: transform var(--ds-motion-fast) var(--ds-motion-easing); }
+.ds-menu[open] > summary .ds-caret { transform: rotate(180deg); }
+.ds-menu__list {
+  position: absolute; z-index: var(--ds-z-dropdown);
+  top: calc(100% + 4px); inset-inline-start: 0;
+  min-width: 220px;
+  padding: var(--ds-space-xxs);
+  background: var(--ds-color-bg-raised);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-alert);
+  box-shadow: var(--ds-shadow-dropdown);
+}
+.ds-menu--end .ds-menu__list { inset-inline-start: auto; inset-inline-end: 0; }
+.ds-menu__item {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  width: 100%;
+  height: 32px; padding: 0 var(--ds-space-xs);
+  border: 0; border-radius: var(--ds-radius-item); background: none;
+  font: inherit; color: var(--ds-color-text-body); text-align: start; text-decoration: none;
+  cursor: pointer;
+}
+.ds-menu__item:hover { background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); }
+.ds-menu__item:disabled { background: none; color: var(--ds-color-text-disabled); cursor: default; }
+.ds-menu__item--danger, .ds-menu__item--danger:hover { color: var(--ds-color-error); }
+.ds-menu__item kbd { margin-inline-start: auto; }
+/* 1 つだけ選ぶ項目（role="menuitemradio"）: 選んだものにチェックを出す */
+.ds-menu__item .ds-menu__check { margin-inline-start: auto; visibility: hidden; color: var(--ds-color-text-link); }
+.ds-menu__item[aria-checked="true"] { font-weight: var(--ds-font-weight-bold); }
+.ds-menu__item[aria-checked="true"] .ds-menu__check { visibility: visible; }
+.ds-menu__group { padding: 6px var(--ds-space-s) 2px; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-description); }
+.ds-menu__divider { height: 1px; margin: var(--ds-space-xxs) 0; background: var(--ds-color-border-divider); }
+
+/* ========== 19. モーダル（確認・入力のダイアログ） ==========
+ * <dialog class="ds-modal"> を showModal() で開く。後ろは暗くなり、Esc で閉じる。 */
+.ds-modal {
+  width: min(var(--ds-size-modal-width), calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 1px solid var(--ds-color-border-modal);
+  border-radius: var(--ds-radius-container);
+  background: var(--ds-color-bg-raised);
+  color: var(--ds-color-text-body);
+  box-shadow: var(--ds-shadow-modal);
+}
+.ds-modal--wide { width: min(var(--ds-size-modal-width-wide), calc(100vw - 32px)); }
+.ds-modal::backdrop { background: var(--ds-color-overlay); }
+.ds-modal__header > .ds-btn { margin-block: calc((var(--ds-line-height-heading-l) - var(--ds-size-control-height)) / 2); }
+.ds-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ds-space-m); padding: var(--ds-space-m) var(--ds-space-l); border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-modal__title { margin: 0; font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); letter-spacing: var(--ds-letter-spacing-heading-l); }
+.ds-modal__body { padding: var(--ds-space-l); overflow-y: auto; }
+.ds-modal__footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--ds-space-xs); padding: var(--ds-space-s) var(--ds-space-l); border-top: 1px solid var(--ds-color-border-divider); }
+
+/* ========== 20. ツールチップ・ポップオーバー ========== */
+/* ツールチップ: アイコンだけのボタンの名前など、短い 1 行。data-tooltip に文を書く */
+.ds-tooltip { position: relative; }
+.ds-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute; z-index: var(--ds-z-tooltip);
+  bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  padding: var(--ds-space-xxs) var(--ds-space-xs);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-tooltip-bg);
+  color: var(--ds-neutral-100);
+  font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); font-weight: var(--ds-font-weight-normal);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-tooltip:hover::after, .ds-tooltip:focus-visible::after { opacity: 1; }
+
+/* ポップオーバー: 用語の説明など、数行の補足。クリックで開く */
+.ds-popover { position: relative; display: inline-block; }
+.ds-popover > summary {
+  display: inline; list-style: none; cursor: pointer;
+  text-decoration: underline dashed; text-decoration-color: var(--ds-color-text-description);
+  text-underline-offset: 0.3em;
+}
+.ds-popover > summary::-webkit-details-marker { display: none; }
+.ds-popover__content {
+  position: absolute; z-index: var(--ds-z-dropdown);
+  top: calc(100% + 8px); inset-inline-start: 0;
+  width: 320px;
+  padding: var(--ds-space-s) var(--ds-space-m);
+  background: var(--ds-color-bg-container);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  box-shadow: var(--ds-shadow-dropdown);
+  font-weight: var(--ds-font-weight-normal);
+}
+.ds-popover__title { margin-bottom: var(--ds-space-xxs); font-weight: var(--ds-font-weight-bold); }
+
+/* ========== 21. 展開できるセクション ========== */
+.ds-expandable > summary {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  padding: var(--ds-space-xs) 0;
+  list-style: none; cursor: pointer;
+  font-weight: var(--ds-font-weight-bold);
+}
+.ds-expandable > summary::-webkit-details-marker { display: none; }
+.ds-expandable > summary::before {
+  content: ""; width: 7px; height: 7px; flex: none; margin: 0 4px;
+  border-top: 2px solid currentColor; border-right: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-expandable[open] > summary::before { transform: rotate(135deg); }
+.ds-expandable > summary:hover { color: var(--ds-color-text-link); }
+.ds-expandable__content { padding: 0 0 var(--ds-space-s) 23px; }
+/* 枠付き */
+.ds-expandable--container { border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-input); }
+.ds-expandable--container > summary { padding: var(--ds-space-xs) var(--ds-space-s); }
+.ds-expandable--container .ds-expandable__content { padding: 0 var(--ds-space-m) var(--ds-space-m) 35px; }
+
+/* ========== 22. 切り替えボタン（表示の切り替え） ========== */
+.ds-segmented {
+  display: inline-flex; padding: 3px; gap: 2px;
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-segment-bg);
+}
+.ds-segmented button {
+  display: inline-flex; align-items: center; gap: var(--ds-space-xxs);
+  height: 28px; padding: 0 var(--ds-space-s);
+  border: 1px solid transparent; border-radius: var(--ds-radius-item);
+  background: none;
+  font: inherit; font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary);
+  cursor: pointer; white-space: nowrap;
+}
+.ds-segmented button:hover { color: var(--ds-color-text-body); }
+.ds-segmented button[aria-pressed="true"] { background: var(--ds-color-segment-active); border-color: var(--ds-color-border-container); color: var(--ds-color-text-body); }
+.ds-segmented--s button { height: 22px; padding: 0 var(--ds-space-xs); font-size: var(--ds-font-size-body-s); }
+/* 「未確認」など、決めていないことを表す選択肢は灰色にする */
+.ds-segmented button[aria-pressed="true"][data-tone="neutral"] { color: var(--ds-color-text-description); border-style: dashed; }
+
+/* ========== 23. 絞り込みの札・ページ送り・表の並べ替え ========== */
+.ds-table-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-s) var(--ds-space-l); border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-table-toolbar .ds-search { flex: 1 1 260px; max-width: 420px; }
+.ds-table-toolbar .ds-select { width: auto; }
+.ds-table-toolbar__end { margin-inline-start: auto; display: flex; align-items: center; gap: var(--ds-space-s); }
+.ds-table-toolbar__chips { flex-basis: 100%; }
+
+.ds-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-xs); }
+.ds-chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 24px; padding: 0 2px 0 var(--ds-space-xs);
+  border: 1px solid var(--ds-color-chip-border);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-bg-selected);
+  color: var(--ds-color-chip-text);
+  font-size: var(--ds-font-size-body-s);
+  white-space: nowrap;
+}
+.ds-chip button { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--ds-radius-badge); background: none; color: inherit; cursor: pointer; }
+.ds-chip button:hover { background: var(--ds-color-chip-hover); }
+
+.ds-pagination { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.ds-pagination button {
+  min-width: 28px; height: 28px; padding: 0 6px;
+  border: 0; border-radius: var(--ds-radius-item);
+  background: none;
+  font: inherit; color: var(--ds-color-text-secondary);
+  cursor: pointer;
+}
+.ds-pagination button:hover { background: var(--ds-color-bg-subtle); color: var(--ds-color-text-link); }
+.ds-pagination button[aria-current="page"] { background: var(--ds-color-bg-selected); color: var(--ds-color-text-link); font-weight: var(--ds-font-weight-bold); }
+.ds-pagination button:disabled { background: none; color: var(--ds-color-text-disabled); cursor: default; }
+
+/* 並べ替えできる列: <th aria-sort="none|ascending|descending"><button>名前</button></th> */
+.ds-table th[aria-sort] button { padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.ds-table th[aria-sort] button::after { content: "↕"; font-size: 12px; color: var(--ds-color-text-disabled); }
+.ds-table th[aria-sort="ascending"] button::after { content: "▲"; color: var(--ds-color-text-link); }
+.ds-table th[aria-sort="descending"] button::after { content: "▼"; color: var(--ds-color-text-link); }
+.ds-table th[aria-sort] button:hover { color: var(--ds-color-text-link); }
+/* 行の選択欄 */
+.ds-table .ds-table__select { width: 36px; }
+
+/* ========== 24. 空の状態・読み込み中 ========== */
+.ds-empty { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-xs); padding: var(--ds-space-xxl) var(--ds-space-m); text-align: center; color: var(--ds-color-text-secondary); }
+.ds-empty > .ds-icon { color: var(--ds-color-text-disabled); }
+.ds-empty__title { font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-body); }
+.ds-empty .ds-btn { margin-top: var(--ds-space-xs); }
+
+.ds-spinner {
+  display: inline-block; flex: none;
+  width: 16px; height: 16px;
+  border: 2px solid var(--ds-color-spinner-track);
+  border-top-color: var(--ds-color-text-link);
+  border-radius: 50%;
+  vertical-align: -3px;
+  animation: ds-spin 0.8s linear infinite;
+}
+.ds-spinner--l { width: 32px; height: 32px; border-width: 3px; }
+.ds-btn--primary .ds-spinner { border-color: rgba(255, 255, 255, 0.35); border-top-color: currentColor; }
+/* 読み込み中のボタン: 押せないが、無効（灰色）とは見た目を分ける */
+.ds-btn[aria-busy="true"] { cursor: progress; }
+.ds-btn--primary[aria-busy="true"] { background: var(--ds-color-btn-primary-bg); border-color: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); opacity: 0.8; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+
+.ds-skeleton {
+  display: block; height: 12px; border-radius: var(--ds-radius-badge);
+  background: linear-gradient(90deg, var(--ds-color-skeleton-a) 25%, var(--ds-color-skeleton-b) 50%, var(--ds-color-skeleton-a) 75%);
+  background-size: 200% 100%;
+  animation: ds-shimmer 1.4s ease-in-out infinite;
+}
+.ds-skeleton--title { height: 20px; width: 40%; }
+@keyframes ds-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ds-spinner { animation-duration: 2.4s; } /* 動きを止めると読み込み中だと分からないので、遅くするだけ */
+  .ds-skeleton { animation: none; }
+}
+
+/* ========== 25. ヘルプパネル（右に開く説明） ==========
+ * .ds-app に .ds-app--with-panel を足し、<aside class="ds-help-panel"> を置く */
+.ds-app--with-panel {
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "topnav topnav topnav"
+    "subbar subbar subbar"
+    "sidenav main panel"
+    "footer footer footer";
+}
+.ds-app--with-panel .ds-main--no-sidenav { grid-column: 1 / 3; }
+.ds-app--with-panel > .ds-help-panel { grid-area: panel; }
+.ds-help-panel {
+  width: var(--ds-size-help-panel-width);
+  padding: var(--ds-space-l);
+  border-inline-start: 1px solid var(--ds-color-border-divider);
+  background: var(--ds-color-bg-container);
+  overflow-y: auto;
+}
+.ds-help-panel[hidden] { display: none; }
+.ds-help-panel__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-xs); margin: calc(-1 * var(--ds-space-xs)) 0 var(--ds-space-m); padding-bottom: var(--ds-space-s); border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-help-panel__title { margin: 0; font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); }
+.ds-help-panel h4 { margin: var(--ds-space-m) 0 var(--ds-space-xxs); font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); }
+.ds-help-panel p, .ds-help-panel ul { margin: 0 0 var(--ds-space-xs); }
+.ds-help-panel ul { padding-inline-start: 1.2em; }
+@media (max-width: 1100px) {
+  .ds-app--with-panel { grid-template-columns: auto 1fr; grid-template-areas: "topnav topnav" "subbar subbar" "sidenav main" "sidenav panel" "footer footer"; }
+  .ds-app--with-panel > .ds-help-panel { width: auto; border-inline-start: 0; border-top: 1px solid var(--ds-color-border-divider); }
+}
+
+/* ========== 26. キー表示 ========== */
+.ds-kbd {
+  display: inline-block; min-width: 20px; padding: 0 5px;
+  border: 1px solid var(--ds-color-border-input); border-bottom-width: 2px;
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-bg-subtle);
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 18px;
+  text-align: center; color: var(--ds-color-text-body);
+}
+
+/* =====================================================================
+ * ここから追加した部品（調べる・判定する・学ぶ画面向け）
+ * ===================================================================== */
+
+/* ========== 27. 残り時間 ========== */
+.ds-timer {
+  display: inline-flex; align-items: center; gap: var(--ds-space-xxs);
+  padding: 1px var(--ds-space-xs);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-bg-subtle);
+  font-family: var(--ds-font-family-mono);
+  font-weight: var(--ds-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ds-timer--warning { border-color: var(--ds-color-warning-border); background: var(--ds-color-warning-bg); color: var(--ds-color-warning); }
+.ds-timer--expired { border-color: var(--ds-color-error); background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* ========== 28. 点数・ランク・結果の一覧（テスト・評価・振り返りの結果） ========== */
+.ds-score { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-l) var(--ds-space-xxl); }
+.ds-score__ring {
+  position: relative; flex: none;
+  display: grid; place-items: center;
+  width: 128px; height: 128px; border-radius: 50%;
+  background: conic-gradient(var(--ds-color-text-link) calc(var(--ds-value, 0) * 1%), var(--ds-color-bg-muted) 0);
+}
+.ds-score__ring::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: var(--ds-color-bg-container); }
+.ds-score__value { position: relative; text-align: center; font-size: var(--ds-font-size-display-l); line-height: var(--ds-line-height-display-l); font-weight: var(--ds-font-weight-bold); }
+.ds-score__unit { display: block; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); }
+.ds-rank {
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px; border-radius: var(--ds-radius-input);
+  background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text);
+  font-size: 22px; font-weight: var(--ds-font-weight-bold);
+}
+
+.ds-result-list { margin: 0; padding: 0; list-style: none; }
+.ds-result { display: grid; grid-template-columns: auto 1fr auto; gap: var(--ds-space-xs) var(--ds-space-s); align-items: start; padding: var(--ds-space-s) 0; border-bottom: 1px solid var(--ds-color-border-subtle); }
+.ds-result:last-child { border-bottom: 0; }
+.ds-result > .ds-icon { margin-top: 2px; }
+.ds-result--correct > .ds-icon { color: var(--ds-color-success); }
+.ds-result--incorrect > .ds-icon { color: var(--ds-color-error); }
+.ds-result__title { font-weight: var(--ds-font-weight-bold); }
+.ds-result__detail { color: var(--ds-color-text-secondary); }
+.ds-result__points { font-family: var(--ds-font-family-mono); font-weight: var(--ds-font-weight-bold); white-space: nowrap; }
+.ds-result--correct .ds-result__points { color: var(--ds-color-success); }
+.ds-result--incorrect .ds-result__points { color: var(--ds-color-error); }
+
+/* ========== 29. ターミナル（コマンドの入力と結果） ========== */
+.ds-terminal { border-radius: var(--ds-radius-input); background: var(--ds-color-terminal-bg); color: var(--ds-color-terminal-text); font-family: var(--ds-font-family-mono); font-size: 13px; line-height: 20px; overflow: hidden; }
+.ds-terminal__header { display: flex; align-items: center; gap: var(--ds-space-xs); padding: 6px var(--ds-space-s); background: var(--ds-color-terminal-header); color: var(--ds-color-terminal-muted); font-size: 12px; }
+.ds-terminal__body { margin: 0; padding: var(--ds-space-s); max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ds-terminal .p { color: var(--ds-color-terminal-prompt); user-select: none; }
+.ds-terminal .m { color: var(--ds-color-terminal-muted); }
+.ds-terminal .hl { color: var(--ds-color-terminal-highlight); font-weight: var(--ds-font-weight-bold); }
+.ds-terminal .err { color: var(--ds-color-terminal-error); }
+.ds-terminal__input { display: flex; align-items: center; gap: var(--ds-space-xs); padding: 0 var(--ds-space-s) var(--ds-space-s); }
+.ds-terminal__input input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: inherit; font: inherit; caret-color: var(--ds-color-terminal-prompt); }
+
+/* ========== 30. ライセンス（SPDX の名前と種類） ========== */
+.ds-license {
+  --ds-lic: var(--ds-color-license-unknown);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 var(--ds-space-xs);
+  border: 1px solid var(--ds-lic);
+  border-radius: var(--ds-radius-badge);
+  background: color-mix(in srgb, var(--ds-lic) 10%, var(--ds-color-bg-container));
+  color: var(--ds-lic);
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 20px; font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+}
+.ds-license__kind { font-family: var(--ds-font-family-base); font-weight: var(--ds-font-weight-normal); }
+.ds-license--permissive { --ds-lic: var(--ds-color-license-permissive); }
+.ds-license--weak { --ds-lic: var(--ds-color-license-weak); }
+.ds-license--strong { --ds-lic: var(--ds-color-license-strong); }
+.ds-license--proprietary { --ds-lic: var(--ds-color-license-proprietary); }
+.ds-license--unknown { --ds-lic: var(--ds-color-license-unknown); border-style: dashed; }
+
+/* ========== 31. 根拠の参照（ファイルと行・パッケージへのリンク） ========== */
+.ds-evidence {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 var(--ds-space-xs);
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-bg-subtle);
+  color: var(--ds-color-text-link);
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 22px;
+  text-decoration: none; white-space: nowrap; cursor: pointer;
+}
+.ds-evidence:hover { border-color: var(--ds-color-text-link); background: var(--ds-color-bg-selected); }
+
+/* ========== 32. ヒント（押すまで中身を見せない補足。開く前の注意を右に書ける） ========== */
+.ds-hint { padding: var(--ds-space-s) var(--ds-space-m); border: 1px dashed var(--ds-color-border-accent); border-radius: var(--ds-radius-input); background: var(--ds-color-bg-container); }
+.ds-hint__header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-xs); font-weight: var(--ds-font-weight-bold); }
+.ds-hint__header > .ds-icon { color: var(--ds-color-text-link); }
+.ds-hint__cost { margin-inline-start: auto; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); }
+.ds-hint__body { margin-top: var(--ds-space-xs); }
+.ds-hint--open { border-style: solid; background: var(--ds-color-bg-selected); }
+
+/* ========== 33. 選ぶカード（課題・コース・テンプレートなどを、種類・時間・難しさ・状態と一緒に並べる） ========== */
+.ds-scenario { display: flex; flex-direction: column; gap: var(--ds-space-s); padding: var(--ds-space-l); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); }
+.ds-scenario:hover { border-color: var(--ds-color-border-accent); }
+.ds-scenario__title { margin: 0; font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); font-weight: var(--ds-font-weight-bold); }
+.ds-scenario__meta { display: flex; flex-wrap: wrap; gap: var(--ds-space-xxs) var(--ds-space-m); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-scenario__meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.ds-scenario__footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-s); }
+.ds-scenario--locked { background: var(--ds-color-bg-subtle); color: var(--ds-color-text-disabled); }
+.ds-scenario--locked:hover { border-color: var(--ds-color-border-container); }
+.ds-scenario--locked .ds-scenario__meta { color: var(--ds-color-text-disabled); }
+
+/* 難しさ（■ の数）。aria-label に「難しさ 2 / 3」と書く */
+.ds-difficulty { display: inline-flex; gap: 2px; vertical-align: middle; }
+.ds-difficulty > span { width: 8px; height: 8px; border-radius: 2px; background: var(--ds-color-bg-muted); }
+.ds-difficulty > span.is-on { background: var(--ds-color-text-link); }
+
+/* ========== 34. 確認の条件（条件ごとに はい・いいえ・未確認 を答え、根拠を付ける） ========== */
+.ds-criteria { margin: 0; padding: 0; list-style: none; border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-input); }
+.ds-criteria > li { display: grid; grid-template-columns: 1fr auto; gap: var(--ds-space-xxs) var(--ds-space-s); align-items: center; padding: var(--ds-space-xs) var(--ds-space-s); border-bottom: 1px solid var(--ds-color-border-subtle); }
+.ds-criteria > li:last-child { border-bottom: 0; }
+.ds-criteria__evidence { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--ds-space-xxs); }
+.ds-criteria__evidence:empty { display: none; }
+
+/* =====================================================================
+ * ここから追加した部品（ソースを読む・操作を案内する）
+ * 1 行で並ぶものは、高さを固定して align-items: center で上下の中央にそろえる
+ * ===================================================================== */
+
+/* ========== 35. ファイルの一覧 ==========
+ * フォルダーは <details><summary class="ds-filetree__item">、ファイルは <a class="ds-filetree__item"> */
+.ds-filetree, .ds-filetree ul { margin: 0; padding: 0; list-style: none; }
+.ds-filetree ul { padding-inline-start: var(--ds-space-m); }
+.ds-filetree details > summary { list-style: none; }
+.ds-filetree details > summary::-webkit-details-marker { display: none; }
+.ds-filetree__item {
+  display: flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 var(--ds-space-xs);
+  border-radius: var(--ds-radius-item);
+  color: var(--ds-color-text-body); text-decoration: none;
+  font-family: var(--ds-font-family-mono); font-size: 13px; line-height: 20px;
+  white-space: nowrap; cursor: pointer;
+}
+.ds-filetree__item:hover { background: var(--ds-color-bg-subtle); }
+.ds-filetree__item > .ds-icon { color: var(--ds-color-text-description); }
+.ds-filetree__item[aria-current="true"] { background: var(--ds-color-bg-selected); color: var(--ds-color-text-link); font-weight: var(--ds-font-weight-bold); }
+.ds-filetree__item[aria-current="true"] > .ds-icon { color: currentColor; }
+/* フォルダーの開閉の印 */
+.ds-filetree summary.ds-filetree__item::before {
+  content: ""; flex: none; width: 6px; height: 6px; margin: 0 2px;
+  border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-filetree details[open] > summary.ds-filetree__item::before { transform: rotate(135deg); }
+/* ファイルは開閉の印のぶん右へずらし、フォルダー名と頭をそろえる */
+.ds-filetree a.ds-filetree__item { padding-inline-start: calc(var(--ds-space-xs) + 16px); }
+/* 検索に当たった数 */
+.ds-filetree__count {
+  margin-inline-start: auto;
+  padding: 0 6px; border-radius: 8px;
+  background: var(--ds-color-code-highlight-bg); color: var(--ds-color-code-highlight-text);
+  font-family: var(--ds-font-family-base); font-size: 11px; line-height: 16px; font-weight: var(--ds-font-weight-bold);
+}
+
+/* ========== 36. コードのタブ（開いているファイルを切り替える） ==========
+ * .ds-code の一番上に置く */
+.ds-code-tabs { display: flex; overflow-x: auto; background: var(--ds-color-bg-subtle); border-bottom: 1px solid var(--ds-color-border-container); }
+.ds-code-tab {
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 var(--ds-space-xxs) 0 var(--ds-space-s);
+  border: 0; border-inline-end: 1px solid var(--ds-color-border-container);
+  background: transparent;
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 20px; color: var(--ds-color-text-secondary);
+  white-space: nowrap; cursor: pointer;
+}
+.ds-code-tab:hover { color: var(--ds-color-text-body); }
+.ds-code-tab[aria-selected="true"] { background: var(--ds-color-bg-container); color: var(--ds-color-text-body); margin-bottom: -1px; }
+.ds-code-tab[aria-selected="true"]::after { content: none; }
+.ds-code-tab__close { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: var(--ds-radius-badge); color: var(--ds-color-text-description); }
+.ds-code-tab__close:hover { background: var(--ds-color-bg-muted); color: var(--ds-color-text-body); }
+
+/* ========== 37. コードの検索結果 ========== */
+.ds-search-results { margin: 0; padding: 0; list-style: none; border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-input); overflow: hidden; }
+.ds-search-results__summary { display: flex; align-items: center; height: 32px; padding: 0 var(--ds-space-s); border-bottom: 1px solid var(--ds-color-border-container); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); }
+.ds-search-results__file {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  height: 32px; padding: 0 var(--ds-space-s);
+  background: var(--ds-color-bg-subtle);
+  border-bottom: 1px solid var(--ds-color-border-subtle);
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 20px; font-weight: var(--ds-font-weight-bold);
+}
+.ds-search-results__file > .ds-icon { color: var(--ds-color-text-description); }
+.ds-search-results__count { margin-inline-start: auto; font-family: var(--ds-font-family-base); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); }
+.ds-search-results__line {
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  height: 28px; padding: 0 var(--ds-space-s);
+  border-bottom: 1px solid var(--ds-color-border-subtle);
+  color: var(--ds-color-text-body); text-decoration: none;
+  font-family: var(--ds-font-family-mono); font-size: 13px; line-height: 20px;
+}
+.ds-search-results li:last-child .ds-search-results__line:last-child { border-bottom: 0; }
+.ds-search-results__line:hover { background: var(--ds-color-bg-selected); }
+.ds-search-results__ln { flex: none; width: 3em; text-align: right; color: var(--ds-color-code-line-number); }
+.ds-search-results__code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.ds-search-results mark { background: var(--ds-color-code-highlight-bg); color: inherit; box-shadow: 0 0 0 1px var(--ds-color-code-highlight-border); border-radius: 2px; }
+
+/* ========== 38. バージョンの範囲 ==========
+ * --ds-from / --ds-to: 影響を受ける範囲（0〜100%）、--ds-at: 入っている版の位置 */
+.ds-version-range { --ds-mark: var(--ds-color-text-body); padding-top: 34px; }
+.ds-version-range--hit { --ds-mark: var(--ds-color-error); }
+.ds-version-range--safe { --ds-mark: var(--ds-color-success); }
+.ds-version-range__track { position: relative; height: 8px; border-radius: 4px; background: var(--ds-color-bg-muted); }
+.ds-version-range__affected {
+  position: absolute; top: 0; bottom: 0;
+  left: var(--ds-from, 0%); right: calc(100% - var(--ds-to, 100%));
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, var(--ds-error-400) 0 4px, var(--ds-error-600) 4px 8px);
+}
+.ds-version-range__marker {
+  position: absolute; top: 50%; left: var(--ds-at, 0%);
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 3px solid var(--ds-mark); background: var(--ds-color-bg-container);
+  transform: translate(-50%, -50%);
+}
+.ds-version-range__marker-label {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 0 6px; border-radius: var(--ds-radius-badge);
+  background: var(--ds-mark); color: var(--ds-color-bg-container); /* 暗い画面では印が明るくなるので、文字は背景の色にする */
+  font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 20px; font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+}
+.ds-version-range__ticks { position: relative; height: 20px; margin-top: var(--ds-space-xs); font-family: var(--ds-font-family-mono); font-size: 12px; line-height: 20px; color: var(--ds-color-text-description); }
+.ds-version-range__ticks > span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.ds-version-range__ticks > span:first-child { transform: none; }
+.ds-version-range__ticks > span:last-child { transform: translateX(-100%); }
+.ds-version-range__legend { display: flex; flex-wrap: wrap; gap: var(--ds-space-xxs) var(--ds-space-m); margin-top: var(--ds-space-xs); font-size: var(--ds-font-size-body-s); line-height: 20px; color: var(--ds-color-text-secondary); }
+.ds-version-range__legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.ds-version-range__swatch { width: 16px; height: 8px; border-radius: 4px; background: repeating-linear-gradient(135deg, var(--ds-error-400) 0 4px, var(--ds-error-600) 4px 8px); }
+.ds-version-range__swatch--marker { width: 12px; height: 12px; border-radius: 50%; border: 3px solid var(--ds-mark); background: var(--ds-color-bg-container); }
+
+/* ========== 39. 依頼書（誰から・何を・いつまでに、を最初に読ませる依頼・連絡） ========== */
+.ds-brief { border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); overflow: hidden; }
+.ds-brief__header { display: flex; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-s) var(--ds-space-l); border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-avatar {
+  display: inline-grid; place-items: center; flex: none;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--ds-color-avatar-bg); color: var(--ds-color-avatar-text);
+  font-size: var(--ds-font-size-body-m); line-height: 1; font-weight: var(--ds-font-weight-bold);
+}
+.ds-brief__from { display: flex; flex-direction: column; min-width: 0; }
+.ds-brief__name { font-weight: var(--ds-font-weight-bold); }
+.ds-brief__role { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-brief__time { margin-inline-start: auto; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); white-space: nowrap; }
+.ds-brief__subject { margin: 0; padding: var(--ds-space-m) var(--ds-space-l) 0; font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); font-weight: var(--ds-font-weight-bold); }
+.ds-brief__body { padding: var(--ds-space-xs) var(--ds-space-l) var(--ds-space-m); }
+.ds-brief__body p { margin: 0 0 var(--ds-space-xs); }
+.ds-brief__attachments { display: flex; flex-wrap: wrap; gap: var(--ds-space-xs); padding: 0 var(--ds-space-l) var(--ds-space-m); }
+.ds-brief__footer { display: flex; align-items: center; justify-content: flex-end; gap: var(--ds-space-xs); padding: var(--ds-space-s) var(--ds-space-l); border-top: 1px solid var(--ds-color-border-divider); }
+
+/* ========== 40. 操作の案内（部品を順に指して説明する吹き出し） ==========
+ * 指す部品に .ds-coach-target、画面を暗くするなら .ds-coach-target--spotlight */
+.ds-coach-target { position: relative; z-index: var(--ds-z-coach); border-radius: var(--ds-radius-input); box-shadow: 0 0 0 4px var(--ds-color-coach-ring); }
+.ds-coach-target--spotlight { box-shadow: 0 0 0 4px var(--ds-color-coach-ring), 0 0 0 9999px var(--ds-color-coach-dim); }
+.ds-coach {
+  position: absolute; z-index: var(--ds-z-coach);
+  width: 300px; padding: var(--ds-space-m);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-coach-bg); color: var(--ds-neutral-100);
+  box-shadow: var(--ds-shadow-modal);
+}
+/* 吹き出しの角（下に出すときは上向き、上に出すときは下向き） */
+.ds-coach::before { content: ""; position: absolute; left: var(--ds-coach-arrow, 24px); width: 12px; height: 12px; background: inherit; transform: rotate(45deg); }
+.ds-coach--below::before { top: -6px; }
+.ds-coach--above::before { bottom: -6px; }
+.ds-coach__step { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-neutral-400); }
+.ds-coach__title { margin: var(--ds-space-xxs) 0; font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); font-weight: var(--ds-font-weight-bold); }
+.ds-coach__footer { display: flex; align-items: center; gap: var(--ds-space-xs); margin-top: var(--ds-space-m); }
+.ds-coach__dots { display: flex; gap: 4px; margin-inline-end: auto; }
+.ds-coach__dots > span { width: 6px; height: 6px; border-radius: 50%; background: var(--ds-neutral-650); }
+.ds-coach__dots > span.is-on { background: var(--ds-neutral-0); }
+.ds-coach .ds-btn { background: transparent; border-color: var(--ds-neutral-500); color: var(--ds-neutral-0); }
+.ds-coach .ds-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.ds-coach .ds-btn--link { border-color: transparent; color: var(--ds-neutral-400); }
+.ds-coach .ds-btn--primary { background: var(--ds-neutral-0); border-color: var(--ds-neutral-0); color: var(--ds-primary-800); }
+.ds-coach .ds-btn--primary:hover { background: var(--ds-primary-50); }
+
+/* ========== 41. 分割画面（左右の幅を変えられる） ==========
+ * 境目をドラッグするか、境目を選んで ← → キーで幅を変える（components.js） */
+.ds-split { display: grid; grid-template-columns: var(--ds-split, 260px) 9px minmax(0, 1fr); min-height: 0; }
+.ds-split__pane { min-width: 0; overflow: auto; }
+.ds-split__handle { position: relative; padding: 0; border: 0; background: none; cursor: col-resize; touch-action: none; }
+.ds-split__handle::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: var(--ds-color-border-divider); }
+.ds-split__handle::after { content: ""; position: absolute; top: 50%; left: 2px; width: 5px; height: 28px; border-radius: 3px; background: var(--ds-color-grip); transform: translateY(-50%); }
+.ds-split__handle:hover::before, .ds-split__handle.is-dragging::before, .ds-split__handle:focus-visible::before { left: 3px; width: 3px; background: var(--ds-color-text-link); }
+.ds-split__handle:focus-visible { outline: none; }
+
+/* ========== 42. 実績のバッジ（取ったもの・まだのものと進み具合） ========== */
+.ds-achievement { display: flex; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-s) var(--ds-space-m); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-input); background: var(--ds-color-bg-container); }
+.ds-achievement__medal { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ds-color-medal); background: var(--ds-color-medal-bg); color: var(--ds-color-medal); }
+.ds-achievement__medal > .ds-icon { width: 22px; height: 22px; }
+.ds-achievement__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ds-achievement__title { font-weight: var(--ds-font-weight-bold); }
+.ds-achievement__desc { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-achievement__date { flex: none; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); white-space: nowrap; }
+.ds-achievement--locked .ds-achievement__medal { border-style: dashed; border-color: var(--ds-color-border-container); background: var(--ds-color-bg-subtle); color: var(--ds-color-text-disabled); }
+.ds-achievement--locked .ds-achievement__title { color: var(--ds-color-text-secondary); }
+
+/* ========== 43. 組み合わせ表（行 × 列ごとに、使える・条件付き・使えない） ========== */
+.ds-matrix { border-collapse: separate; border-spacing: 0; }
+.ds-matrix caption { caption-side: top; padding-bottom: var(--ds-space-xs); text-align: start; color: var(--ds-color-text-secondary); }
+.ds-matrix th, .ds-matrix td { height: 40px; padding: 0 var(--ds-space-s); border-bottom: 1px solid var(--ds-color-border-subtle); text-align: center; vertical-align: middle; white-space: nowrap; }
+.ds-matrix thead th { border-bottom-color: var(--ds-color-border-divider); color: var(--ds-color-text-secondary); font-family: var(--ds-font-family-mono); font-size: 12px; }
+.ds-matrix thead th:first-child { font-family: var(--ds-font-family-base); text-align: start; }
+.ds-matrix tbody th { text-align: start; font-weight: var(--ds-font-weight-normal); }
+.ds-matrix tbody tr:last-child > * { border-bottom: 0; }
+.ds-matrix__cell { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 var(--ds-space-xs); border-radius: var(--ds-radius-badge); font-size: 12px; line-height: 1; font-weight: var(--ds-font-weight-bold); }
+.ds-matrix__cell .ds-icon { width: 14px; height: 14px; }
+.ds-matrix__cell--ok { background: var(--ds-color-success-bg); color: var(--ds-color-success); }
+.ds-matrix__cell--cond { background: var(--ds-color-warning-bg); color: var(--ds-color-warning); box-shadow: inset 0 0 0 1px var(--ds-color-warning-border); }
+.ds-matrix__cell--ng { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* =====================================================================
+ * ここから追加した部品（作業台の画面向け）
+ * 1 行で並ぶものは、高さを固定して align-items: center で上下の中央にそろえる
+ * ===================================================================== */
+
+/* ========== 44. 作業台の骨組み（左のナビ・本文・右のパネル。上部の帯は無い） ==========
+ * <div class="ds-workbench"> の中に __sidebar、__main、__panel を置く */
+.ds-workbench { height: 100vh; display: grid; grid-template-columns: var(--ds-size-sidenav-width) minmax(0, 1fr) auto; background: var(--ds-color-bg-page); }
+.ds-workbench__sidebar { display: flex; flex-direction: column; min-height: 0; background: var(--ds-color-bg-sidenav); border-right: 1px solid var(--ds-color-border-divider); }
+.ds-workbench__brand { display: flex; align-items: center; gap: var(--ds-space-xs); flex: none; height: var(--ds-size-topnav-height); padding: 0 var(--ds-space-s); font-weight: var(--ds-font-weight-bold); }
+.ds-workbench__brand .ds-btn--icon { min-width: 28px; min-height: 28px; padding: 0; }
+.ds-workbench__search { display: flex; align-items: center; gap: var(--ds-space-xs); flex: none; height: 36px; margin: 0 var(--ds-space-xs); padding: 0 var(--ds-space-xxs) 0 var(--ds-space-xs); border-radius: var(--ds-radius-item); color: var(--ds-color-text-secondary); }
+.ds-workbench__search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: var(--ds-color-text-body); font: inherit; outline: none; }
+.ds-workbench__search input::placeholder { color: var(--ds-color-text-secondary); }
+.ds-workbench__search:focus-within { background: var(--ds-color-bg-subtle); }
+.ds-workbench__search .ds-btn--icon { min-width: 28px; min-height: 28px; padding: 0; }
+.ds-workbench__sidebar-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--ds-space-xs) var(--ds-space-xs) var(--ds-space-m); }
+.ds-workbench__sidebar-footer { display: flex; align-items: center; gap: 2px; flex: none; height: 48px; padding: 0 var(--ds-space-xs); }
+.ds-workbench__sidebar-footer .ds-btn--icon { min-width: 32px; min-height: 32px; padding: 0; }
+.ds-workbench__main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.ds-titlebar { display: flex; align-items: center; gap: var(--ds-space-xs); flex: none; height: var(--ds-size-topnav-height); padding: 0 var(--ds-space-s) 0 var(--ds-space-m); }
+.ds-titlebar .ds-breadcrumb { flex: 1; min-width: 0; flex-wrap: nowrap; white-space: nowrap; }
+.ds-titlebar .ds-btn--icon { min-width: 30px; min-height: 30px; padding: 0; }
+.ds-workbench__content { flex: 1; min-height: 0; overflow-y: auto; padding: var(--ds-space-xs) var(--ds-space-xl) var(--ds-space-xxxl); }
+.ds-workbench__panel { display: flex; flex-direction: column; width: var(--ds-size-help-panel-width); min-height: 0; border-left: 1px solid var(--ds-color-border-divider); background: var(--ds-color-bg-page); }
+.ds-workbench__panel[hidden] { display: none; }
+.ds-workbench__panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--ds-space-m); }
+@media (max-width: 1100px) {
+  .ds-workbench { grid-template-columns: var(--ds-size-sidenav-width) minmax(0, 1fr); }
+  .ds-workbench__panel { display: none; }
+}
+
+/* 右のパネルの見出し（ファイル・ターミナル・ヘルプなどのタブと、右端の操作） */
+.ds-panel-header { display: flex; align-items: center; gap: 2px; flex: none; height: var(--ds-size-topnav-height); padding: 0 var(--ds-space-xs); border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-panel-header__end { margin-inline-start: auto; display: flex; align-items: center; gap: 2px; }
+.ds-panel-header .ds-btn--icon { min-width: 28px; min-height: 28px; padding: 0; }
+.ds-panel-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px;
+  border: 1px solid transparent; border-radius: var(--ds-radius-item);
+  background: none; color: var(--ds-color-text-secondary);
+  font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.ds-panel-tab:hover { color: var(--ds-color-text-body); }
+.ds-panel-tab[aria-selected="true"] { background: var(--ds-color-segment-active); border-color: var(--ds-color-border-container); color: var(--ds-color-text-body); }
+
+/* ========== 45. 段階の表示（番号付き。済んだ段階はチェック） ========== */
+.ds-stepper { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin: 0; padding: 4px; list-style: none; border-radius: var(--ds-radius-alert); background: var(--ds-color-segment-bg); }
+.ds-stepper > li {
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  height: 40px; padding: 0 var(--ds-space-s);
+  border: 1px solid transparent; border-radius: var(--ds-radius-input);
+  color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap; overflow: hidden;
+}
+.ds-stepper__num {
+  display: inline-grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--ds-color-border-input);
+  font-size: 13px; line-height: 1; font-weight: var(--ds-font-weight-normal);
+}
+.ds-stepper__num .ds-icon { width: 14px; height: 14px; stroke-width: 2.5; vertical-align: 0; }
+.ds-stepper > li[aria-current="step"] { background: var(--ds-color-segment-active); border-color: var(--ds-color-border-container); color: var(--ds-color-text-body); }
+.ds-stepper > li[aria-current="step"] .ds-stepper__num { border-color: var(--ds-color-border-focus); color: var(--ds-color-text-accent); }
+.ds-stepper > li.is-done .ds-stepper__num { border-color: var(--ds-color-btn-primary-bg); background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+
+/* ========== 46. 設定の行（見出し・説明と、右端の操作） ========== */
+.ds-settings__group-title { margin: var(--ds-space-xl) 0 var(--ds-space-s); font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); font-weight: var(--ds-font-weight-bold); }
+.ds-settings__group-title:first-child { margin-top: 0; }
+.ds-settings { border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); }
+.ds-setting { display: flex; align-items: center; gap: var(--ds-space-m); padding: var(--ds-space-m) var(--ds-space-l); }
+.ds-setting + .ds-setting { border-top: 1px solid var(--ds-color-border-divider); }
+.ds-setting__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ds-setting__title { font-weight: var(--ds-font-weight-bold); }
+.ds-setting__desc { color: var(--ds-color-text-secondary); }
+.ds-setting__control { flex: none; display: flex; align-items: center; }
+.ds-setting__control .ds-select { width: 240px; }
+
+/* ========== 47. 選べる行の一覧（チェック・アイコン・名前・状態） ========== */
+.ds-option-list { display: flex; flex-direction: column; gap: var(--ds-space-xs); margin: 0; padding: 0; list-style: none; }
+.ds-option-list__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-m); height: 28px; color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+.ds-option-list__header .ds-btn { min-height: 28px; padding: 0 var(--ds-space-xs); font-size: var(--ds-font-size-body-s); }
+.ds-option {
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  min-height: 56px; padding: var(--ds-space-s) var(--ds-space-m);
+  border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-alert);
+  background: var(--ds-color-bg-container); cursor: pointer;
+}
+.ds-option:hover { border-color: var(--ds-color-btn-normal-border-hover); }
+.ds-option:has(input:checked) { border-color: var(--ds-color-border-selected); background: var(--ds-color-bg-selected); }
+.ds-option .ds-choice input { margin: 0; }
+.ds-option__icon { flex: none; color: var(--ds-color-text-secondary); }
+.ds-option__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ds-option__title { font-weight: var(--ds-font-weight-bold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-option__sub { color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-option__meta { flex: none; display: inline-flex; align-items: center; gap: var(--ds-space-xxs); color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); font-variant-numeric: tabular-nums; }
+
+/* ========== 48. 入力の大きな枠（相談・指示を書く） ========== */
+.ds-composer {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-composer);
+  background: var(--ds-color-bg-raised);
+  transition: border-color var(--ds-motion-fast) var(--ds-motion-easing);
+}
+.ds-composer:focus-within { border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-composer__input { min-height: 64px; padding: var(--ds-space-m) var(--ds-space-m) 0; border: 0; background: transparent; color: var(--ds-color-text-body); font: inherit; resize: none; outline: none; }
+.ds-composer__input::placeholder { color: var(--ds-color-text-description); }
+.ds-composer__toolbar { display: flex; align-items: center; gap: var(--ds-space-xxs); padding: var(--ds-space-xs); }
+.ds-composer__spacer { flex: 1; }
+.ds-composer__send {
+  display: inline-grid; place-items: center; flex: none;
+  width: var(--ds-size-control-height); height: var(--ds-size-control-height); padding: 0;
+  border: 0; border-radius: 50%;
+  background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); cursor: pointer;
+}
+.ds-composer__send:hover { background: var(--ds-color-btn-primary-bg-hover); }
+.ds-composer__send:disabled { background: var(--ds-color-bg-muted); color: var(--ds-color-text-disabled); cursor: default; }
+.ds-composer__meta { display: flex; justify-content: flex-end; gap: var(--ds-space-m); margin-top: var(--ds-space-xs); padding: 0 var(--ds-space-xs); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); }
+.ds-composer__meta > span { display: inline-flex; align-items: center; gap: var(--ds-space-xxs); height: 20px; }
+
+/* ========== 49. 使用量の棒（使った分・残りの斜線・目安の線・残りの札） ==========
+ * --ds-value: 使った割合、--ds-at: 目安の位置（どちらも %） */
+.ds-meter { display: grid; grid-template-columns: minmax(140px, 200px) minmax(0, 1fr); align-items: center; gap: var(--ds-space-l); padding: var(--ds-space-m) var(--ds-space-l); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); }
+.ds-meter__label { font-weight: var(--ds-font-weight-bold); }
+.ds-meter__value { display: flex; align-items: baseline; gap: 6px; font-size: var(--ds-font-size-display-l); line-height: var(--ds-line-height-display-l); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-meter__unit { font-size: var(--ds-font-size-body-m); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-description); }
+.ds-meter__bar {
+  position: relative; height: 40px; border-radius: var(--ds-radius-button); overflow: hidden;
+  background: repeating-linear-gradient(135deg, var(--ds-color-meter-hatch) 0 1px, transparent 1px 7px), var(--ds-color-meter-track);
+}
+.ds-meter__fill { position: absolute; inset: 0 auto 0 0; width: var(--ds-value, 0%); border-radius: var(--ds-radius-button); background: var(--ds-meter-color, var(--ds-color-meter-fill)); }
+.ds-meter__marker { position: absolute; top: 4px; bottom: 4px; left: var(--ds-at, 50%); width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--ds-color-meter-marker); box-shadow: 0 0 0 1px var(--ds-color-meter-track); }
+.ds-meter__tag {
+  position: absolute; right: var(--ds-space-xs); top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; gap: var(--ds-space-xxs);
+  height: 22px; padding: 0 var(--ds-space-xs); border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-bg-page); color: var(--ds-color-text-body);
+  font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums;
+}
+.ds-meter__tag .ds-icon { width: 12px; height: 12px; vertical-align: 0; }
+.ds-meter--accent { --ds-meter-color: var(--ds-color-btn-primary-bg); }
+.ds-meter--warning { --ds-meter-color: var(--ds-color-warning); }
+@media (max-width: 700px) { .ds-meter { grid-template-columns: 1fr; } }
+
+/* ========== 50. 大きな問いかけ（何も無い本文の中央） ========== */
+.ds-hero { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-xs); padding: var(--ds-space-xxxl) var(--ds-space-m); text-align: center; }
+.ds-hero__title { margin: 0; font-size: var(--ds-font-size-hero); line-height: var(--ds-line-height-hero); font-weight: var(--ds-font-weight-bold); letter-spacing: -0.02em; }
+.ds-hero__desc { margin: 0; color: var(--ds-color-text-secondary); }
+.ds-hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--ds-space-xs); margin-top: var(--ds-space-s); }
+.ds-hero .ds-composer { width: min(720px, 100%); margin-top: var(--ds-space-m); text-align: start; }
+
+/* 空の状態のアイコンの枠（角の丸い四角） */
+.ds-empty__icon { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-alert); background: var(--ds-color-bg-raised); color: var(--ds-color-text-secondary); }
+
+/* メニューの項目の右端の短いキー */
+.ds-menu__shortcut { margin-inline-start: auto; padding-inline-start: var(--ds-space-m); color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-s); }
+
+/* メニューを上に開く（画面の下にあるボタン用） */
+.ds-menu--up .ds-menu__list { top: auto; bottom: calc(100% + 4px); }
+
+/* 作業台の右のパネルの中では、ヘルプの文の書き方だけを使う（幅・枠・余白はパネルが持つ） */
+.ds-workbench__panel .ds-help-panel { width: auto; padding: 0; border: 0; background: none; }
+
+/* ========== 枠の中に置く入力欄の、選択中の示し方 ==========
+ * 入力欄そのものには四角い輪を出さず、外側の枠の側で選択中を示す。
+ * （全体の決まり .ds-body :focus-visible より強くするため、要素名や親のクラスを足している） */
+.ds-composer .ds-composer__input:focus-visible,
+.ds-topnav__search input:focus-visible,
+.ds-workbench__search input:focus-visible,
+.ds-terminal__input input:focus-visible { outline: none; }
+.ds-topnav__search:focus-within { border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-workbench__search:focus-within { box-shadow: inset 0 0 0 1px var(--ds-color-border-focus); }
+.ds-terminal__input:focus-within .p { color: var(--ds-color-terminal-highlight); }
+
+/* ========== ターミナルを右のパネルいっぱいに広げる ==========
+ * <div class="ds-workbench__panel-body ds-workbench__panel-body--flush"> の中に
+ * <div class="ds-terminal ds-terminal--fill"> を置く。履歴と入力の行を __scroll でまとめて、1 つの画面として流す */
+.ds-workbench__panel-body--flush { display: flex; flex-direction: column; padding: 0; }
+.ds-workbench__panel-body--flush[hidden] { display: none; }
+.ds-terminal--fill { flex: 1; min-height: 0; display: flex; flex-direction: column; border-radius: 0; }
+.ds-terminal--fill .ds-terminal__header { flex: none; height: 36px; padding: 0 var(--ds-space-xxs) 0 var(--ds-space-s); border-bottom: 1px solid var(--ds-color-terminal-border); }
+.ds-terminal__header-end { margin-inline-start: auto; display: flex; align-items: center; gap: 2px; }
+.ds-terminal__header .ds-btn--icon { min-width: 26px; min-height: 26px; padding: 0; color: var(--ds-color-terminal-muted); }
+.ds-terminal__header .ds-btn--icon:hover { background: transparent; color: var(--ds-color-terminal-text); }
+.ds-terminal__scroll { flex: 1; min-height: 0; overflow: auto; padding-bottom: var(--ds-space-s); }
+.ds-terminal--fill .ds-terminal__body { max-height: none; overflow: visible; padding-bottom: 0; }
+.ds-terminal--fill .ds-terminal__input { padding-top: 0; }
+.ds-terminal .path { color: var(--ds-color-terminal-path); }
+.ds-terminal .branch { color: var(--ds-color-terminal-branch); }
+.ds-terminal .ok { color: var(--ds-color-terminal-prompt); }
+.ds-terminal__prompt { flex: none; white-space: pre; }
+
+/* ターミナルの履歴（pre）も、入力の行と同じ等幅の書体にする（ブラウザの pre の既定の書体を使わない） */
+.ds-terminal__body { font: inherit; }
+.ds-terminal--fill .ds-terminal__input { gap: 0; }
+
+/* ========== 下のパネル（ターミナルなど。本文の列の下に独立して置く） ==========
+ * .ds-workbench__main の最後に <section class="ds-workbench__bottom"> を置く。
+ * 上の端（__bottom-handle）をドラッグするか、選んで ↑ ↓ キーで高さを変える（components.js）。高さは --ds-bottom-height */
+.ds-workbench__bottom {
+  position: relative; flex: none;
+  display: flex; flex-direction: column;
+  height: var(--ds-bottom-height, 260px); min-height: 120px;
+  border-top: 1px solid var(--ds-color-border-divider);
+  background: var(--ds-color-terminal-bg);
+}
+.ds-workbench__bottom[hidden] { display: none; }
+.ds-workbench__bottom-handle { position: absolute; top: -5px; left: 0; right: 0; z-index: 1; height: 9px; padding: 0; border: 0; background: none; cursor: row-resize; touch-action: none; }
+.ds-workbench__bottom-handle::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 3px; background: transparent; transition: background-color var(--ds-motion-fast) var(--ds-motion-easing); }
+.ds-workbench__bottom-handle:hover::before, .ds-workbench__bottom-handle.is-dragging::before, .ds-workbench__bottom-handle:focus-visible::before { background: var(--ds-color-border-focus); }
+.ds-workbench__bottom-handle:focus-visible { outline: none; }
+.ds-workbench__bottom > .ds-panel-header { height: 36px; border-bottom-color: var(--ds-color-terminal-border); }
+.ds-workbench__bottom > .ds-terminal { border-radius: 0; }
+
+/* パネルの見出しの、タブの横の補足（セッション名など） */
+.ds-panel-header__label { margin-inline-start: var(--ds-space-xs); color: var(--ds-color-text-description); font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-body-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* パネルを開閉するアイコンのボタン: 開いているときは押された見た目（aria-pressed="true"） */
+.ds-btn--icon[aria-pressed="true"] { background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); }
+
+/* ツールチップを下に出す（画面の上の端にあるボタン用） */
+.ds-tooltip--below::after { bottom: auto; top: calc(100% + 6px); }
+
+/* =====================================================================
+ * コンソールの見た目（<html data-look="console">）で、形が変わる部品
+ * 色・角丸・大きさは tokens.css で切り替わる。ここには、トークンでは表せない形の違いだけを書く。
+ * :where() で包んで詳しさ（優先度）を上げないので、上の部品の決まりと同じ強さで、後に書いたここが勝つ。
+ * ===================================================================== */
+
+/* 左のナビ: 見出しは太字の本文の大きさ、項目は上下に余白 */
+:where(:root[data-look="console"]) .ds-sidenav { padding: var(--ds-space-l) var(--ds-space-m) var(--ds-space-xxxl) var(--ds-space-l); }
+:where(:root[data-look="console"]) .ds-sidenav__section { margin: var(--ds-space-m) 0 var(--ds-space-xxs); font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-body); }
+:where(:root[data-look="console"]) .ds-sidenav__link { padding: 4px var(--ds-space-xs); }
+
+/* パンくず: 区切りは山形、リンクは下線付きのアクセント色 */
+:where(:root[data-look="console"]) .ds-breadcrumb li + li::before {
+  content: ""; width: 7px; height: 7px;
+  border-top: 2px solid var(--ds-color-text-secondary); border-right: 2px solid var(--ds-color-text-secondary);
+  transform: rotate(45deg); margin-inline-end: 4px;
+}
+:where(:root[data-look="console"]) .ds-breadcrumb a { color: var(--ds-color-text-link); text-decoration: underline; text-underline-offset: 0.25em; }
+:where(:root[data-look="console"]) .ds-breadcrumb a:hover { color: var(--ds-color-text-link-hover); }
+:where(:root[data-look="console"]) .ds-breadcrumb [aria-current="page"] { color: var(--ds-color-text-secondary); }
+
+/* コンテナ: 見出しの下にはっきりした区切り線 */
+:where(:root[data-look="console"]) .ds-container__header { padding: var(--ds-space-s) var(--ds-space-l); border-bottom-color: var(--ds-color-border-divider); }
+
+/* フラッシュ: 種類の色で塗りつぶし、白い文字 */
+:where(:root[data-look="console"]) .ds-flash { border-color: transparent; background: var(--ds-color-flash-info); color: var(--ds-color-text-inverted); }
+:where(:root[data-look="console"]) .ds-flash--success { background: var(--ds-color-flash-success); }
+:where(:root[data-look="console"]) .ds-flash--error { background: var(--ds-color-flash-error); }
+:where(:root[data-look="console"]) .ds-flash--warning { background: var(--ds-warning-500); color: var(--ds-neutral-950); }
+:where(:root[data-look="console"]) .ds-flash > .ds-icon { color: inherit; }
+:where(:root[data-look="console"]) .ds-flash .ds-link { color: inherit; }
+:where(:root[data-look="console"]) .ds-flash .ds-btn { background: transparent; color: inherit; border-color: currentColor; }
+:where(:root[data-look="console"]) .ds-flash .ds-btn:hover { background: rgba(255, 255, 255, 0.15); }
+:where(:root[data-look="console"]) .ds-flash .ds-btn--icon { border-color: transparent; }
+
+/* タイル: 選ぶ前の枠は入力欄と同じ濃さ */
+:where(:root[data-look="console"]) .ds-tile { border-color: var(--ds-color-border-input); }
+
+/* タブ: 溝の中の面ではなく、下線で選択中を示す */
+:where(:root[data-look="console"]) .ds-tabs { display: flex; gap: var(--ds-space-xs); padding: 0; border-radius: 0; background: none; border-bottom: 1px solid var(--ds-color-border-divider); }
+:where(:root[data-look="console"]) .ds-tabs__tab {
+  height: auto; padding: var(--ds-space-xs) var(--ds-space-m);
+  border: 0; border-bottom: 2px solid transparent;
+  border-radius: var(--ds-radius-item) var(--ds-radius-item) 0 0;
+}
+:where(:root[data-look="console"]) .ds-tabs__tab:hover { color: var(--ds-color-text-link); }
+:where(:root[data-look="console"]) .ds-tabs__tab[aria-selected="true"] { color: var(--ds-color-text-link); background: none; border-bottom-color: var(--ds-color-text-link); }
+
+/* 切り替えボタン: 枠で囲み、押されたものはアクセントで塗る */
+:where(:root[data-look="console"]) .ds-segmented { padding: 2px; border: 1px solid var(--ds-color-border-input); background: var(--ds-color-bg-container); }
+:where(:root[data-look="console"]) .ds-segmented button { height: auto; padding: 3px var(--ds-space-s); border: 0; border-radius: var(--ds-radius-badge); }
+:where(:root[data-look="console"]) .ds-segmented button:hover { color: var(--ds-color-text-link); }
+:where(:root[data-look="console"]) .ds-segmented button[aria-pressed="true"] { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+:where(:root[data-look="console"]) .ds-segmented--s button { height: auto; padding: 0 var(--ds-space-xs); }
+:where(:root[data-look="console"]) .ds-segmented button[aria-pressed="true"][data-tone="neutral"] { background: var(--ds-neutral-600); color: var(--ds-neutral-0); }
+
+/* メニュー: 端まで広がる項目、ホバーはアクセントの薄い面 */
+:where(:root[data-look="console"]) .ds-menu__list { padding: var(--ds-space-xxs) 0; border-radius: var(--ds-radius-input); }
+:where(:root[data-look="console"]) .ds-menu__item { height: auto; padding: 6px var(--ds-space-s); border-radius: 0; }
+:where(:root[data-look="console"]) .ds-menu__item:hover { background: var(--ds-color-bg-selected); color: var(--ds-color-text-link); }
+:where(:root[data-look="console"]) .ds-menu__item:disabled { background: none; color: var(--ds-color-text-disabled); }
+:where(:root[data-look="console"]) .ds-menu__item--danger:hover { color: var(--ds-color-error); }
+
+/* 上部ナビ（濃い帯）の中の残り時間 */
+:where(:root[data-look="console"]) .ds-topnav .ds-timer { border-color: var(--ds-neutral-650); background: var(--ds-color-bg-topnav-field); color: var(--ds-neutral-100); }
+:where(:root[data-look="console"]) .ds-topnav .ds-timer--warning { border-color: var(--ds-warning-500); color: var(--ds-warning-500); }
+:where(:root[data-look="console"]) .ds-topnav .ds-timer--expired { border-color: var(--ds-error-400); color: var(--ds-error-400); }
+
+/* コードのタブ: 選んだタブの上にアクセントの線 */
+:where(:root[data-look="console"]) .ds-code-tab[aria-selected="true"]::after { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: var(--ds-color-text-link); }
+
+/* 下のパネル: ターミナルはどちらの画面でも暗いので、見出しの行だけ本文の面にする */
+:where(:root[data-look="console"]) .ds-workbench__bottom > .ds-panel-header { background: var(--ds-color-bg-container); border-bottom-color: var(--ds-color-border-divider); }
+
+/* =====================================================================
+ * 動き（モーション）
+ * 状態が変わるときに、形がつながって見えるようにする。CSS で書ける動きはここ、
+ * 開閉・削除・並べ替え・選択の印など、前後の形を測る必要がある動きは components.js の「動き」。
+ * 長さと速さの変わり方は tokens.css の --ds-motion-duration-* / --ds-motion-ease-*。
+ * 動きを減らす設定（prefers-reduced-motion）では、長さがすべて 0 になる。
+ * ===================================================================== */
+
+/* ---------- 色・枠・影の変化はなめらかに ---------- */
+.ds-btn, .ds-composer__send, .ds-chip button, .ds-pagination button, .ds-segmented button,
+.ds-tabs__tab, .ds-panel-tab, .ds-code-tab, .ds-menu__item, .ds-sidenav__link, .ds-filetree__item,
+.ds-option, .ds-tile, .ds-scenario, .ds-evidence, .ds-link, .ds-link--info, .ds-search-results__line,
+.ds-stepper > li, .ds-stepper__num, .ds-badge, .ds-verdict, .ds-hint, .ds-expandable > summary {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity, scale;
+  transition-duration: var(--ds-motion-duration-fast);
+  transition-timing-function: var(--ds-motion-ease-standard);
+}
+.ds-input, .ds-textarea, .ds-select, .ds-composer, .ds-topnav__search, .ds-workbench__search, .ds-tile, .ds-option {
+  transition-property: background-color, border-color, box-shadow, transform;
+  transition-duration: var(--ds-motion-duration-base);
+  transition-timing-function: var(--ds-motion-ease-standard);
+}
+
+/* ---------- 押したときの手応え（少し縮む） ---------- */
+:is(.ds-btn, .ds-composer__send, .ds-segmented button, .ds-tabs__tab, .ds-panel-tab, .ds-pagination button):active:not(:disabled) {
+  scale: 0.97;
+  transition-duration: var(--ds-motion-duration-instant);
+}
+.ds-btn--icon:active:not(:disabled) { scale: 0.9; }
+
+/* ---------- 押せるカードは、重ねると少し浮く ---------- */
+.ds-scenario:not(.ds-scenario--locked):hover, .ds-option:hover { transform: translateY(-1px); box-shadow: var(--ds-shadow-sticky); }
+
+/* ---------- トグル・チェック・ラジオ ---------- */
+.ds-toggle input::after { transition: transform var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), scale var(--ds-motion-duration-fast) var(--ds-motion-ease-standard); }
+.ds-toggle input:active::after { scale: 1.2 1; }
+.ds-toggle input { transition: background-color var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.ds-choice input[type="radio"], .ds-choice input[type="checkbox"] {
+  transition: border-width var(--ds-motion-duration-base) var(--ds-motion-ease-spring), background-color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard), border-color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard), scale var(--ds-motion-duration-instant) var(--ds-motion-ease-standard);
+}
+.ds-choice input:active:not(:disabled) { scale: 0.88; }
+.ds-choice input[type="checkbox"]:checked { animation: ds-pop var(--ds-motion-duration-slow) var(--ds-motion-ease-bounce); }
+@keyframes ds-pop { from { scale: 0.6; } to { scale: 1; } }
+
+/* ---------- 開閉の印（閉じる動きの間は、閉じた向きに戻す） ---------- */
+.ds-expandable.is-closing > summary::before { transform: rotate(45deg); }
+.ds-filetree details.is-closing > summary.ds-filetree__item::before { transform: rotate(45deg); }
+.ds-menu.is-closing > summary .ds-caret { transform: none; }
+
+/* ---------- 選択の印（components.js が作る。選んだ項目の見た目を写して、隣へ滑る） ---------- */
+.is-indicating { position: relative; isolation: isolate; }
+.is-indicating > :not(.ds-motion-indicator) { position: relative; z-index: 1; }
+.is-indicating [data-ds-indicated] { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.is-indicating [data-ds-indicated]::after { opacity: 0 !important; }
+.ds-motion-indicator {
+  position: absolute; left: 0; top: 0; z-index: 0;
+  box-sizing: border-box; pointer-events: none;
+  transition:
+    transform var(--ds-motion-duration-slow) var(--ds-motion-ease-spring),
+    width var(--ds-motion-duration-slow) var(--ds-motion-ease-spring),
+    height var(--ds-motion-duration-slow) var(--ds-motion-ease-spring),
+    background-color var(--ds-motion-duration-base) var(--ds-motion-ease-standard),
+    border-color var(--ds-motion-duration-base) var(--ds-motion-ease-standard),
+    box-shadow var(--ds-motion-duration-base) var(--ds-motion-ease-standard),
+    opacity var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+.ds-motion-indicator.is-instant { transition: none; }
+
+/* ---------- 開いたときに現れる ---------- */
+@keyframes ds-rise { from { opacity: 0; translate: 0 var(--ds-motion-rise); } }
+@keyframes ds-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  /* ページを開いたときと、あとから出てきたときに、本文の部品が順に浮かび上がる */
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner) { animation: ds-rise var(--ds-motion-duration-slow) var(--ds-motion-ease-enter) both; }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(2) { animation-delay: calc(var(--ds-motion-stagger) * 1); }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(3) { animation-delay: calc(var(--ds-motion-stagger) * 2); }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(4) { animation-delay: calc(var(--ds-motion-stagger) * 3); }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(5) { animation-delay: calc(var(--ds-motion-stagger) * 4); }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(6) { animation-delay: calc(var(--ds-motion-stagger) * 5); }
+  :is(.ds-main, .ds-workbench__content, .ds-stack) > :not(.ds-skeleton, .ds-spinner):nth-child(n + 7) { animation-delay: calc(var(--ds-motion-stagger) * 6); }
+  .ds-hint--open .ds-hint__body { animation: ds-rise var(--ds-motion-duration-base) var(--ds-motion-ease-enter) both; }
+  .ds-field__error { animation: ds-rise var(--ds-motion-duration-fast) var(--ds-motion-ease-enter) both; }
+  /* ページ内のリンクで移るときは、なめらかに流れる */
+  html { scroll-behavior: smooth; }
+}
+
+/* ---------- 操作の案内の吹き出しは、次の部品へ滑って移る ---------- */
+.ds-coach { transition: left var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), top var(--ds-motion-duration-slow) var(--ds-motion-ease-spring); }
+.ds-coach-target { transition: box-shadow var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+
+/* ---------- 見た目・明るさの切り替えは、画面全体がなめらかに変わる（View Transitions） ---------- */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--ds-motion-duration-slow); animation-timing-function: var(--ds-motion-ease-standard); }
+
+/* ---------- パネルの伸び縮みの間、中身の形を保つ ---------- */
+.is-motion-clip { overflow: hidden !important; }
+
+/* =====================================================================
+ * トースト（画面の隅に積み重なって出て、しばらくすると消える通知）
+ * ds.toast({ title, message, tone: 'info' | 'success' | 'warning' | 'error', duration: ミリ秒 }) で出す。0 なら自動で消えない。
+ * 重ねると消えるまでの時間が止まる。× で閉じる。
+ * ===================================================================== */
+.ds-toast-region {
+  position: fixed; right: var(--ds-space-l); bottom: var(--ds-space-l); z-index: var(--ds-z-tooltip);
+  display: flex; flex-direction: column; align-items: flex-end; gap: var(--ds-space-xs);
+  width: min(380px, calc(100vw - 32px)); pointer-events: none;
+}
+.ds-toast {
+  --ds-toast-tone: var(--ds-color-info);
+  position: relative; overflow: hidden; pointer-events: auto;
+  display: flex; align-items: flex-start; gap: var(--ds-space-xs);
+  width: 100%; padding: var(--ds-space-s) var(--ds-space-xs) var(--ds-space-s) var(--ds-space-m);
+  border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-alert);
+  background: var(--ds-color-bg-raised); color: var(--ds-color-text-body);
+  box-shadow: var(--ds-shadow-modal);
+}
+.ds-toast--success { --ds-toast-tone: var(--ds-color-success); }
+.ds-toast--warning { --ds-toast-tone: var(--ds-color-warning); }
+.ds-toast--error { --ds-toast-tone: var(--ds-color-error); }
+.ds-toast > .ds-icon { margin-top: 2px; color: var(--ds-toast-tone); }
+.ds-toast__content { flex: 1; min-width: 0; padding-top: 0; }
+.ds-toast__title { font-weight: var(--ds-font-weight-bold); }
+.ds-toast__message { color: var(--ds-color-text-secondary); }
+.ds-toast > .ds-btn--icon { flex: none; margin-block: calc((20px - var(--ds-size-control-height)) / 2); }
+.ds-toast__timer {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--ds-toast-tone); transform-origin: left;
+  animation: ds-toast-timer var(--ds-toast-duration, 4000ms) linear forwards;
+}
+.ds-toast:hover .ds-toast__timer, .ds-toast:focus-within .ds-toast__timer { animation-play-state: paused; }
+@keyframes ds-toast-timer { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .ds-toast__timer { animation-duration: var(--ds-toast-duration, 4000ms); } }
+
+/* 印刷するときは、動きを止めて最後の形で出す */
+@media print { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* =====================================================================
+ * 特殊な画面: 舞台（タイトル画面・入口の画面だけで使う）
+ * 粒の背景（stage.js）の上に、中央の札を置く。作業の画面では使わない（README の「特殊な画面」）。
+ * <div class="ds-stage"> の中に __canvas、__bar（上）、__center（中央の __card）、__foot（下）を置く。
+ * ===================================================================== */
+.ds-stage {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-rows: auto 1fr auto;
+  min-height: 100vh; min-height: 100dvh;
+  background: radial-gradient(120% 90% at 50% 0%, var(--ds-color-stage-bg-b), var(--ds-color-stage-bg-a) 70%);
+  color: var(--ds-color-text-body);
+}
+.ds-stage--embed { min-height: 0; height: 480px; }
+.ds-stage__canvas { position: absolute; inset: 0; z-index: -2; display: block; width: 100%; height: 100%; }
+.ds-stage::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(45% 40% at 50% 50%, color-mix(in srgb, var(--ds-color-stage-glow) 16%, transparent), transparent 70%),
+    radial-gradient(130% 100% at 50% 50%, transparent 55%, var(--ds-color-stage-vignette) 100%);
+}
+.ds-stage__bar { display: flex; align-items: center; gap: var(--ds-space-xxs); height: var(--ds-size-topnav-height); padding: 0 var(--ds-space-m) 0 var(--ds-space-l); }
+.ds-stage__brand { display: flex; align-items: center; gap: var(--ds-space-xs); font-weight: var(--ds-font-weight-bold); }
+.ds-stage__spacer { flex: 1; }
+.ds-stage__center { display: grid; place-items: center; padding: var(--ds-space-xl) var(--ds-space-m); }
+.ds-stage__card {
+  width: min(440px, 100%);
+  padding: var(--ds-space-xxl) var(--ds-space-xxl) var(--ds-space-xl);
+  border: 1px solid var(--ds-color-stage-card-border);
+  border-radius: calc(var(--ds-radius-container) + 6px);
+  background: color-mix(in srgb, var(--ds-color-bg-raised) 84%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--ds-shadow-modal);
+  text-align: center;
+}
+.ds-stage__eyebrow {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+  border: 1px solid var(--ds-color-border-container); border-radius: 999px;
+  color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s);
+}
+.ds-stage__eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ds-color-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-color-success) 25%, transparent); }
+.ds-stage__title { margin: var(--ds-space-m) 0 var(--ds-space-xs); font-size: clamp(28px, 4vw, 40px); line-height: 1.15; letter-spacing: -0.02em; font-weight: var(--ds-font-weight-bold); }
+.ds-stage__lead { margin: 0; color: var(--ds-color-text-secondary); }
+.ds-stage__actions { display: flex; flex-direction: column; gap: var(--ds-space-xs); margin-top: var(--ds-space-xl); }
+.ds-stage__actions .ds-btn { width: 100%; min-height: 44px; }
+.ds-stage__actions .ds-btn--primary { font-size: var(--ds-font-size-heading-s); }
+.ds-stage__actions .ds-kbd { margin-inline-start: var(--ds-space-xxs); background: transparent; border-color: currentColor; color: inherit; opacity: 0.8; }
+.ds-stage__btn-meta { margin-inline-start: auto; color: var(--ds-color-text-description); font-weight: var(--ds-font-weight-normal); font-size: var(--ds-font-size-body-s); }
+.ds-stage__actions .ds-btn:has(.ds-stage__btn-meta) { justify-content: flex-start; }
+.ds-stage__links { display: flex; justify-content: center; gap: var(--ds-space-m); margin-top: var(--ds-space-m); }
+.ds-stage__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-m); height: 40px; padding: 0 var(--ds-space-l); color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-s); }
+@media (max-width: 520px) { .ds-stage__card { padding: var(--ds-space-xl) var(--ds-space-l); } }
+
+/* 現れる: 背景がゆっくり現れ、札がばねで浮かび、中身が順に出る */
+@keyframes ds-stage-card-in { from { opacity: 0; transform: translateY(16px) scale(0.96); } }
+@media (prefers-reduced-motion: no-preference) {
+  .ds-stage__canvas { animation: ds-fade 1200ms var(--ds-motion-ease-enter) both; }
+  .ds-stage__card { animation: ds-stage-card-in var(--ds-motion-duration-slower) var(--ds-motion-ease-spring) 120ms both; }
+  .ds-stage__card > * { animation: ds-rise var(--ds-motion-duration-slow) var(--ds-motion-ease-enter) both; }
+  .ds-stage__card > :nth-child(1) { animation-delay: 220ms; }
+  .ds-stage__card > :nth-child(2) { animation-delay: 270ms; }
+  .ds-stage__card > :nth-child(3) { animation-delay: 320ms; }
+  .ds-stage__card > :nth-child(4) { animation-delay: 370ms; }
+  .ds-stage__card > :nth-child(n + 5) { animation-delay: 420ms; }
+}
+/* 去る動き（始めるを押したとき）は、画面の側で ds.play を使う（CSS の現れる動きより上に重なるため） */
