@@ -1,0 +1,45 @@
+{
+  "title": "API利用ガイドのレビュー",
+  "items": [
+    {
+      "id": "intro",
+      "title": "はじめに",
+      "description": "はじめにの内容が社外の開発者向けとして足りているか。",
+      "files": [
+        "../../docs/intro.md"
+      ]
+    },
+    {
+      "id": "api",
+      "title": "API仕様",
+      "description": "API仕様の内容が社外の開発者向けとして足りているか。",
+      "files": [
+        "../../docs/api.md"
+      ]
+    },
+    {
+      "id": "faq",
+      "title": "よくある質問",
+      "description": "よくある質問の内容が社外の開発者向けとして足りているか。",
+      "files": [
+        "../../docs/faq.md"
+      ]
+    },
+    {
+      "id": "glossary",
+      "title": "用語集",
+      "description": "用語集の内容が社外の開発者向けとして足りているか。",
+      "files": [
+        "../../docs/glossary.md"
+      ]
+    },
+    {
+      "id": "changelog",
+      "title": "変更履歴",
+      "description": "変更履歴の内容が社外の開発者向けとして足りているか。",
+      "files": [
+        "../../docs/changelog.md"
+      ]
+    }
+  ]
+}

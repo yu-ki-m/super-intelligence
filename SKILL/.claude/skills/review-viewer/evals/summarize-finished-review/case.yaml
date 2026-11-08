@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: summarize-finished-review
+expected_outcome: |
+  feedback.json を判定ごとにまとめ、要修正のコメントを具体的な修正内容に、不採用の理由を記録に変える。
+  未判定でコメントも無く表示もされていない項目を「問題なし」とせず未確認として伝え、
+  未判定でコメントのある項目は扱いを利用者に確かめる。全体コメントも方針に反映する。
+context:
+  scaffold_script: place-files.sh

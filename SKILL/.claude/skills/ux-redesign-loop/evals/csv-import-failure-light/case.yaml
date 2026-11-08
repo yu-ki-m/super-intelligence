@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: csv-import-failure-light
+expected_outcome: |
+  軽量の深さで、部分成功・失敗行の修正・再取込を含む体験を設計し、数千行と失敗を含むプロトタイプと、短い反復記録・検証計画が残る。

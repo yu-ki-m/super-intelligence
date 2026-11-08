@@ -14,16 +14,21 @@ const server = createServer((req,res) => {
  else {res.setHeader('Content-Type','text/html');res.end(fixture);}
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
+// A second origin without CORS headers: page fetch() fails, the Node-side fallback must inline it.
+const other = createServer((req,res) => {res.setHeader('Content-Type','image/svg+xml');res.end('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="crimson"/></svg>');});
+await new Promise(r=>other.listen(0,'127.0.0.1',r));
 const browser = await chromium.launch({ ...(process.env.SCREEN_CHROMIUM?{executablePath:process.env.SCREEN_CHROMIUM}:{}), args: process.env.SCREEN_TEST_NO_SANDBOX?['--no-sandbox']:[] });
 try {
  const page=await browser.newPage({viewport:{width:1100,height:760}});
  await page.goto(`http://127.0.0.1:${server.address().port}`);
  await page.fill('#query','入力中の値');await page.check('#mine');await page.selectOption('#status',{label:'対応中'});
  await page.evaluate(()=>document.querySelector('#dialog').hidden=false);
+ await page.evaluate(src=>new Promise(r=>{const i=new Image();i.id='cross-origin';i.onload=r;i.src=src;document.body.append(i);}),`http://localhost:${other.address().port}/x.svg`);
  await capturePage(page,join(out,'capture'),{label:'fixture'});
+ const manifest=JSON.parse(await readFile(join(out,'capture/capture.json'),'utf8'));assert.ok(manifest.resourceFallback.used>=1,'CORS fallback was not used');
  assert.equal(await page.inputValue('#query'),'入力中の値');
  const html=await readFile(join(out,'capture/original.html'),'utf8');
- assert.match(html,/入力中の値/);assert.match(html,/data:image/);assert.doesNotMatch(html,/<script[\s>]/i);
+ assert.match(html,/入力中の値/);assert.match(html,/id="?cross-origin"?[^>]*src="data:image\/svg\+xml|src="data:image\/svg\+xml[^"]*"[^>]*id="?cross-origin/);assert.match(html,/data:image/);assert.doesNotMatch(html,/<script[\s>]/i);
  const preview=await browser.newPage();await preview.setContent(html);
  assert.equal(await preview.inputValue('#query'),'入力中の値');assert.equal(await preview.isChecked('#mine'),true);
  assert.equal(await preview.inputValue('#status'),'対応中');assert.equal(await preview.isVisible('#dialog'),true);
@@ -37,5 +42,5 @@ try {
  const original=await readFile(join(out,'capture/original.html'),'utf8');assert.equal(original,html);
  const bad=join(out,'bad.json');await writeFile(bad,JSON.stringify({version:1,operations:[{type:'text',selector:'.missing',value:'bad'}]}));
  await assert.rejects(mockup(join(out,'capture/original.html'),bad,join(out,'bad')),/expected 1 matches/);
- console.log('PASS: current DOM, input/checkbox/select/dialog, CSS/image, patch, annotation, immutable original, missing-selector failure.');console.log(out);
-} finally {await browser.close();server.close();}
+ console.log('PASS: current DOM, input/checkbox/select/dialog, CSS/image, patch, annotation, immutable original, missing-selector failure, CORS fallback.');console.log(out);
+} finally {await browser.close();server.close();other.close();}

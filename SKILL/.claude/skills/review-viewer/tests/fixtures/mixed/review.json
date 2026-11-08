@@ -1,0 +1,15 @@
+{
+  "title": "ログイン画面の改善案レビュー",
+  "instructions": "案A と案B のどちらを残すかを決めてください。迷う項目は未判定のままでかまいません。",
+  "groups": [
+    {"id": "A", "label": "案A", "description": "入力欄の順序を変える案"},
+    {"id": "B", "label": "案B"}
+  ],
+  "items": [
+    {"id": "a-doc", "title": "案Aの提案書", "group": "A", "description": "目的と変更点が筋の通ったものか見てください。", "files": ["案A/提案書.md"]},
+    {"id": "a-screen", "title": "案Aの画面", "group": "A", "description": "実際の画面で迷わずログインできそうか判断してください。", "files": ["案A/画面.html"]},
+    {"id": "b-data", "title": "案Bの根拠データ", "group": "B", "description": "数字の妥当性を確認してください。", "files": ["案B/売上.csv", "案B/顧客.tsv", "案B/sjis.csv"]},
+    {"id": "b-logo", "title": "案Bのロゴ", "group": "B", "description": "色が案Aと揃っているか。", "files": ["案B/ロゴ.png", "案B/blob.bin"]},
+    {"id": "misc", "title": "その他（</script> 入りと存在しないファイル）", "description": "表示が崩れないことの確認用。", "files": ["案B/breaker.txt", "案B/存在しない.md"]}
+  ]
+}

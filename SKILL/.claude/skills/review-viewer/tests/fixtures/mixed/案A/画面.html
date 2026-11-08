@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>案A 画面</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>ようこそ（案A）</h1>
+<form><label>メールアドレス <input type="email"></label><button type="button" id="b">ログイン</button></form>
+<p id="probe">親画面へのアクセス: 未確認</p>
+<script>
+  try { window.parent.document.body.style.background = "red"; document.getElementById("probe").textContent = "親画面へのアクセス: できてしまった（問題）"; }
+  catch (e) { document.getElementById("probe").textContent = "親画面へのアクセス: 遮断された（正常）"; }
+  fetch("/api/feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({status:"complete", reviews:[]})})
+    .then(r => document.title = "fetch:" + r.status).catch(() => document.title = "fetch:blocked");
+</script>
+<script>document.write("</scr" + "ipt>");</script>
+</body></html>

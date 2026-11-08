@@ -1,0 +1,89 @@
+{
+  "status": "complete",
+  "updated_at": "2026-11-08T10:21:05+09:00",
+  "title": "API利用ガイドのレビュー",
+  "manifest": "review/round-1/review.json",
+  "verdict_enabled": true,
+  "verdict_options": [
+    {
+      "value": "adopt",
+      "label": "採用",
+      "tone": "good"
+    },
+    {
+      "value": "revise",
+      "label": "要修正",
+      "tone": "warn"
+    },
+    {
+      "value": "reject",
+      "label": "不採用",
+      "tone": "bad"
+    }
+  ],
+  "overall_comment": "全体として敬体（です・ます）に統一してほしい",
+  "summary": {
+    "total": 5,
+    "counts": {
+      "adopt": 1,
+      "revise": 1,
+      "reject": 1
+    },
+    "unjudged": 2,
+    "commented": 4,
+    "untouched": 1,
+    "not_viewed": 1
+  },
+  "reviews": [
+    {
+      "id": "intro",
+      "title": "はじめに",
+      "group": null,
+      "verdict": "adopt",
+      "verdict_label": "採用",
+      "comment": "このままでよい",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "api",
+      "title": "API仕様",
+      "group": null,
+      "verdict": "revise",
+      "verdict_label": "要修正",
+      "comment": "エラーコードの一覧が無い。認証エラーのときの応答例も入れてほしい",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "faq",
+      "title": "よくある質問",
+      "group": null,
+      "verdict": "reject",
+      "verdict_label": "不採用",
+      "comment": "対象読者が違う。このFAQは社内向けの内容なので、社外向けガイドからは外して別資料にする",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "glossary",
+      "title": "用語集",
+      "group": null,
+      "verdict": null,
+      "verdict_label": null,
+      "comment": "用語が多すぎる気がするが、削ってよいか判断がつかない",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "changelog",
+      "title": "変更履歴",
+      "group": null,
+      "verdict": null,
+      "verdict_label": null,
+      "comment": "",
+      "viewed": false,
+      "previous_verdict": null
+    }
+  ]
+}

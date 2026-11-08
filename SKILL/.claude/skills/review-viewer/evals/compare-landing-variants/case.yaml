@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: compare-landing-variants
+expected_outcome: |
+  3つのLP案を1件ずつ見て判定とコメントを付けられるローカルのレビュー画面を用意し、
+  利用者にURL、見てほしい観点、完了ボタンで結果が届くことを伝える。
+  各項目の説明には何を見て何を判断するかが書かれている。
+context:
+  scaffold_script: place-files.sh

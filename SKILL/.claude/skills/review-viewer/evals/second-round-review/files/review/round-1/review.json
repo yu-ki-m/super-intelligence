@@ -1,0 +1,29 @@
+{
+  "title": "画面デザインのレビュー（1回目）",
+  "items": [
+    {
+      "id": "top",
+      "title": "トップ画面",
+      "description": "はじめるボタンが見つけやすいか。",
+      "files": [
+        "../../designs/v1/top.html"
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "設定画面",
+      "description": "保存までの操作に迷わないか。",
+      "files": [
+        "../../designs/v1/settings.html"
+      ]
+    },
+    {
+      "id": "help",
+      "title": "ヘルプ画面",
+      "description": "内容が現在の手順と合っているか。",
+      "files": [
+        "../../designs/v1/help.html"
+      ]
+    }
+  ]
+}

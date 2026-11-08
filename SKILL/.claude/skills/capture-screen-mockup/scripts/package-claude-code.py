@@ -21,7 +21,7 @@ ReadでこのSKILL.mdを読んだ実際の絶対パスからスキルルート�
 本書の`node scripts/workflow.mjs`は説明上の相対表記である。実行時はスクリプトの絶対パスを引用して指定し、作業ディレクトリは利用プロジェクトのルートに保つ。
 初回のnpm ciとbuildだけはスキルルートで実行する。
 出力先・input・patchはプロジェクトルートから解決した絶対パスを使い、ユーザー指定がなければ`artifacts/screen-mockups/`配下に保存する。
-Playwright MCPは接続済みの実ツール名を確認して利用し、Bash等からNodeスクリプトを実行する。
+ブラウザの起動・画面操作・保存はすべて`workflow.mjs`のコマンドで行う。Playwright MCPの設定は不要。
 MCPやBashの権限設定を自動で変更しない。作業完了時に成果物の実パスと検証結果を報告する。
 
 '''

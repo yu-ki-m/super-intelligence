@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: expense-approval-redesign
+expected_outcome: |
+  承認者の速度と経理の正確性の衝突を扱い、承認者の負担削減が経理や申請者に移らないかを評価した体験構造案、削減記録、プロトタイプ、検証記録が残る。

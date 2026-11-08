@@ -18,35 +18,31 @@ Pop-Location
 
 npm ciとbuildの成功を確認してから次へ進む。npmの実行が端末の制約で拒否された場合は、組織の許可された設定に従う。権限チェックを無効化しない。個人用に置いた場合はPush-Locationのパスを変更する。
 
-## ブラウザとPlaywright MCP
+## ブラウザ
 
-専用profileでChromeを起動する。Chromeのパスは端末に合わせる。
+Chromeの起動やMCPの設定は不要。スキルが`workflow.mjs browser`で、専用profileとlocalhost限定のCDPを使ってChrome（なければEdge、PlaywrightのChromium）を画面付きで起動する。ログインが必要な画面では、起動したウィンドウでユーザーがログインする。詳細は`references/playwright-connection.md`を参照する。
 
-```powershell
-& 'C:\Program Files\Google\Chrome\Application\chrome.exe' --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --user-data-dir="$env:LOCALAPPDATA\screen-mockup-profile"
-```
+Playwright MCPは任意である。`--cdp-endpoint http://127.0.0.1:9222`付きで登録している場合に限り、同じタブの操作に使える。既定のPlaywright MCPは独自のブラウザを起動するため、そこで操作した画面は保存できない。
 
-配布物の`playwright-mcp.example.json`の`mcpServers.playwright`を、プロジェクトルートの`.mcp.json`へ追加する。既存設定を上書きしない。既にPlaywright MCPが登録されている場合は同じendpointを使うようその設定を調整し、二重登録しない。
-
-`@playwright/mcp@latest`は導入例。組織で使用版が決まっていればその版を指定する。設定後にClaude Codeを開き直し、`/mcp`で接続を確認する。設定の信頼確認が表示されたら内容を確認する。
-
-WindowsネイティブのClaude Codeで使う例。WSL・Docker・SSHの場合、ブラウザとNodeのlocalhostが一致するとは限らないため、まず同じ環境で動かす構成を選ぶ。CDPポートを外部公開して解決しない。
+WSL・Docker・SSHの場合、ブラウザとNodeのlocalhostが一致するとは限らないため、まず同じ環境で動かす構成を選ぶ。CDPポートを外部に公開して解決しない。
 
 ## 呼び出し例
 
 ```text
-/capture-screen-mockup Playwright MCPで開いているチケット一覧を、検索条件と詳細展開を維持したままHTML保存してください。検索ボタンの隣にCSV出力ボタンを追加し、変更箇所に番号と説明を付けてください。成果物はartifacts/screen-mockups/ticket-listへ保存してください。
+/capture-screen-mockup https://example.test/tickets のチケット一覧を、検索条件と詳細展開を整えてからHTML保存してください。検索ボタンの隣にCSV出力ボタンを追加し、変更箇所に番号と説明を付けてください。成果物はartifacts/screen-mockups/ticket-listへ保存してください。
 ```
 
-Claude Codeが対象タブを確認し、capture → patch作成 → mockup → PNG確認を実行する。作成されるCSVボタンは画面案であり、実際の出力処理は実装しない。
+Claude Codeがブラウザを起動し、対象タブの操作、capture、patchの作成、mockup、PNGの確認を順に実行する。作成されるCSVボタンは画面案であり、実際の出力処理は実装しない。
 
 ## 直接実行する場合
 
 プロジェクトルートで実行する。下記URLは実際のタブURL、selectorは実際の画面要素へ置換する。
 
 ```powershell
-node .claude/skills/capture-screen-mockup/scripts/workflow.mjs list --cdp http://127.0.0.1:9222
-node .claude/skills/capture-screen-mockup/scripts/workflow.mjs capture --cdp http://127.0.0.1:9222 --url 'https://example.test/tickets' --ready '#ticket-list' --out artifacts/screen-mockups/capture-001
+node .claude/skills/capture-screen-mockup/scripts/workflow.mjs browser --url 'https://example.test/tickets'
+node .claude/skills/capture-screen-mockup/scripts/workflow.mjs list
+node .claude/skills/capture-screen-mockup/scripts/workflow.mjs viewport --url 'https://example.test/tickets' --size 1440x900
+node .claude/skills/capture-screen-mockup/scripts/workflow.mjs capture --url 'https://example.test/tickets' --ready '#ticket-list' --out artifacts/screen-mockups/capture-001
 node .claude/skills/capture-screen-mockup/scripts/workflow.mjs mockup --input artifacts/screen-mockups/capture-001/original.html --patch artifacts/screen-mockups/changes.json --out artifacts/screen-mockups/proposal-001
 ```
 
@@ -64,7 +60,7 @@ macOS/Linuxも同じNodeコマンドを使用できる。Chromeの起動コマ�
 
 iframeは除外する。スクロール位置復元、仮想リスト、CORS制限のある素材には制約がある。HTMLから元システムへの送信・script実行を無効化する。詳細はSKILL.mdを確認する。
 
-検証: Nodeスクリプトの実ブラウザテストとCDP接続経由の同一タブ保存は実施済み。ユーザー端末でのClaude Code・MCP・Windowsの組合せは未実行。配布物には依存コード、browser binary、node_modules、dist、実画面データを含めない。
+検証: Nodeスクリプトの実ブラウザテスト（CORS拒否の画像の補完を含む）は実施済み。2026-11-08に、Windows 11とChrome 157の組合せで、`browser`による起動、`open`による別ウィンドウ表示、`viewport`（表示倍率125%）、`capture`の実行を、https://qiita.com/ で確認した。配布物には依存コード、browser binary、node_modules、dist、実画面データを含めない。
 
 公式仕様（2026-10-12確認）:
 - https://code.claude.com/docs/en/skills

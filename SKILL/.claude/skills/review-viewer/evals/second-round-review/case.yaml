@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: second-round-review
+expected_outcome: |
+  1回目とは別のフォルダに2回目のレビュー対象を用意し、前回の feedback.json を引き継いで
+  各項目に前回の判定とコメントを表示する。直した2画面は前回と同じ id で並べ、
+  対象外になったヘルプ画面は入れない。利用者にURLと確認の観点を伝える。
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,68 @@
+{
+  "status": "complete",
+  "updated_at": "2026-11-07T18:02:11+09:00",
+  "title": "画面デザインのレビュー（1回目）",
+  "verdict_enabled": true,
+  "verdict_options": [
+    {
+      "value": "adopt",
+      "label": "採用",
+      "tone": "good"
+    },
+    {
+      "value": "revise",
+      "label": "要修正",
+      "tone": "warn"
+    },
+    {
+      "value": "reject",
+      "label": "不採用",
+      "tone": "bad"
+    }
+  ],
+  "overall_comment": "",
+  "summary": {
+    "total": 3,
+    "counts": {
+      "adopt": 0,
+      "revise": 2,
+      "reject": 1
+    },
+    "unjudged": 0,
+    "commented": 3,
+    "untouched": 0,
+    "not_viewed": 0
+  },
+  "reviews": [
+    {
+      "id": "top",
+      "title": "トップ画面",
+      "group": null,
+      "verdict": "revise",
+      "verdict_label": "要修正",
+      "comment": "はじめるボタンが小さくて見落とす",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "settings",
+      "title": "設定画面",
+      "group": null,
+      "verdict": "revise",
+      "verdict_label": "要修正",
+      "comment": "保存ボタンがページの一番下にあり、スクロールしないと見えない",
+      "viewed": true,
+      "previous_verdict": null
+    },
+    {
+      "id": "help",
+      "title": "ヘルプ画面",
+      "group": null,
+      "verdict": "reject",
+      "verdict_label": "不採用",
+      "comment": "情報が古い。ヘルプは別チームが作り直すので今回は対象外",
+      "viewed": true,
+      "previous_verdict": null
+    }
+  ]
+}

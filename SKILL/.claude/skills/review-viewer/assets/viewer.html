@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成果物レビュー</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f1f3f6; --text: #1d2330; --muted: #5d6677;
+  --line: #dde1e8; --accent: #2f5bd3; --accent-weak: #e7edfc; --focus: #2f5bd3;
+  --good: #1f8a4c; --good-bg: #e3f4ea; --warn: #b26a00; --warn-bg: #fdf0dc;
+  --bad: #c0362c; --bad-bg: #fbe4e2; --neutral: #4b5cc4; --neutral-bg: #e9ecfb;
+  --none: #8a93a3; --code-bg: #f4f5f8; --shadow: 0 1px 2px rgba(20,30,50,.06), 0 2px 8px rgba(20,30,50,.05);
+  --mono: ui-monospace, "Cascadia Code", Consolas, "BIZ UDGothic", "MS Gothic", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171d; --panel: #1b1f27; --panel-2: #222733; --text: #e4e7ee; --muted: #9aa3b5;
+    --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff;
+    --good: #5fd08f; --good-bg: #183324; --warn: #f0b45a; --warn-bg: #3a2c14;
+    --bad: #ff8a80; --bad-bg: #3d1c1a; --neutral: #9aa7ff; --neutral-bg: #262b4a;
+    --none: #7b8496; --code-bg: #161a21; --shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171d; --panel: #1b1f27; --panel-2: #222733; --text: #e4e7ee; --muted: #9aa3b5;
+  --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff;
+  --good: #5fd08f; --good-bg: #183324; --warn: #f0b45a; --warn-bg: #3a2c14;
+  --bad: #ff8a80; --bad-bg: #3d1c1a; --neutral: #9aa7ff; --neutral-bg: #262b4a;
+  --none: #7b8496; --code-bg: #161a21; --shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+button { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 全体の枠 */
+.app { display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); height: 100vh; }
+header.top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header.top h1 { font-size: 16px; margin: 0; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.counts { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.save-status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.save-status.error { color: var(--bad); font-weight: 600; }
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; min-height: 0; }
+.layout.no-panel { grid-template-columns: 260px minmax(0, 1fr); }
+nav.list { border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 8px 0 24px; }
+main.content { overflow-y: auto; padding: 16px 20px 48px; min-width: 0; }
+main.content:focus { outline: none; }
+aside.panel { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 16px; }
+
+/* ボタン */
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--panel-2); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small { padding: 2px 8px; font-size: 12px; }
+.btn.link { border: none; background: none; color: var(--accent); padding: 0; text-decoration: underline; cursor: pointer; }
+
+/* 判定の表示 */
+.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: 12px; border: 1px solid transparent; white-space: nowrap; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.tone-good { color: var(--good); background: var(--good-bg); }
+.tone-warn { color: var(--warn); background: var(--warn-bg); }
+.tone-bad { color: var(--bad); background: var(--bad-bg); }
+.tone-neutral { color: var(--neutral); background: var(--neutral-bg); }
+.tone-none { color: var(--none); background: transparent; border-color: var(--line); }
+.tone-none .dot { background: transparent; border: 1.5px solid currentColor; }
+
+/* 一覧 */
+.list-entry { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left; border: none; background: none; padding: 6px 14px; cursor: pointer; border-left: 3px solid transparent; }
+.list-entry:hover { background: var(--panel-2); }
+.list-entry.active { background: var(--accent-weak); border-left-color: var(--accent); }
+.list-entry .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: currentColor; }
+.list-entry .dot.none { background: transparent; border: 1.5px solid var(--none); color: var(--none); }
+.list-entry .body { min-width: 0; flex: 1; }
+.list-entry .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-entry.unviewed .name { font-weight: 650; }
+.list-entry .meta { display: block; font-size: 11.5px; color: var(--muted); }
+.list-group { padding: 12px 14px 4px; font-size: 12px; font-weight: 650; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.list-overview { font-weight: 600; }
+.list-sep { height: 1px; background: var(--line); margin: 6px 0; }
+.list-legend { padding: 10px 14px 0; font-size: 11.5px; color: var(--muted); }
+
+/* 項目の本文 */
+.item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.item-head h2 { font-size: 19px; margin: 0; flex: 1; min-width: 200px; }
+.crumb { font-size: 12px; color: var(--muted); }
+.pos { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.card > .card-body { padding: 12px 16px; }
+.desc { white-space: pre-wrap; }
+.desc-label, .section-label { font-size: 12px; font-weight: 650; color: var(--muted); margin-bottom: 4px; letter-spacing: .02em; }
+.previous { border-left: 4px solid var(--none); }
+.previous .comment { white-space: pre-wrap; margin-top: 6px; }
+.file-toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.file-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; background: var(--panel-2); border-radius: 8px 8px 0 0; }
+.file-head .fname { font-weight: 600; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; flex: 1; min-width: 160px; }
+.file-head .fmeta { color: var(--muted); font-size: 12px; }
+.file-head .tools { display: flex; gap: 6px; }
+.file-body { padding: 0; }
+.notice { padding: 8px 12px; font-size: 12.5px; background: var(--warn-bg); color: var(--warn); border-bottom: 1px solid var(--line); }
+.error-box { padding: 12px 16px; color: var(--bad); background: var(--bad-bg); border-radius: 0 0 8px 8px; overflow-wrap: anywhere; }
+.frame-wrap { resize: vertical; overflow: hidden; height: 620px; min-height: 160px; border-radius: 0 0 8px 8px; background: #fff; }
+.frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+.img-wrap { padding: 12px; text-align: center; background-color: var(--panel-2);
+  background-image: linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%),
+                    linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%);
+  background-size: 16px 16px; background-position: 0 0, 8px 8px; border-radius: 0 0 8px 8px; }
+.img-wrap img { max-width: 100%; height: auto; cursor: zoom-in; }
+.img-wrap.actual { overflow: auto; text-align: left; }
+.img-wrap.actual img { max-width: none; cursor: zoom-out; }
+pre.code { margin: 0; padding: 10px 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--code-bg); overflow: auto; max-height: 72vh; counter-reset: ln; border-radius: 0 0 8px 8px; tab-size: 4; }
+pre.code .l { display: block; padding: 0 12px 0 0; white-space: pre; min-height: 1.55em; }
+pre.code .l::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 3.6em; padding-right: 12px; margin-right: 10px; text-align: right; color: var(--none); border-right: 1px solid var(--line); user-select: none; }
+pre.code.wrap .l { white-space: pre-wrap; overflow-wrap: anywhere; padding-left: 4.9em; text-indent: -4.9em; }
+.table-wrap { overflow: auto; max-height: 72vh; border-radius: 0 0 8px 8px; }
+table.data { border-collapse: collapse; font-size: 12.5px; font-family: var(--mono); }
+table.data th, table.data td { border: 1px solid var(--line); padding: 3px 8px; white-space: pre; text-align: left; vertical-align: top; }
+table.data thead th { position: sticky; top: 0; background: var(--panel-2); }
+table.data td.rn { color: var(--none); text-align: right; }
+
+/* Markdown */
+.md { padding: 6px 22px 14px; overflow-wrap: anywhere; }
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { line-height: 1.35; margin: 1.2em 0 .5em; }
+.md h1 { font-size: 1.6em; border-bottom: 1px solid var(--line); padding-bottom: .25em; }
+.md h2 { font-size: 1.35em; border-bottom: 1px solid var(--line); padding-bottom: .2em; }
+.md h3 { font-size: 1.15em; }
+.md p, .md ul, .md ol, .md blockquote, .md pre, .md table { margin: .6em 0; }
+.md ul, .md ol { padding-left: 1.6em; }
+.md li > ul, .md li > ol { margin: .2em 0; }
+.md code { font-family: var(--mono); font-size: .9em; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+.md pre { background: var(--code-bg); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+.md pre code { background: none; padding: 0; font-size: 12.5px; }
+.md blockquote { border-left: 4px solid var(--line); color: var(--muted); padding: 0 0 0 12px; }
+.md table { border-collapse: collapse; display: block; overflow: auto; }
+.md th, .md td { border: 1px solid var(--line); padding: 4px 10px; }
+.md th { background: var(--panel-2); }
+.md hr { border: none; border-top: 1px solid var(--line); margin: 1.2em 0; }
+.md img { max-width: 100%; }
+.md li.task { list-style: none; margin-left: -1.3em; }
+
+/* 判定とコメントの欄 */
+.panel h3 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 650; }
+.verdicts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.verdict-btn { display: flex; align-items: center; gap: 8px; border: 1.5px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; cursor: pointer; text-align: left; }
+.verdict-btn:hover { background: var(--panel-2); }
+.verdict-btn .key { margin-left: auto; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-family: var(--mono); }
+.verdict-btn .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.verdict-btn[aria-pressed="true"] { border-color: currentColor; font-weight: 650; }
+.verdict-btn.tone-good, .verdict-btn.tone-warn, .verdict-btn.tone-bad, .verdict-btn.tone-neutral { background: var(--panel); }
+.verdict-btn.tone-good[aria-pressed="true"] { background: var(--good-bg); }
+.verdict-btn.tone-warn[aria-pressed="true"] { background: var(--warn-bg); }
+.verdict-btn.tone-bad[aria-pressed="true"] { background: var(--bad-bg); }
+.verdict-btn.tone-neutral[aria-pressed="true"] { background: var(--neutral-bg); }
+.verdict-btn .lbl { color: var(--text); }
+.clear-verdict { font-size: 12px; }
+textarea.comment { width: 100%; min-height: 200px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; background: var(--panel); color: var(--text); line-height: 1.6; }
+textarea.comment:focus { outline: 2px solid var(--focus); outline-offset: 0; border-color: transparent; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.panel-nav { display: flex; gap: 8px; margin-top: 14px; }
+.panel-nav .btn { flex: 1; }
+
+/* 概要 */
+table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.summary th, table.summary td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+table.summary th { color: var(--muted); font-weight: 600; font-size: 12px; }
+table.summary tr.row { cursor: pointer; }
+table.summary tr.row:hover { background: var(--panel-2); }
+table.summary .excerpt { color: var(--muted); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 完了の確認 */
+.modal-back { position: fixed; inset: 0; background: rgba(10,15,25,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.modal { background: var(--panel); border-radius: 10px; max-width: 560px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,.3); padding: 20px 22px; max-height: 90vh; overflow: auto; }
+.modal h2 { margin: 0 0 10px; font-size: 18px; }
+.modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+.modal ul { margin: 6px 0; padding-left: 1.3em; }
+.warnbox { background: var(--warn-bg); color: var(--text); border-left: 4px solid var(--warn); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
+.banner { padding: 10px 16px; background: var(--good-bg); color: var(--text); border-bottom: 1px solid var(--line); }
+.banner.err { background: var(--bad-bg); }
+.readonly textarea, .readonly .verdict-btn { pointer-events: none; opacity: .7; }
+.empty { color: var(--muted); padding: 40px; text-align: center; }
+
+/* 狭い画面 */
+@media (max-width: 1100px) {
+  .layout, .layout.no-panel { grid-template-columns: 220px minmax(0, 1fr); }
+  aside.panel { grid-column: 2; border-left: none; border-top: 1px solid var(--line); }
+  .layout { grid-template-rows: 1fr auto; }
+  nav.list { grid-row: 1 / span 2; }
+}
+@media (max-width: 760px) {
+  .app { height: auto; }
+  .layout, .layout.no-panel { display: block; }
+  nav.list { max-height: 40vh; border-right: none; border-bottom: 1px solid var(--line); }
+  main.content { padding: 12px 16px 24px; }
+  header.top h1 { max-width: 100%; white-space: normal; flex: 1; }
+  .counts { order: 3; flex-basis: 100%; }
+  .item-head .btn { flex: 1; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <h1 id="title">成果物レビュー</h1>
+    <div class="counts" id="counts"></div>
+    <span class="save-status" id="saveStatus"></span>
+    <button class="btn primary" id="completeBtn" type="button">レビュー完了</button>
+  </header>
+  <div id="banner"></div>
+  <div class="layout" id="layout">
+    <nav class="list" id="list" aria-label="レビュー項目の一覧"></nav>
+    <main class="content" id="content" tabindex="-1"></main>
+    <aside class="panel" id="panel" aria-label="判定とコメント"></aside>
+  </div>
+</div>
+<div id="modalRoot"></div>
+
+<script>
+const REVIEW_DATA = /*__REVIEW_DATA__*/null;
+</script>
+<script>
+"use strict";
+(function () {
+  const D = REVIEW_DATA;
+  const $ = (id) => document.getElementById(id);
+  if (!D) {
+    document.body.innerHTML = '<p class="empty">このファイルはひな形です。review_server.py から開いてください。</p>';
+    return;
+  }
+
+  const MODE = D.mode;                       // "server" | "static"
+  const VERDICT = D.verdict;                 // {enabled, options[]}
+  const OPTIONS = VERDICT.enabled ? VERDICT.options : [];
+  const OPT = Object.fromEntries(OPTIONS.map((o) => [o.value, o]));
+  const ITEMS = D.items;
+  const OVERVIEW = "__overview__";
+
+  const state = {
+    reviews: {},              // id -> {verdict, comment, viewed}
+    overall_comment: "",
+    current: null,            // 項目 id または OVERVIEW
+    completed: false,
+  };
+  ITEMS.forEach((it) => { state.reviews[it.id] = { verdict: null, comment: "", viewed: false }; });
+
+  // ------------------------------------------------------------------
+  // 共通の小道具
+  // ------------------------------------------------------------------
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function el(tag, attrs, ...children) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k === "text") e.textContent = v;
+      else if (k === "html") e.innerHTML = v;
+      else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    for (const c of children.flat()) {
+      if (c == null || c === false) continue;
+      e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return e;
+  }
+  function chipFor(verdict, labelOverride) {
+    if (!VERDICT.enabled) return null;
+    const o = verdict ? OPT[verdict] : null;
+    if (verdict && !o) return el("span", { class: "chip tone-neutral" }, el("span", { class: "dot" }), labelOverride || verdict);
+    return el("span", { class: "chip tone-" + (o ? o.tone : "none") }, el("span", { class: "dot" }), o ? o.label : "未判定");
+  }
+  function isTyping(t) {
+    return t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.tagName === "SELECT" || t.isContentEditable);
+  }
+  function groupLabel(id) {
+    const g = D.groups.find((x) => x.id === id);
+    return g ? g.label : id;
+  }
+
+  // ------------------------------------------------------------------
+  // 保存（サーバーへの送信と、ブラウザ内の控え）
+  // ------------------------------------------------------------------
+  let saveTimer = null;
+  let inflight = null;
+  let again = false;
+
+  function buildPayload(status) {
+    const reviews = ITEMS.map((it) => {
+      const r = state.reviews[it.id];
+      const o = r.verdict ? OPT[r.verdict] : null;
+      return {
+        id: it.id, title: it.title, group: it.group,
+        verdict: o ? r.verdict : null, verdict_label: o ? o.label : null,
+        comment: r.comment, viewed: r.viewed,
+        previous_verdict: it.previous ? it.previous.verdict : null,
+      };
+    });
+    const counts = Object.fromEntries(OPTIONS.map((o) => [o.value, 0]));
+    let unjudged = 0;
+    reviews.forEach((r) => { if (r.verdict) counts[r.verdict]++; else unjudged++; });
+    return {
+      status, updated_at: new Date().toISOString(), title: D.title, manifest: D.manifest_path,
+      verdict_enabled: VERDICT.enabled, verdict_options: OPTIONS,
+      overall_comment: state.overall_comment,
+      summary: {
+        total: reviews.length, counts, unjudged: VERDICT.enabled ? unjudged : null,
+        commented: reviews.filter((r) => r.comment.trim()).length,
+        untouched: reviews.filter((r) => !r.verdict && !r.comment.trim()).length,
+        not_viewed: reviews.filter((r) => !r.viewed).length,
+      },
+      reviews,
+    };
+  }
+
+  function persistLocal() {
+    try {
+      localStorage.setItem(D.storage_key, JSON.stringify({ reviews: state.reviews, overall_comment: state.overall_comment, saved: Date.now() }));
+    } catch (_) { /* 保存できない環境では控えを残さない */ }
+  }
+  function readLocal() {
+    try { return JSON.parse(localStorage.getItem(D.storage_key) || "null"); } catch (_) { return null; }
+  }
+
+  function setSaveStatus(kind, detail) {
+    const s = $("saveStatus");
+    s.classList.toggle("error", kind === "error");
+    if (kind === "pending") s.textContent = "保存待ち…";
+    else if (kind === "saving") s.textContent = "保存中…";
+    else if (kind === "saved") s.textContent = "保存済み " + new Date().toLocaleTimeString("ja-JP");
+    else if (kind === "local") s.textContent = "このブラウザに保存済み " + new Date().toLocaleTimeString("ja-JP");
+    else if (kind === "error") s.textContent = "保存に失敗しました: " + (detail || "") + "（入力内容はこのブラウザに控えてあります）";
+    else s.textContent = detail || "";
+  }
+
+  async function postFeedback(status, keepalive) {
+    const res = await fetch("/api/feedback", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPayload(status)), keepalive: !!keepalive,
+    });
+    let body = {};
+    try { body = await res.json(); } catch (_) {}
+    if (!res.ok) throw new Error(body.error || ("HTTP " + res.status));
+    return body;
+  }
+
+  // 判定を変えたときは delay=0、コメント入力中は 800ms 待ってから、全項目をまとめて保存する
+  function scheduleSave(delay) {
+    if (state.completed) return;
+    persistLocal();
+    clearTimeout(saveTimer);
+    if (MODE !== "server") { setSaveStatus("local"); return; }
+    setSaveStatus("pending");
+    saveTimer = setTimeout(flushSave, delay);
+  }
+  async function flushSave() {
+    saveTimer = null;
+    if (MODE !== "server" || state.completed) return;
+    if (inflight) { again = true; return; }
+    setSaveStatus("saving");
+    inflight = postFeedback("in_progress")
+      .then(() => setSaveStatus("saved"))
+      .catch((e) => setSaveStatus("error", e.message === "Failed to fetch" ? "サーバーに接続できません" : e.message))
+      .finally(() => { inflight = null; if (again) { again = false; flushSave(); } });
+    await inflight;
+  }
+  window.addEventListener("pagehide", () => {
+    if (saveTimer && MODE === "server" && !state.completed) {
+      clearTimeout(saveTimer);
+      postFeedback("in_progress", true).catch(() => {});
+    }
+  });
+
+  async function restore() {
+    let data = null;
+    if (MODE === "server") {
+      try {
+        const res = await fetch("/api/feedback", { cache: "no-store" });
+        if (res.ok) data = await res.json();
+      } catch (_) { data = null; }
+      if (data && Array.isArray(data.reviews)) {
+        data.reviews.forEach((r) => {
+          const cur = state.reviews[r.id];
+          if (!cur) return;
+          cur.verdict = r.verdict && OPT[r.verdict] ? r.verdict : null;
+          cur.comment = r.comment || "";
+          cur.viewed = !!r.viewed;
+        });
+        state.overall_comment = data.overall_comment || "";
+        if (data.updated_at) setSaveStatus("text", "前回の保存を復元しました");
+        return;
+      }
+    }
+    const local = readLocal();
+    if (local && local.reviews) {
+      for (const [id, r] of Object.entries(local.reviews)) {
+        const cur = state.reviews[id];
+        if (!cur) continue;
+        cur.verdict = r.verdict && OPT[r.verdict] ? r.verdict : null;
+        cur.comment = r.comment || "";
+        cur.viewed = !!r.viewed;
+      }
+      state.overall_comment = local.overall_comment || "";
+      setSaveStatus("text", "このブラウザの控えを復元しました");
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Markdown の整形（外部ライブラリを使わない簡易版）
+  // ------------------------------------------------------------------
+  function safeUrl(url, forImage) {
+    // url は esc() 済みの文字列なので、いったん元の文字に戻してから判定する
+    const u = url.trim().replace(/&(amp|lt|gt|quot|#39);/g, (_, n) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" }[n]));
+    if (/^(https?:|mailto:|#)/i.test(u)) return u;
+    if (forImage && /^data:image\//i.test(u)) return u;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return null; // javascript: などは使わせない
+    return u; // 相対パス
+  }
+  function resolveRelative(u, baseUrl) {
+    if (!baseUrl || /^([a-z][a-z0-9+.-]*:|#|\/)/i.test(u)) return u;
+    try { return new URL(u, location.origin + baseUrl).pathname; } catch (_) { return u; }
+  }
+  function inline(text, baseUrl) {
+    const codes = [];
+    let s = text.replace(/(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g, (_, __, c) => { codes.push(c.trim()); return "\u0000" + (codes.length - 1) + "\u0000"; });
+    s = esc(s);
+    // 作ったタグは退避しておき、強調の置き換えが URL の中の _ や * を壊さないようにする
+    const tags = [];
+    const keep = (html) => { tags.push(html); return "\u0001" + (tags.length - 1) + "\u0001"; };
+    const URL_PART = "((?:[^()\\s]|\\([^()\\s]*\\))+)(?:\\s+&quot;[^&]*&quot;)?";
+    s = s.replace(new RegExp("!\\[([^\\]]*)\\]\\(" + URL_PART + "\\)", "g"), (m, alt, url) => {
+      let u = safeUrl(url, true); if (!u) return m;
+      if (!/^(https?:|data:)/i.test(u)) u = resolveRelative(u, baseUrl);
+      return keep('<img alt="' + alt + '" src="' + esc(u) + '">');
+    });
+    s = s.replace(new RegExp("\\[([^\\]]+)\\]\\(" + URL_PART + "\\)", "g"), (m, label, url) => {
+      const u = safeUrl(url, false); if (!u) return m; // javascript: などはリンクにせず、書かれたとおり文字で残す
+      return keep('<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">') + label + keep("</a>");
+    });
+    s = s.replace(/&lt;(https?:\/\/[^\s&]+)&gt;/g, (_, u) => keep('<a href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + "</a>"));
+    s = s.replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "<strong>$2</strong>");
+    s = s.replace(/(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?!\*)/g, "$1<em>$2</em>");
+    s = s.replace(/(^|[^\w])_(?=\S)([^_\n]*?\S)_(?!\w)/g, "$1<em>$2</em>");
+    s = s.replace(/~~(?=\S)([\s\S]*?\S)~~/g, "<del>$1</del>");
+    s = s.replace(/( {2,}|\\)\n/g, "<br>");
+    s = s.replace(/\u0001(\d+)\u0001/g, (_, i) => tags[+i]);
+    s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + esc(codes[+i]) + "</code>");
+    return s;
+  }
+  const RE = {
+    fence: /^\s{0,3}(`{3,}|~{3,})\s*([\w+-]*)/,
+    heading: /^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/,
+    hr: /^\s{0,3}([-*_])(\s*\1){2,}\s*$/,
+    quote: /^\s{0,3}>\s?/,
+    list: /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/,
+    tableSep: /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/,
+  };
+  function splitRow(line) {
+    let t = line.trim();
+    if (t.startsWith("|")) t = t.slice(1);
+    if (t.endsWith("|") && !t.endsWith("\\|")) t = t.slice(0, -1);
+    return t.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|"));
+  }
+  function isBlockStart(line, next) {
+    return RE.fence.test(line) || RE.heading.test(line) || RE.hr.test(line) || RE.quote.test(line) || RE.list.test(line)
+      || (line.includes("|") && next != null && RE.tableSep.test(next) && next.includes("-"));
+  }
+  function renderMdList(lines, baseUrl) {
+    // lines: 1つのリストを構成する行。字下げの深さで入れ子を作る
+    const first = lines[0].match(RE.list);
+    const baseIndent = first[1].replace(/\t/g, "    ").length;
+    const ordered = /\d/.test(first[2]);
+    const startNum = ordered ? parseInt(first[2], 10) : 1;
+    const items = [];
+    let cur = null;
+    for (const line of lines) {
+      const m = line.match(RE.list);
+      const indent = (line.match(/^\s*/)[0]).replace(/\t/g, "    ").length;
+      if (m && indent <= baseIndent + 1) {
+        cur = { text: [m[3]], children: [] };
+        items.push(cur);
+      } else if (cur) {
+        const stripped = line.replace(new RegExp("^\\s{0," + (baseIndent + 4) + "}"), "");
+        if (cur.children.length || RE.list.test(stripped)) cur.children.push(line);
+        else cur.text.push(stripped);
+      }
+    }
+    const tag = ordered ? "ol" : "ul";
+    const start = ordered && startNum !== 1 ? ' start="' + startNum + '"' : "";
+    return "<" + tag + start + ">" + items.map((it) => {
+      let txt = it.text.join("\n");
+      let cls = "";
+      const task = txt.match(/^\[([ xX])\]\s+/);
+      if (task) {
+        cls = ' class="task"';
+        txt = txt.slice(task[0].length);
+      }
+      const box = task ? '<input type="checkbox" disabled' + (task[1] !== " " ? " checked" : "") + "> " : "";
+      const kids = it.children.filter((l) => l.trim()).length ? renderMarkdown(dedent(it.children), baseUrl) : "";
+      return "<li" + cls + ">" + box + inline(txt, baseUrl) + kids + "</li>";
+    }).join("") + "</" + tag + ">";
+  }
+  function dedent(lines) {
+    const ind = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^\s*/)[0].replace(/\t/g, "    ").length));
+    return lines.map((l) => l.replace(/\t/g, "    ").slice(Math.min(ind, l.match(/^\s*/)[0].length))).join("\n");
+  }
+  function renderMarkdown(src, baseUrl) {
+    const lines = String(src).replace(/\r\n?/g, "\n").split("\n");
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      let m;
+      if ((m = line.match(RE.fence))) {
+        const fence = m[1];
+        const body = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith(fence)) body.push(lines[i++]);
+        i++;
+        out.push("<pre><code>" + esc(body.join("\n")) + "</code></pre>");
+        continue;
+      }
+      if ((m = line.match(RE.heading))) {
+        const n = m[1].length;
+        out.push("<h" + n + ">" + inline(m[2], baseUrl) + "</h" + n + ">");
+        i++; continue;
+      }
+      if (RE.hr.test(line)) { out.push("<hr>"); i++; continue; }
+      if (RE.quote.test(line)) {
+        const body = [];
+        while (i < lines.length && lines[i].trim() && RE.quote.test(lines[i])) body.push(lines[i++].replace(RE.quote, ""));
+        out.push("<blockquote>" + renderMarkdown(body.join("\n"), baseUrl) + "</blockquote>");
+        continue;
+      }
+      if (line.includes("|") && i + 1 < lines.length && RE.tableSep.test(lines[i + 1]) && lines[i + 1].includes("-")) {
+        const head = splitRow(line);
+        const aligns = splitRow(lines[i + 1]).map((c) => (c.startsWith(":") && c.endsWith(":") ? "center" : c.endsWith(":") ? "right" : ""));
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].trim() && lines[i].includes("|")) rows.push(splitRow(lines[i++]));
+        const al = (k) => (aligns[k] ? ' style="text-align:' + aligns[k] + '"' : "");
+        out.push("<table><thead><tr>" + head.map((h, k) => "<th" + al(k) + ">" + inline(h, baseUrl) + "</th>").join("") + "</tr></thead><tbody>"
+          + rows.map((r) => "<tr>" + head.map((_, k) => "<td" + al(k) + ">" + inline(r[k] || "", baseUrl) + "</td>").join("") + "</tr>").join("")
+          + "</tbody></table>");
+        continue;
+      }
+      if (RE.list.test(line)) {
+        const body = [line];
+        const baseIndent = line.match(/^\s*/)[0].length;
+        i++;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (!l.trim()) {
+            // 空行の後も、字下げされた続きか次の項目ならリストを続ける
+            const nx = lines[i + 1];
+            if (nx != null && (nx.match(/^\s*/)[0].length > baseIndent || (RE.list.test(nx) && nx.match(/^\s*/)[0].length >= baseIndent))) { body.push(l); i++; continue; }
+            break;
+          }
+          const ind = l.match(/^\s*/)[0].length;
+          if (RE.list.test(l) && ind >= baseIndent) { body.push(l); i++; continue; }
+          if (ind > baseIndent) { body.push(l); i++; continue; }
+          if (!isBlockStart(l, lines[i + 1])) { body.push(l); i++; continue; } // 遅延継続行
+          break;
+        }
+        out.push(renderMdList(body, baseUrl));
+        continue;
+      }
+      const para = [];
+      while (i < lines.length && lines[i].trim() && !(para.length && isBlockStart(lines[i], lines[i + 1]))) para.push(lines[i++]);
+      if (!para.length) { para.push(lines[i++]); }
+      out.push("<p>" + inline(para.join("\n"), baseUrl) + "</p>");
+    }
+    return out.join("\n");
+  }
+
+  // ------------------------------------------------------------------
+  // CSV / TSV
+  // ------------------------------------------------------------------
+  function parseDelimited(text, delim) {
+    const rows = [];
+    let row = [], field = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+        else field += c;
+      } else if (c === '"' && field === "") q = true;
+      else if (c === delim) { row.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); rows.push(row); row = []; field = "";
+        if (rows.length > 2000) break;
+      } else field += c;
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  // ------------------------------------------------------------------
+  // 成果物ファイルの表示
+  // ------------------------------------------------------------------
+  function codeBlock(text, wrap) {
+    const pre = el("pre", { class: "code" + (wrap ? " wrap" : "") });
+    const lines = text.replace(/\r\n?/g, "\n").split("\n");
+    if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+    pre.innerHTML = lines.map((l) => '<span class="l">' + esc(l) + "</span>").join("");
+    return pre;
+  }
+  function openLink(f, label) {
+    const href = MODE === "server" ? f.raw_url : f.file_uri;
+    if (!href) return null;
+    return el("a", { class: "btn small", href, target: "_blank", rel: "noopener" }, label || "新しいタブで開く");
+  }
+  function truncNotice(f) {
+    if (!f.truncated) return null;
+    const href = MODE === "server" ? f.raw_url : f.file_uri;
+    const n = el("div", { class: "notice" }, "ファイルが大きいため、先頭の " + (f.shown_label || "一部") + " だけを表示しています（全体 " + f.size_label + "）。");
+    if (href) n.append(" ", el("a", { href, target: "_blank", rel: "noopener" }, "全文を開く"));
+    else n.append(" 全文はファイルを直接開いてください: " + f.path);
+    return n;
+  }
+
+  function renderFile(f, idx) {
+    const card = el("section", { class: "card", id: "file-" + idx });
+    const tools = el("div", { class: "tools" });
+    const meta = [f.size_label, f.encoding && f.encoding !== "utf-8" ? "文字コード: " + f.encoding : ""].filter(Boolean).join(" ・ ");
+    card.append(el("div", { class: "file-head" }, el("span", { class: "fname", title: f.path, text: f.label }), meta ? el("span", { class: "fmeta", text: meta }) : null, tools));
+    const body = el("div", { class: "file-body" });
+    card.append(body);
+
+    if (f.kind === "missing") { body.append(el("div", { class: "error-box", text: f.error })); return card; }
+    if (f.kind === "note") { body.append(el("div", { class: "notice", text: f.note })); return card; }
+
+    // 表示の切り替え（整形表示 ⇔ 原文など）
+    function addToggle(views) {
+      let active = 0;
+      const btns = views.map((v, k) => {
+        const b = el("button", { class: "btn small", type: "button", "aria-pressed": k === 0 ? "true" : "false" }, v.label);
+        b.addEventListener("click", () => { active = k; draw(); });
+        return b;
+      });
+      if (views.length > 1) tools.append(...btns);
+      function draw() {
+        btns.forEach((b, k) => { b.setAttribute("aria-pressed", k === active ? "true" : "false"); b.disabled = k === active; });
+        body.replaceChildren();
+        const n = truncNotice(f);
+        if (n) body.append(n);
+        body.append(views[active].render());
+      }
+      draw();
+    }
+
+    if (f.kind === "image") {
+      if (f.data_uri) {
+        const wrap = el("div", { class: "img-wrap" });
+        const img = el("img", { src: f.data_uri, alt: f.label, title: "クリックで実寸表示と切り替え" });
+        img.addEventListener("click", () => wrap.classList.toggle("actual"));
+        wrap.append(img);
+        body.append(wrap);
+      } else {
+        body.append(el("div", { class: "notice" }, "画像が大きいため埋め込んでいません（" + f.size_label + "）。"));
+      }
+      const l = openLink(f); if (l) tools.append(l);
+      return card;
+    }
+    if (f.kind === "binary") {
+      body.append(el("div", { class: "card-body" }, "このファイルは画面に表示できない形式です（" + (f.mime || "不明な形式") + "）。"));
+      const l = openLink(f, "ファイルを開く"); if (l) tools.append(l);
+      return card;
+    }
+    if (f.kind === "markdown") {
+      const base = MODE === "server" ? f.raw_url : null;
+      addToggle([
+        { label: "整形", render: () => el("div", { class: "md", html: renderMarkdown(f.text, base) }) },
+        { label: "原文", render: () => codeBlock(f.text, true) },
+      ]);
+    } else if (f.kind === "html") {
+      addToggle([
+        { label: "表示", render: () => {
+          const wrap = el("div", { class: "frame-wrap", title: "下端をドラッグすると高さを変えられます" });
+          // allow-same-origin を付けないので、成果物のスクリプトはレビュー画面や API に触れられない
+          const fr = el("iframe", { sandbox: "allow-scripts allow-popups allow-forms allow-modals", title: f.label, loading: "lazy", referrerpolicy: "no-referrer" });
+          if (MODE === "server" && f.raw_url) fr.src = f.raw_url;
+          else fr.srcdoc = f.text;
+          wrap.append(fr);
+          return wrap;
+        } },
+        { label: "ソース", render: () => codeBlock(f.text, false) },
+      ]);
+    } else if (f.kind === "table") {
+      const delim = /\.tsv$/i.test(f.path) ? "\t" : ",";
+      addToggle([
+        { label: "等幅", render: () => codeBlock(f.text, false) },
+        { label: "表", render: () => {
+          const rows = parseDelimited(f.text, delim);
+          const wrap = el("div", { class: "table-wrap" });
+          const head = rows[0] || [];
+          let html = '<table class="data"><thead><tr><th></th>' + head.map((h) => "<th>" + esc(h) + "</th>").join("") + "</tr></thead><tbody>";
+          html += rows.slice(1, 1001).map((r, k) => '<tr><td class="rn">' + (k + 1) + "</td>" + r.map((c) => "<td>" + esc(c) + "</td>").join("") + "</tr>").join("");
+          html += "</tbody></table>";
+          wrap.innerHTML = html;
+          if (rows.length > 1001) wrap.append(el("div", { class: "notice", text: "先頭の 1000 行だけを表にしています。" }));
+          return wrap;
+        } },
+      ]);
+    } else {
+      let wrap = false;
+      const views = [{ label: "そのまま", render: () => codeBlock(f.text, wrap) }];
+      addToggle(views);
+      const wb = el("button", { class: "btn small", type: "button", "aria-pressed": "false" }, "折り返し");
+      wb.addEventListener("click", () => {
+        wrap = !wrap; wb.setAttribute("aria-pressed", String(wrap));
+        const pre = body.querySelector("pre.code"); if (pre) pre.classList.toggle("wrap", wrap);
+      });
+      tools.append(wb);
+    }
+    const l = openLink(f); if (l) tools.append(l);
+    return card;
+  }
+
+  // ------------------------------------------------------------------
+  // 画面の描画
+  // ------------------------------------------------------------------
+  function counts() {
+    const c = Object.fromEntries(OPTIONS.map((o) => [o.value, 0]));
+    let unjudged = 0, commented = 0;
+    ITEMS.forEach((it) => {
+      const r = state.reviews[it.id];
+      if (r.verdict && OPT[r.verdict]) c[r.verdict]++; else unjudged++;
+      if (r.comment.trim()) commented++;
+    });
+    return { c, unjudged, commented };
+  }
+
+  function renderCounts() {
+    const box = $("counts");
+    box.replaceChildren();
+    const { c, unjudged, commented } = counts();
+    if (VERDICT.enabled) {
+      OPTIONS.forEach((o) => box.append(el("span", { class: "chip tone-" + o.tone }, el("span", { class: "dot" }), o.label + " " + c[o.value])));
+      box.append(el("span", { class: "chip tone-none" }, el("span", { class: "dot" }), "未判定 " + unjudged));
+    }
+    box.append(el("span", { class: "chip tone-none", style: "border-style:dashed" }, "コメント " + commented + " / " + ITEMS.length));
+  }
+
+  function listEntry(it) {
+    const r = state.reviews[it.id];
+    const o = r.verdict ? OPT[r.verdict] : null;
+    const dot = el("span", { class: "dot" + (o ? "" : " none") });
+    const metaParts = [];
+    if (VERDICT.enabled) metaParts.push(o ? o.label : "未判定");
+    if (r.comment.trim()) metaParts.push("コメントあり");
+    if (!r.viewed) metaParts.push("未表示");
+    if (!VERDICT.enabled && !metaParts.length) metaParts.push("—");
+    const btn = el("button", {
+      class: "list-entry" + (state.current === it.id ? " active" : "") + (r.viewed ? "" : " unviewed"),
+      type: "button", "aria-current": state.current === it.id ? "true" : null,
+      onclick: () => show(it.id),
+    }, dot, el("span", { class: "body" }, el("span", { class: "name", text: it.title, title: it.title }), el("span", { class: "meta", text: metaParts.join(" ・ ") })));
+    if (o) dot.style.color = "var(--" + o.tone + ")";
+    return btn;
+  }
+
+  function renderNav() {
+    const nav = $("list");
+    const scroll = nav.scrollTop;
+    nav.replaceChildren();
+    nav.append(el("button", { class: "list-entry list-overview" + (state.current === OVERVIEW ? " active" : ""), type: "button", onclick: () => show(OVERVIEW) },
+      el("span", { class: "body" }, el("span", { class: "name", text: "概要と全体コメント" }), el("span", { class: "meta", text: state.overall_comment.trim() ? "全体コメントあり" : "全体の説明・一覧・完了" }))));
+    nav.append(el("div", { class: "list-sep" }));
+    let lastGroup = undefined;
+    ITEMS.forEach((it) => {
+      if (D.groups.length && it.group !== lastGroup) {
+        lastGroup = it.group;
+        const members = ITEMS.filter((x) => x.group === it.group);
+        const done = members.filter((x) => state.reviews[x.id].verdict).length;
+        nav.append(el("div", { class: "list-group" }, el("span", { text: it.group ? groupLabel(it.group) : "グループなし" }),
+          VERDICT.enabled ? el("span", { text: done + "/" + members.length + " 判定済み" }) : null));
+      }
+      nav.append(listEntry(it));
+    });
+    nav.append(el("div", { class: "list-legend", text: "← → で前後の項目へ移動" + (VERDICT.enabled ? "、数字キーで判定、0 で判定を外す" : "") }));
+    nav.scrollTop = scroll;
+  }
+
+  function indexOf(id) { return ITEMS.findIndex((x) => x.id === id); }
+
+  function renderItem(it) {
+    const main = $("content");
+    main.replaceChildren();
+    const idx = indexOf(it.id);
+    const head = el("div", { class: "item-head" },
+      el("div", { style: "flex:1;min-width:200px" },
+        it.group ? el("div", { class: "crumb", text: groupLabel(it.group) }) : null,
+        el("h2", { text: it.title })),
+      el("span", { class: "pos", text: (idx + 1) + " / " + ITEMS.length }),
+      el("button", { class: "btn", type: "button", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前へ"),
+      el("button", { class: "btn", type: "button", onclick: () => move(1), disabled: idx >= ITEMS.length - 1 ? true : null }, "次へ →"));
+    main.append(head);
+
+    if (it.description) {
+      main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "見てほしいこと・判断してほしいこと" }), el("div", { class: "desc", text: it.description }))));
+    }
+    if (it.previous && (it.previous.verdict || it.previous.comment)) {
+      const p = it.previous;
+      const o = p.verdict ? OPT[p.verdict] : null;
+      const box = el("div", { class: "card previous" }, el("div", { class: "card-body" },
+        el("div", { class: "desc-label", text: "前回のレビュー（参考）" }),
+        p.verdict ? el("span", { class: "chip tone-" + (o ? o.tone : "neutral") }, el("span", { class: "dot" }), (o ? o.label : p.verdict_label || p.verdict)) : el("span", { class: "chip tone-none" }, "前回は未判定"),
+        p.comment ? el("div", { class: "comment", text: p.comment }) : el("div", { class: "hint", text: "前回のコメントはありません" })));
+      if (o) box.style.borderLeftColor = "var(--" + o.tone + ")";
+      main.append(box);
+    }
+    if (!it.files.length) {
+      main.append(el("div", { class: "card" }, el("div", { class: "card-body hint", text: "この項目にはファイルがありません。説明を読んで判断してください。" })));
+    } else {
+      if (it.files.length > 1) {
+        const toc = el("div", { class: "file-toc" });
+        it.files.forEach((f, k) => toc.append(el("button", { class: "btn small", type: "button", onclick: () => document.getElementById("file-" + k).scrollIntoView({ behavior: "smooth", block: "start" }) }, f.label)));
+        main.append(toc);
+      }
+      it.files.forEach((f, k) => main.append(renderFile(f, k)));
+    }
+    main.scrollTop = 0;
+  }
+
+  function renderPanel(it) {
+    const panel = $("panel");
+    panel.replaceChildren();
+    if (!it) { panel.hidden = true; $("layout").classList.add("no-panel"); return; }
+    panel.hidden = false; $("layout").classList.remove("no-panel");
+    const r = state.reviews[it.id];
+    if (VERDICT.enabled) {
+      panel.append(el("h3", { text: "判定" }));
+      const box = el("div", { class: "verdicts", role: "group", "aria-label": "判定" });
+      OPTIONS.forEach((o, k) => {
+        box.append(el("button", {
+          class: "verdict-btn tone-" + o.tone, type: "button", "aria-pressed": r.verdict === o.value ? "true" : "false",
+          onclick: () => setVerdict(it.id, r.verdict === o.value ? null : o.value),
+        }, el("span", { class: "dot" }), el("span", { class: "lbl", text: o.label }), k < 9 ? el("span", { class: "key", text: String(k + 1) }) : null));
+      });
+      panel.append(box);
+      panel.append(el("div", { class: "hint", style: "margin:-8px 0 14px" },
+        r.verdict ? el("button", { class: "btn link clear-verdict", type: "button", onclick: () => setVerdict(it.id, null) }, "判定を外して未判定に戻す") : "迷う場合は未判定のままでかまいません。"));
+    }
+    panel.append(el("h3", { text: "コメント" }));
+    const ta = el("textarea", { class: "comment", id: "commentBox", placeholder: VERDICT.enabled ? "直してほしい点、採用・不採用の理由など" : "気づいた点、直してほしい点など", "aria-label": "コメント" });
+    ta.value = r.comment;
+    ta.addEventListener("input", () => {
+      r.comment = ta.value;
+      refreshSide();
+      scheduleSave(800);
+    });
+    panel.append(ta);
+    panel.append(el("div", { class: "hint", text: MODE === "server" ? "入力は自動で保存されます。" : "入力はこのブラウザに自動で控えられます。" }));
+    const idx = indexOf(it.id);
+    panel.append(el("div", { class: "panel-nav" },
+      el("button", { class: "btn", type: "button", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前へ"),
+      el("button", { class: "btn", type: "button", onclick: () => move(1) }, idx >= ITEMS.length - 1 ? "概要へ" : "次へ →")));
+  }
+
+  function renderOverview() {
+    const main = $("content");
+    main.replaceChildren();
+    main.append(el("div", { class: "item-head" }, el("h2", { text: "概要と全体コメント" }),
+      el("button", { class: "btn", type: "button", onclick: () => show(ITEMS[0].id) }, "最初の項目へ →")));
+    if (D.instructions) {
+      main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "このレビューについて" }), el("div", { class: "desc", text: D.instructions }))));
+    }
+    const tbl = el("table", { class: "summary" });
+    const hasGroups = D.groups.length > 0;
+    tbl.append(el("thead", {}, el("tr", {}, hasGroups ? el("th", { text: "グループ" }) : null, el("th", { text: "項目" }), VERDICT.enabled ? el("th", { text: "判定" }) : null, el("th", { text: "コメント" }))));
+    const tb = el("tbody");
+    ITEMS.forEach((it) => {
+      const r = state.reviews[it.id];
+      tb.append(el("tr", { class: "row", onclick: () => show(it.id) },
+        hasGroups ? el("td", { text: it.group ? groupLabel(it.group) : "" }) : null,
+        el("td", {}, it.title, r.viewed ? null : el("span", { class: "hint", text: "（未表示）" })),
+        VERDICT.enabled ? el("td", {}, chipFor(r.verdict)) : null,
+        el("td", { class: "excerpt", text: r.comment.trim() ? r.comment.replace(/\s+/g, " ") : "—" })));
+    });
+    tbl.append(tb);
+    main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "項目の一覧（行を押すとその項目へ移動）" }), tbl)));
+
+    const card = el("div", { class: "card" }, el("div", { class: "card-body" }));
+    const body = card.firstChild;
+    body.append(el("div", { class: "desc-label", text: "全体へのコメント" }));
+    if (D.previous_meta && D.previous_meta.overall_comment) {
+      body.append(el("div", { class: "hint", style: "margin-bottom:8px" }, "前回の全体コメント（参考）: ", el("span", { style: "white-space:pre-wrap", text: D.previous_meta.overall_comment })));
+    }
+    const ta = el("textarea", { class: "comment", placeholder: "全体を通しての感想、項目をまたぐ指示、次の版への要望など", "aria-label": "全体へのコメント", style: "min-height:140px" });
+    ta.value = state.overall_comment;
+    ta.addEventListener("input", () => { state.overall_comment = ta.value; scheduleSave(800); });
+    body.append(ta);
+    body.append(el("div", { style: "margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" },
+      el("button", { class: "btn primary", type: "button", onclick: openComplete }, "レビュー完了"),
+      el("span", { class: "hint", style: "margin:0", text: MODE === "server" ? "完了すると結果がエージェントに渡り、この画面のサーバーは終了します。" : "完了すると feedback.json がダウンロードされます。" })));
+    main.append(card);
+    main.scrollTop = 0;
+  }
+
+  function refreshSide() { renderCounts(); renderNav(); }
+
+  function show(id) {
+    if (id !== OVERVIEW && indexOf(id) < 0) id = OVERVIEW;
+    state.current = id;
+    try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch (_) {}
+    if (id === OVERVIEW) {
+      renderOverview(); renderPanel(null);
+    } else {
+      const it = ITEMS[indexOf(id)];
+      const r = state.reviews[id];
+      if (!r.viewed) { r.viewed = true; scheduleSave(800); }
+      renderItem(it); renderPanel(it);
+    }
+    applyReadonly();
+    refreshSide();
+  }
+  function move(delta) {
+    if (state.current === OVERVIEW) { if (delta > 0) show(ITEMS[0].id); return; }
+    const idx = indexOf(state.current) + delta;
+    if (idx < 0) return;
+    if (idx >= ITEMS.length) { show(OVERVIEW); return; }
+    show(ITEMS[idx].id);
+  }
+  function setVerdict(id, value) {
+    if (state.completed) return;
+    state.reviews[id].verdict = value;
+    if (state.current === id) renderPanel(ITEMS[indexOf(id)]);
+    refreshSide();
+    scheduleSave(0);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if ($("modalRoot").firstChild) { if (e.key === "Escape") closeModal(); return; }
+    if (isTyping(e.target) || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); move(1); }
+    else if (VERDICT.enabled && state.current !== OVERVIEW && /^[0-9]$/.test(e.key)) {
+      const n = +e.key;
+      if (n === 0) setVerdict(state.current, null);
+      else if (n <= OPTIONS.length) setVerdict(state.current, OPTIONS[n - 1].value);
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // レビュー完了
+  // ------------------------------------------------------------------
+  function closeModal() { $("modalRoot").replaceChildren(); }
+
+  function openComplete() {
+    if (state.completed) return;
+    const { c, unjudged, commented } = counts();
+    const root = $("modalRoot");
+    const modal = el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "mTitle" });
+    modal.append(el("h2", { id: "mTitle", text: "レビューを完了しますか？" }));
+    const sum = el("div", { style: "display:flex;gap:6px;flex-wrap:wrap" });
+    if (VERDICT.enabled) {
+      OPTIONS.forEach((o) => sum.append(el("span", { class: "chip tone-" + o.tone }, el("span", { class: "dot" }), o.label + " " + c[o.value])));
+      sum.append(el("span", { class: "chip tone-none" }, el("span", { class: "dot" }), "未判定 " + unjudged));
+    }
+    sum.append(el("span", { class: "chip tone-none", style: "border-style:dashed" }, "コメント " + commented + " / " + ITEMS.length));
+    modal.append(sum);
+
+    const pending = ITEMS.filter((it) => !state.reviews[it.id].verdict);
+    let firstPending = null;
+    if (VERDICT.enabled && pending.length) {
+      firstPending = pending[0];
+      const box = el("div", { class: "warnbox", id: "unjudgedWarn" },
+        el("strong", { text: "未判定の項目が " + pending.length + " 件あります。" }),
+        el("ul", {}, pending.slice(0, 8).map((it) => el("li", {}, el("button", { class: "btn link", type: "button", onclick: () => { closeModal(); show(it.id); } }, it.title)))),
+        pending.length > 8 ? el("div", { text: "ほか " + (pending.length - 8) + " 件" }) : null,
+        el("div", { class: "hint", text: "判断に迷う項目は、未判定のまま完了してかまいません。エージェントには「未判定」として伝わり、問題なしとは扱われません。" }));
+      modal.append(box);
+    }
+    modal.append(el("p", { class: "hint", text: MODE === "server"
+      ? "完了すると、判定とコメントがエージェントに渡り、このレビュー画面のサーバーは終了します。終了後に直したくなったら、チャットで伝えてください。"
+      : "完了すると、判定とコメントを feedback.json としてダウンロードします。保存した場所をエージェントに伝えてください。" }));
+    const err = el("div", { class: "error-box", hidden: true, style: "border-radius:6px;margin-top:8px" });
+    modal.append(err);
+    const finish = el("button", { class: "btn primary", type: "button", id: "confirmComplete" }, pending.length && VERDICT.enabled ? "このまま完了する" : "完了する");
+    finish.addEventListener("click", async () => {
+      finish.disabled = true; err.hidden = true;
+      try { await complete(); closeModal(); }
+      catch (e) { err.hidden = false; err.textContent = "完了を保存できませんでした: " + (e.message === "Failed to fetch" ? "サーバーに接続できません（サーバーが止まっている可能性があります）" : e.message); finish.disabled = false; }
+    });
+    modal.append(el("div", { class: "actions" },
+      el("button", { class: "btn", type: "button", onclick: closeModal }, "キャンセル"),
+      firstPending ? el("button", { class: "btn", type: "button", onclick: () => { closeModal(); show(firstPending.id); } }, "未判定の項目を見る") : null,
+      finish));
+    const back = el("div", { class: "modal-back", onclick: (e) => { if (e.target === back) closeModal(); } }, modal);
+    root.replaceChildren(back);
+    finish.focus();
+  }
+
+  async function complete() {
+    clearTimeout(saveTimer); saveTimer = null;
+    if (MODE === "server") {
+      if (inflight) { try { await inflight; } catch (_) {} }
+      const res = await postFeedback("complete");
+      state.completed = true;
+      persistLocal();
+      showBanner("レビューを受け付けました（" + new Date().toLocaleTimeString("ja-JP") + "）。結果はエージェントに渡り、サーバーは終了します。このタブは閉じてかまいません。", false);
+      setSaveStatus("text", "完了として保存済み");
+      return res;
+    }
+    const payload = buildPayload("complete");
+    const blob = new Blob([JSON.stringify(payload, null, 2) + "\n"], { type: "application/json" });
+    const a = el("a", { href: URL.createObjectURL(blob), download: "feedback.json" });
+    document.body.append(a); a.click(); a.remove();
+    state.completed = true;
+    persistLocal();
+    showBanner("feedback.json をダウンロードしました。保存された場所（通常はダウンロードフォルダ。同名のファイルがあると feedback (1).json のような名前になります）をエージェントに伝えてください。", false);
+    setSaveStatus("text", "完了（ダウンロード済み）");
+  }
+
+  function showBanner(text, isErr) {
+    $("banner").replaceChildren(el("div", { class: "banner" + (isErr ? " err" : ""), text }));
+    applyReadonly();
+  }
+  function applyReadonly() {
+    $("app").classList.toggle("readonly", state.completed);
+    $("completeBtn").disabled = state.completed;
+  }
+
+  // ------------------------------------------------------------------
+  // 起動
+  // ------------------------------------------------------------------
+  document.title = D.title + " — レビュー";
+  $("title").textContent = D.title;
+  $("title").title = D.title;
+  $("completeBtn").addEventListener("click", openComplete);
+  if (MODE === "static") setSaveStatus("text", "サーバーなしの表示（入力はこのブラウザに控えます）");
+
+  restore().then(() => {
+    let start = decodeURIComponent((location.hash || "").slice(1));
+    if (!start) start = D.instructions ? OVERVIEW : ITEMS[0].id;
+    show(start);
+  });
+})();
+</script>
+</body>
+</html>
