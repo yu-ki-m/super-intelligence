@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!--
+  見本の仮説デモ（スマートフォン）：D-02（C-01 / S-03 / iter-01）
+  架空の案件「経費精算の承認をスマートフォンで行う」の、移動中に承認し、途中で通信が切れ、夕方に経理から差し戻しが来る場面。
+  台本の書き方は references/demo.md。プロトタイプは同じフォルダの proto-C-01.html（端末の枠に入った画面）。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仮説デモ D-02 移動中に経費の申請を承認する</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../demo-player/player.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_DEMO = {
+  id: 'D-02',
+  title: '経費の承認：移動中に、規定どおりの申請をまとめて承認する',
+  disclaimer: 'これはスキルに同梱した見本で、案件・会社名・店・人物はすべて架空である。登場人物の発言と心の声は設計チームが置いたもので、[発言] [観察] [資料] 以外は実ユーザーの証拠ではない。',
+  refs: { case: 'C-01', scenario: 'S-03', iteration: 'iter-01' },
+  prototype: 'proto-C-01.html',
+  purpose: '外回りの多い課長が、通勤の電車の中でスマートフォンから経費の申請を承認する。規定どおりの申請をまとめて承認し、外れた申請だけを根拠と一緒に判断する仕組みが、移動中の短い時間・途中で切れる通信・申請者と経理のその後の手間まで含めて成り立つのかを、チームで話し合うためのデモ。',
+
+  cast: [
+    { id: 'nakamura', name: '中村 誠', initial: '中', role: '営業第二課の課長（承認者）', tone: 1, face: { hair: 'short', glasses: true }, label: '[仮定]',
+      profile: '週の半分は取引先へ直行する。承認は移動中の電車で、片手でスマートフォンを持って行うことが多い。部下は 8 人。' },
+    { id: 'kobayashi', name: '小林 拓也', initial: '小', role: '営業（申請者）', tone: 3, face: { hair: 'side', hairColor: 'brown', skin: 1 }, label: '[仮定]',
+      profile: '月末にまとめて申請する。規定の細かい区分（会議費と交際費の違いなど）は覚えていない。' },
+    { id: 'mori', name: '森 由香', initial: '森', role: '経理（承認後の確認）', tone: 2, face: { hair: 'bob' }, label: '[仮定]',
+      profile: '承認された申請を締めの前に確かめる。承認者が見落とした申請を差し戻すのも森さんの仕事。' }
+  ],
+
+  hypotheses: [
+    { id: 'H-01', label: '[推論]',
+      text: '規定どおりの申請をまとめて承認できれば、承認者は確認が必要な申請だけに時間を使え、移動中の 15 分ほどで承認を終えられる。',
+      falsify: 'まとめて承認した申請が、経理で差し戻される。',
+      check: '公開後、まとめて承認した申請のうち、経理で差し戻された割合を計測する。',
+      alt: '時間が減るのは「まとめて」だからではなく、「確認が必要な申請が分かれている」からかもしれない。' },
+    { id: 'H-02', label: '[推論]',
+      text: '規定から外れた申請に、どの規定のどの値から外れたかを並べて見せれば、承認者は領収書の写真を拡大して読み比べずに判断できる。',
+      falsify: '承認者が、結局は領収書の写真を開いて確かめる。',
+      check: '実ユーザーの観察で、判断の前に領収書の写真を開いた回数を数える。' },
+    { id: 'H-03', label: '[推論]',
+      text: '差し戻しの理由を、外れていた規定から選んだ状態で出せば、承認者は移動中でも差し戻しを送れ、申請者は聞き返さずに 1 回で出し直せる。',
+      falsify: '申請者が理由を読んでも直し方が分からず、チャットで聞き返す。',
+      check: '差し戻しから出し直しまでに、申請者と承認者が画面の外でやり取りした回数を聞き取る。' },
+    { id: 'H-04', label: '[仮定]',
+      text: '通信が切れているあいだも判断を端末に残し、つながったら送れば、承認者は電波を気にせずに続けられ、送ったかどうかを後で確かめに行かずに済む。',
+      falsify: '承認者が、つながったあとに送れたかを確かめに画面を開き直す。',
+      check: '通信の切れる場面を含む課題で、送信待ちの表示を見た後の行動を観察する。' },
+    { id: 'H-05', label: '[仮定]',
+      text: 'まとめて承認が増えても、経理は承認済みの申請を全件見直さずに済む。',
+      falsify: '経理が、まとめて承認された申請を全件見直すようになる。',
+      check: '公開前後で、経理が 1 件あたりにかける確認の時間を比べる。' }
+  ],
+
+  scenes: [
+    { id: 'sc-01', title: '電車の中で承認を片付けたい', short: '電車で開く', time: '月曜 8:10', place: '通勤の電車（立ったまま）',
+      screen: '承認待ち（9 件）', state: { time: '8:10', screen: 'inbox' },
+      beats: [
+        { type: 'situation', when: '状況', text: '中村さんは、取引先へ直行する途中の電車にいる。今月の締めは今日の 17 時で、承認待ちの申請は 9 件ある。', label: '[仮定]' },
+        { type: 'situation', when: 'これまで', text: 'これまでは 1 件ずつ開き、領収書の写真を拡大して金額と日付を確かめていた。電車の中では終わらず、夜にパソコンで承認することが多い。', label: '[仮定]' },
+        { type: 'think', who: 'nakamura', text: '9 件か。乗り換えまでの 15 分で終わらせたい。', label: '[推論]' },
+        { type: 'situation', when: '画面', text: '申請は「規定どおり」の 7 件と、「確認が必要」の 2 件に分かれている。', highlight: '#summary' },
+        { type: 'think', who: 'nakamura', text: '規定どおりのほうは、中身を見なくていいんだろうか。', label: '[推論]' }
+      ] },
+
+    { id: 'sc-02', title: '規定どおりの 7 件をまとめて承認する', short: 'まとめて承認', time: '月曜 8:13', place: '通勤の電車',
+      screen: 'まとめて承認のシート', state: { time: '8:13' },
+      beats: [
+        { type: 'do', who: 'nakamura', text: '「規定どおりの 7 件をまとめて承認」を押す', highlight: '#bulk-btn' },
+        { type: 'situation', when: '画面', text: '自動で確かめた 3 つの項目と、7 件の一覧、合計の金額が下から出る。', state: { sheet: 'bulk' }, highlight: '#bulk-checks' },
+        { type: 'think', who: 'nakamura', text: '上限と領収書と事前申請を見てくれているなら、自分が見ても同じだな。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-01' },
+        { type: 'question', text: '「規定どおり」の自動の判定は、領収書の日付や二重の申請まで見るのか。見ていない項目があるなら、承認の前にそれを承認者に示す必要があるか。', to: '経理（森さん）と開発チーム' },
+        { type: 'do', who: 'nakamura', text: '「7 件を承認する」を押す', highlight: '#bulk-ok' },
+        { type: 'situation', when: '画面', text: '7 件が承認され、経理に送られた。結果は一覧の上に残り、「元に戻す」で取り消せる。', state: { sheet: null, approvedBulk: true }, screen: '承認待ち（2 件）', highlight: '#done-note' }
+      ] },
+
+    { id: 'sc-03', title: '規定から外れた申請を見る', short: '外れた申請', time: '月曜 8:16', place: '通勤の電車',
+      screen: '申請の詳細（会食）', state: { time: '8:16' },
+      beats: [
+        { type: 'do', who: 'nakamura', text: '小林さんの「取引先との会食」を開く', highlight: '#row-r1' },
+        { type: 'situation', when: '画面', text: 'どの規定のどの値から外れたかが、いちばん上に出ている。', state: { screen: 'detail', item: 'r1' }, highlight: '#rule-gap' },
+        { type: 'think', who: 'nakamura', text: '1 人 8,100 円か。先週のサンプル精機さんとの会食だな。事前申請を出し忘れている。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-02' },
+        { type: 'question', text: '承認者は、領収書の写真まで見ないと判断できないのか。見るとしたら、何を確かめるためか。', to: '実ユーザーの観察（承認の場面を見せてもらう）' }
+      ] },
+
+    { id: 'sc-04', title: '乗り換えで電波が切れる', short: '通信が切れる', time: '月曜 8:21', place: '地下鉄の乗り換え',
+      screen: '申請の詳細（通信なし）', state: { time: '8:21', offline: true },
+      beats: [
+        { type: 'situation', when: '状況', text: '乗り換えで地下に入り、通信が切れた。画面の上に、判断を端末に残すことが表示される。', label: '[仮定]', highlight: '#offline-banner' },
+        { type: 'think', who: 'nakamura', text: '今差し戻して、ちゃんと届くのか？', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-04' },
+        { type: 'question', text: '通信が切れているあいだの判断を、あとで送ってよいか。そのあいだに申請者が申請を取り下げた場合や、別の承認者が先に判断した場合はどうするか。', to: '開発チームと経理' }
+      ] },
+
+    { id: 'sc-05', title: '理由を選んで差し戻す', short: '差し戻す', time: '月曜 8:22', place: '地下鉄の乗り換え',
+      screen: '差し戻しのシート', state: { time: '8:22' },
+      beats: [
+        { type: 'do', who: 'nakamura', text: '「差し戻す」を押す', highlight: '#return-btn' },
+        { type: 'situation', when: '画面', text: '外れていた規定から、理由が選ばれた状態で開く。直し方の案内も入っている。', state: { sheet: 'return' }, highlight: '#return-reasons' },
+        { type: 'think', who: 'nakamura', text: '電車の中で文章を打つのはつらい。選んであるなら、このまま送れる。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-03' },
+        { type: 'do', who: 'nakamura', text: '「差し戻しを送る」を押す', highlight: '#return-send' },
+        { type: 'situation', when: '画面', text: '差し戻しは「送信待ち」として、一覧の「返事待ち」に残った。', state: { sheet: null, screen: 'inbox', item: null, returned: true }, screen: '承認待ち（送信待ち 1 件）', highlight: '#return-status' },
+        { type: 'situation', when: '状況', text: '地上に出て通信がつながり、差し戻しが送られた。表示が「差し戻した」に変わる。', label: '[仮定]', state: { time: '8:24', offline: false, sent: true }, screen: '承認待ち（返事待ち 1 件）', highlight: '#return-status' }
+      ] },
+
+    { id: 'sc-06', title: '申請者が出し直す', short: '出し直し', time: '月曜 11:40', place: '小林さんの昼休み',
+      screen: '承認待ち（出し直し 1 件）', state: { time: '11:40', resubmitted: true },
+      beats: [
+        { type: 'say', who: 'kobayashi', text: '（チャットで）課長、会食の件、交際費で出し直しました。事前申請の番号も付けました。', label: '[仮定]', highlight: '#resubmit-banner' },
+        { type: 'think', who: 'kobayashi', text: '理由と直し方が書いてあったから、何を直せばいいか聞き返さずに済んだ。', label: '[推論]' },
+        { type: 'question', text: '申請者は、差し戻しの知らせをどこで、いつ見るのか（メール、チャット、アプリの通知）。チャットで知らせるなら、アプリの通知は要らないかもしれない。', to: '依頼者（現場の申請者に聞く）' }
+      ] },
+
+    { id: 'sc-07', title: '出し直しを承認する', short: '出し直しを承認', time: '月曜 11:42', place: '取引先の待合室',
+      screen: '申請の詳細（出し直し）', state: { time: '11:42' },
+      beats: [
+        { type: 'do', who: 'nakamura', text: '出し直された申請を開く', highlight: '#row-r1' },
+        { type: 'situation', when: '画面', text: '規定どおりになったことと、前回からの変更が並んでいる。', state: { screen: 'detail', item: 'r1' }, highlight: '#changes' },
+        { type: 'think', who: 'nakamura', text: '変わったところだけ見ればいい。', label: '[推論]' },
+        { type: 'do', who: 'nakamura', text: '「承認する」を押す', highlight: '#approve-btn' },
+        { type: 'situation', when: '画面', text: '残りは、渡辺さんのタクシー代の 1 件だけになった。', state: { screen: 'inbox', item: null, approvedR1: true }, screen: '承認待ち（1 件）', highlight: '#need-list' }
+      ] },
+
+    { id: 'sc-08', title: '経理から差し戻しが来る', short: '経理の確認', time: '月曜 16:30', place: '経理の席',
+      screen: '承認待ち（経理の差し戻し）', state: { time: '16:30', acct: true },
+      beats: [
+        { type: 'say', who: 'mori', text: '中村さん、まとめて承認された 7 件のうち、高橋さんの新幹線だけ領収書の日付が先月でした。差し戻しますね。', label: '[仮定]', highlight: '#acct-banner' },
+        { type: 'think', who: 'mori', text: 'まとめて承認が増えたら、結局こちらで全部見直すことになるのでは。', label: '[推論]' },
+        { type: 'think', who: 'nakamura', text: '自動で確かめたはずなのに。日付は見ていなかったのか。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-01', text: 'H-01 の反証条件（まとめて承認した申請が、経理で差し戻される）が起きた場面。自動で確かめる項目に日付を足すのか、確かめていない項目を承認の前に見せるのか、2 つの方向がある。' },
+        { type: 'hypothesis', ref: 'H-05' }
+      ] }
+  ]
+};
+</script>
+<script src="../../demo-player/player.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

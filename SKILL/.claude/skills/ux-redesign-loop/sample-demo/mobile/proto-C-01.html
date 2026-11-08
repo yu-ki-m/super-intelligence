@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<!--
+  見本のプロトタイプ（スマートフォン）：C-01「規定どおりの申請はまとめて承認し、規定から外れた申請だけを根拠と一緒に 1 件ずつ判断する」
+  - 反復：iter-01（架空の案件「経費精算の承認をスマートフォンで行う」）
+  - 検証する仮説：H-01 まとめて承認、H-02 外れた規定と値を並べる、H-03 差し戻しの理由を選ぶ、H-04 通信が切れても判断を端末に残す
+  - 模擬している部分：申請のデータは JavaScript で作った架空のもの。通信の切断・申請者の出し直し・経理の差し戻しは状態の切替えで模擬
+  - 未実装：領収書の写真の拡大、承認済みと設定のタブ、検索（画面に「未実装」と表示）
+  - デザインシステム：既定の DS（sample-design-system-mobile）、見た目はミニマル。端末の枠（device.css / device.js）で表示する。DS 外の部品：なし
+  - デモ：demo-bridge.js を読み込み、window.uxDemoApply で台本の状態を受け取る。デモの中では端末の操作盤（検証用）を隠す
+  - データ：実在の会社・店・電話番号を使わない（references/prototype.md の「データ」）
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>承認待ち | 経費精算（プロトタイプ C-01）</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system-mobile/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system-mobile/components.css">
+<link rel="stylesheet" href="../../sample-design-system-mobile/device.css">
+<script src="../../sample-design-system-mobile/components.js" defer></script>
+<script src="../../sample-design-system-mobile/device.js" defer></script>
+<script src="../../demo-player/demo-bridge.js" defer></script>
+<style>
+  .p-total { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-s); }
+  .p-total b { font-size: var(--ds-font-size-heading-m); font-variant-numeric: tabular-nums; }
+  .p-amount { font-variant-numeric: tabular-nums; font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-body); white-space: nowrap; }
+  .p-gap { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--ds-space-s); margin: var(--ds-space-xs) 0 0; font-size: var(--ds-font-size-body-s); }
+  .p-gap dt { color: var(--ds-color-text-secondary); }
+  .p-gap dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .p-over { color: var(--ds-color-error); font-weight: var(--ds-font-weight-bold); }
+  .p-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--ds-font-size-body-s); }
+  .p-checks li { display: flex; align-items: center; gap: 6px; }
+  .p-checks .ds-icon { color: var(--ds-color-success); }
+  .p-receipt { display: grid; place-items: center; gap: 4px; height: 120px; border: 1px dashed var(--ds-color-border-input); border-radius: var(--ds-radius-card, 12px); color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-unimpl { display: inline-flex; align-items: center; padding: 0 6px; border: 1px dashed var(--ds-color-border-input); border-radius: 4px; color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-section { margin: 0; padding: var(--ds-space-s) var(--ds-space-screen) 0; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); display: flex; justify-content: space-between; }
+  .p-sheet-list .ds-cell { min-height: 48px; }
+  html[data-ux-demo] .dv-controls { display: none; }
+  .dv-stage { box-sizing: border-box; }   /* 余白の分だけ縦にはみ出し、スクロールバーが出るのを防ぐ */
+</style>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 4.5v.5"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 6v4M8 12v.5"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
+  <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V10M8 12v.5"/></symbol>
+  <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
+  <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
+  <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+  <symbol id="ds-i-angle-right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="ds-i-angle-left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="ds-i-caret-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="ds-i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V2H2v9h3"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-more" viewBox="0 0 16 16"><path d="M8 3v.5M8 8v.5M8 13v.5" stroke-width="2.5"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="ds-i-bulb" viewBox="0 0 16 16"><path d="M6 12.5h4M6.5 15h3M5.5 10.5C4.3 9.6 3.5 8.3 3.5 6.5a4.5 4.5 0 0 1 9 0c0 1.8-.8 3.1-2 4z"/></symbol>
+  <symbol id="ds-i-terminal" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-tree" viewBox="0 0 16 16"><path d="M3 2v11h5M3 7h5"/><rect x="9" y="5" width="5" height="4" rx="1"/><rect x="9" y="11" width="5" height="4" rx="1"/></symbol>
+  <symbol id="ds-i-trophy" viewBox="0 0 16 16"><path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0zM4.5 3.5H2v1a2.5 2.5 0 0 0 2.5 2.5M11.5 3.5H14v1A2.5 2.5 0 0 1 11.5 7M8 9.5V12M5 14.5h6M6 12h4"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-filter" viewBox="0 0 16 16"><path d="M1.5 2.5h13l-5 6v5l-3 1.5v-6.5z"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-folder" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 2h6.5v8h-13z"/></symbol>
+  <symbol id="ds-i-paperclip" viewBox="0 0 16 16"><path d="M13.5 7.5l-5.8 5.8a3.5 3.5 0 0 1-5-5L8.5 2.5a2.3 2.3 0 0 1 3.3 3.3L6 11.6a1.2 1.2 0 0 1-1.7-1.7L9.5 4.7"/></symbol>
+  <symbol id="ds-i-medal" viewBox="0 0 16 16"><circle cx="8" cy="10" r="4.5"/><path d="M5 6.5L3 1.5h3.5L8 5M11 6.5l2-5H9.5L8 5M8 8.2l.6 1.2 1.3.2-1 .9.3 1.3L8 11.2l-1.2.6.3-1.3-1-.9 1.3-.2z"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-target" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1"/></symbol>
+  <symbol id="ds-i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></symbol>
+  <symbol id="ds-i-moon" viewBox="0 0 16 16"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></symbol>
+  <symbol id="ds-i-theme" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13A6.5 6.5 0 0 0 8 1.5z" fill="currentColor"/></symbol>
+  <symbol id="ds-i-scale" viewBox="0 0 16 16"><path d="M8 1.5v13M4.5 14.5h7M2.5 4.5h11M2.5 4.5L.5 9a2 2 0 0 0 4 0zM13.5 4.5l-2 4.5a2 2 0 0 0 4 0z"/></symbol>
+  <symbol id="ds-i-sidebar" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/><path d="M4 6.5L3 8l1 1.5"/></symbol>
+  <symbol id="ds-i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-arrow-up" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+  <symbol id="ds-i-compose" viewBox="0 0 16 16"><path d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M12 1.5l2.5 2.5L8 10.5H5.5V8z"/></symbol>
+  <symbol id="ds-i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+  <symbol id="ds-i-monitor" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="ds-i-cloud" viewBox="0 0 16 16"><path d="M4.5 13a3 3 0 0 1-.4-6A4.5 4.5 0 0 1 12.8 7a3 3 0 0 1-.3 6z"/></symbol>
+  <symbol id="ds-i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 0 1 4 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 0 1-4-4L5 7.5"/></symbol>
+  <symbol id="ds-i-globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c2 2 2 11 0 13M8 1.5c-2 2-2 11 0 13"/></symbol>
+  <symbol id="ds-i-panel-right" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></symbol>
+  <symbol id="ds-i-panel-bottom" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M1.5 10h13"/></symbol>
+  <symbol id="ds-i-maximize" viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></symbol>
+  <symbol id="ds-i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-4 2.5-7.5 4.5"/></symbol>
+  <symbol id="ds-i-bars" viewBox="0 0 16 16"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"/></symbol>
+  <symbol id="ds-i-sliders" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-paperclip-2" viewBox="0 0 16 16"><path d="M10.5 5L5.8 9.7a1.2 1.2 0 0 0 1.7 1.7l5-5a2.6 2.6 0 0 0-3.7-3.7L3.7 7.8a4 4 0 0 0 5.7 5.7L13 9.9"/></symbol>
+  <symbol id="ds-i-home" viewBox="0 0 16 16"><path d="M2 7.5L8 2.5l6 5"/><path d="M3.5 6.5V14H7v-3.5h2V14h3.5V6.5"/></symbol>
+  <symbol id="ds-i-trash" viewBox="0 0 16 16"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.5 6.5v4.5M9.5 6.5v4.5"/></symbol>
+  <symbol id="ds-i-share" viewBox="0 0 16 16"><circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/></symbol>
+  <symbol id="ds-i-edit" viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8h-3v-3z"/><path d="M9 4l3 3"/></symbol>
+  <symbol id="ds-i-undo" viewBox="0 0 16 16"><path d="M5 3.5L2 6.5l3 3"/><path d="M2 6.5h7a3.5 3.5 0 0 1 0 7H6"/></symbol>
+  <symbol id="ds-i-star" viewBox="0 0 16 16"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></symbol>
+  <symbol id="ds-i-mic" viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></symbol>
+  <symbol id="ds-i-backspace" viewBox="0 0 16 16"><path d="M5.5 3H14v10H5.5L1.5 8z"/><path d="M7.5 6l4 4M11.5 6l-4 4"/></symbol>
+  <symbol id="ds-i-shift" viewBox="0 0 16 16"><path d="M8 2L2.5 8h3v5.5h5V8h3z"/></symbol>
+  <symbol id="ds-i-enter" viewBox="0 0 16 16"><path d="M13.5 3v5.5h-10"/><path d="M6 6L3.5 8.5 6 11"/></symbol>
+  <symbol id="ds-i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="ds-i-swipe" viewBox="0 0 16 16"><path d="M2 5h9M8.5 2.5L11 5 8.5 7.5"/><path d="M14 11H5M7.5 8.5L5 11l2.5 2.5"/></symbol>
+  <symbol id="ds-i-send" viewBox="0 0 16 16"><path d="M14.5 1.5L7 9M14.5 1.5L10 14.5 7 9 1.5 6z"/></symbol>
+  <symbol id="ds-i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></symbol>
+  <symbol id="ds-i-image" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M14.5 11l-4-4-6 6.5"/></symbol>
+  <symbol id="dv-i-nav-back" viewBox="0 0 16 16"><path d="M11.5 2.5v11L3 8z"/></symbol>
+  <symbol id="dv-i-nav-home" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></symbol>
+  <symbol id="dv-i-nav-recents" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5"/></symbol>
+  <symbol id="dv-i-wifi" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 13.8L.4 5.3A11 11 0 0 1 8 2.2a11 11 0 0 1 7.6 3.1z"/></symbol>
+  <symbol id="dv-i-signal" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M14.5 1.5v13h-13z"/></symbol>
+</svg>
+
+<div class="dv-stage">
+  <div class="dv-phone" data-frame="mint" data-app-name="経費精算" data-app-icon="経" data-battery="64" data-time="8:10" id="phone">
+    <div class="dv-phone__glass">
+      <div class="dv-screen">
+        <div class="dv-viewport">
+          <div class="ds-app" id="app"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="dv-controls" aria-label="検証用の操作盤（製品の一部ではない）">
+    <h2 class="dv-controls__title">検証用</h2>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">シナリオ</span>
+      <div class="ds-segmented" role="group" aria-label="シナリオ" id="scn">
+        <button type="button" data-scn="normal" aria-pressed="true">通常 9 件</button>
+        <button type="button" data-scn="large" aria-pressed="false">大量 64 件</button>
+        <button type="button" data-scn="empty" aria-pressed="false">空</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">出来事を起こす</span>
+      <div class="ds-btn-stack">
+        <button type="button" class="ds-btn" data-ev="offline">通信を切る・つなぐ</button>
+        <button type="button" class="ds-btn" data-ev="resubmit">申請者が出し直す</button>
+        <button type="button" class="ds-btn" data-ev="acct">経理が 1 件を差し戻す</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">画面の明るさ</span>
+      <div class="ds-segmented" role="group" aria-label="画面の明るさ">
+        <button type="button" data-theme-choice="auto">自動</button>
+        <button type="button" data-theme-choice="light">明るい</button>
+        <button type="button" data-theme-choice="dark">暗い</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  /* ---------- データ（架空） ---------- */
+  const OK_ITEMS = [
+    { id: 'a1', who: '小林 拓也', kind: '交通費', title: 'サンプル精機株式会社への訪問（品川〜横浜 往復）', yen: 1240 },
+    { id: 'a2', who: '鈴木 美奈', kind: '備品', title: '会議室用の USB-C ケーブル 2 本', yen: 2980 },
+    { id: 'a3', who: '高橋 健太郎', kind: '出張', title: '大阪 往復 新幹線（見本商事株式会社 第二営業部への提案と、翌日の現地打合せ・設置立会い）', yen: 28600, late: true },
+    { id: 'a4', who: '小林 拓也', kind: '交通費', title: '見本物流有限会社への訪問', yen: 820 },
+    { id: 'a5', who: '伊藤 さやか', kind: '会議費', title: '社内勉強会の飲み物（12 名）', yen: 3100 },
+    { id: 'a6', who: '鈴木 美奈', kind: '交通費', title: '架空テクノサービス株式会社への訪問', yen: 1580 },
+    { id: 'a7', who: '渡辺 翔', kind: '書籍', title: '業務改善の参考書', yen: 3520 }
+  ];
+  const R1 = { id: 'r1', who: '小林 拓也', kind: '会議費', title: '取引先との会食（4 名）', yen: 32400, date: '11/6（金）19:30', place: '見本亭', people: '社外 2 名（サンプル精機株式会社）、社内 2 名' };
+  const R2 = { id: 'r2', who: '渡辺 翔', kind: '交通費', title: '残業後のタクシー（会社〜自宅）', yen: 6800, date: '11/5（木）21:40' };
+  const yen = n => '¥' + n.toLocaleString('ja-JP');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function okItems() {
+    if (S.scn === 'empty') return [];
+    if (S.scn !== 'large') return OK_ITEMS;
+    const out = OK_ITEMS.slice();
+    for (let i = 0; i < 55; i++) out.push({ id: 'g' + i, who: ['小林 拓也', '鈴木 美奈', '伊藤 さやか', '渡辺 翔'][i % 4], kind: '交通費', title: '顧客訪問 ' + (i + 1) + ' 件目', yen: 400 + (i * 137) % 2000 });
+    return out;
+  }
+
+  /* ---------- 状態 ---------- */
+  const DEFAULT = { scn: 'normal', time: '8:10', screen: 'inbox', item: null, sheet: null, approvedBulk: false, offline: false, returned: false, sent: false, resubmitted: false, approvedR1: false, approvedR2: false, acct: false };
+  let S = Object.assign({}, DEFAULT);
+  const app = document.getElementById('app');
+  const icon = n => `<svg class="ds-icon" aria-hidden="true"><use href="#ds-i-${n}"/></svg>`;
+
+  function needItems() {
+    if (S.scn === 'empty') return [];
+    const out = [];
+    if (!S.approvedR1 && (!S.returned || S.resubmitted)) out.push(R1);
+    if (!S.approvedR2) out.push(R2);
+    return out;
+  }
+
+  function render() {
+    const phone = document.getElementById('phone');
+    phone.dataset.time = S.time;
+    const t = document.querySelector('.dv-time'); if (t) t.textContent = S.time;
+    const detail = S.screen === 'detail';
+    app.innerHTML = `<div class="ds-app__stack">${detail ? detailScreen() : inboxScreen()}</div>
+      <nav class="ds-tabbar" aria-label="アプリの行き先"${detail ? ' hidden' : ''}>
+        <button type="button" class="ds-tabbar__item" aria-current="page"><span class="ds-tabbar__icon">${icon('inbox')}${needItems().length + (S.approvedBulk ? 0 : okItems().length) ? `<span class="ds-count">${needItems().length + (S.approvedBulk ? 0 : okItems().length)}</span>` : ''}</span>承認待ち</button>
+        <button type="button" class="ds-tabbar__item" data-act="unimpl"><span class="ds-tabbar__icon">${icon('success')}</span>承認済み</button>
+        <button type="button" class="ds-tabbar__item" data-act="unimpl"><span class="ds-tabbar__icon">${icon('settings')}</span>設定</button>
+      </nav>
+      ${S.sheet === 'bulk' ? bulkSheet() : ''}${S.sheet === 'return' ? returnSheet() : ''}`;
+    document.querySelectorAll('#scn [data-scn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scn === S.scn)));
+  }
+
+  function offlineBanner() {
+    return S.offline ? `<div class="ds-banner ds-banner--warning" id="offline-banner">${icon('warning')}<div class="ds-banner__body">通信が切れている。承認と差し戻しはこの端末に残し、つながったら送る。</div></div>` : '';
+  }
+
+  function inboxScreen() {
+    const ok = S.approvedBulk ? [] : okItems();
+    const need = needItems();
+    const sum = ok.reduce((a, x) => a + x.yen, 0);
+    const waiting = S.returned && !S.resubmitted;
+    let body = '';
+    if (S.acct) body += `<div class="ds-pad"><div class="ds-alert ds-alert--error" id="acct-banner">${icon('error')}<div class="ds-alert__body"><div class="ds-alert__title">経理（森）が 1 件を差し戻した</div>高橋 健太郎「大阪 往復 新幹線」：領収書の日付が先月（10/28）。まとめて承認した ${okItems().length} 件のうちの 1 件。</div></div></div>`;
+    if (S.resubmitted && !S.approvedR1) body += `<div class="ds-pad"><div class="ds-alert" id="resubmit-banner">${icon('info')}<div class="ds-alert__body"><div class="ds-alert__title">小林 拓也さんが出し直した（11:38）</div>取引先との会食：区分を交際費にし、事前申請の番号を付けた。</div></div></div>`;
+    if (S.approvedBulk) body += `<div class="ds-pad"><div class="ds-alert ds-alert--success" id="done-note">${icon('success')}<div class="ds-alert__body"><div class="ds-alert__title">規定どおりの ${okItems().length} 件を承認した（8:14）</div>合計 ${yen(okItems().reduce((a, x) => a + x.yen, 0))}。経理に送った。<div class="ds-alert__actions"><button type="button" class="ds-btn ds-btn--link" data-act="undoBulk">元に戻す</button></div></div></div></div>`;
+    if (!ok.length && !need.length && !waiting) {
+      body += `<div class="ds-empty"><span class="ds-empty__icon">${icon('success')}</span><p class="ds-empty__title">承認待ちはない</p><p class="ds-empty__body">新しい申請が届くと、ここに並ぶ。</p></div>`;
+    }
+    if (ok.length || need.length) {
+      body += `<div class="ds-pad"><div class="ds-stats" id="summary">
+        <div class="ds-stat"><span class="ds-stat__label">規定どおり</span><span class="ds-stat__value">${ok.length}<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta">${yen(sum)}</span></div>
+        <div class="ds-stat"><span class="ds-stat__label">確認が必要</span><span class="ds-stat__value">${need.length}<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta">締め 今日 17:00</span></div>
+      </div></div>`;
+    }
+    if (need.length) {
+      body += `<p class="p-section"><span>確認が必要</span><span>規定から外れている</span></p><ul class="ds-list" id="need-list">${need.map(x => `<li><a class="ds-cell ds-cell--2line" href="#" data-act="open" data-id="${x.id}" id="row-${x.id}">
+        <span class="ds-cell__body"><span class="ds-cell__title">${esc(x.title)}</span><span class="ds-cell__sub">${esc(x.who)} ・ ${esc(x.kind)}</span>
+        <span class="ds-cell__meta"><span class="ds-status ds-status--warning">${icon('warning')}${x.id === 'r1' ? (S.resubmitted ? '出し直し' : '1 人あたりの上限超え') : '深夜の時間帯の前'}</span></span></span>
+        <span class="ds-cell__trail"><span class="p-amount">${yen(x.yen)}</span>${icon('angle-right').replace('ds-icon', 'ds-icon ds-cell__chevron')}</span></a></li>`).join('')}</ul>`;
+    }
+    if (waiting) {
+      body += `<p class="p-section"><span>返事待ち</span></p><ul class="ds-list" id="waiting-list"><li><div class="ds-cell ds-cell--2line">
+        <span class="ds-cell__body"><span class="ds-cell__title">${esc(R1.title)}</span><span class="ds-cell__sub">${esc(R1.who)} ・ 差し戻し</span>
+        <span class="ds-cell__meta" id="return-status">${S.offline ? `<span class="ds-status ds-status--pending">${icon('clock')}送信待ち（つながったら送る）</span>` : `<span class="ds-status ds-status--info">${icon('send')}差し戻した（8:24）</span>`}</span></span>
+        <span class="ds-cell__trail"><span class="p-amount">${yen(R1.yen)}</span></span></div></li></ul>`;
+    }
+    if (ok.length) {
+      const shown = ok.slice(0, 20);
+      body += `<p class="p-section"><span>規定どおり</span><span>${ok.length} 件</span></p><ul class="ds-list" id="ok-list">${shown.map(x => `<li><div class="ds-cell ds-cell--2line">
+        <span class="ds-cell__body"><span class="ds-cell__title">${esc(x.title)}</span><span class="ds-cell__sub">${esc(x.who)} ・ ${esc(x.kind)}</span></span>
+        <span class="ds-cell__trail"><span class="p-amount">${yen(x.yen)}</span></span></div></li>`).join('')}</ul>
+        ${ok.length > shown.length ? `<p class="ds-list__footer">ほか ${ok.length - shown.length} 件。まとめて承認の画面で全件を確かめられる。</p>` : ''}`;
+    }
+    return `<section class="ds-screen" aria-labelledby="t-inbox">
+      <header class="ds-appbar ds-appbar--large">
+        <div class="ds-appbar__row"><p class="ds-appbar__title" aria-hidden="true">承認待ち</p>
+          <div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="検索（未実装）" data-act="unimpl">${icon('search')}</button></div></div>
+        <h1 class="ds-appbar__large" id="t-inbox">承認待ち</h1>
+      </header>
+      ${offlineBanner()}
+      <main class="ds-content">${body}<div style="height:var(--ds-space-xl)"></div></main>
+      ${ok.length ? `<div class="ds-bottombar"><button type="button" class="ds-btn ds-btn--primary ds-btn--block" id="bulk-btn" data-act="bulk">規定どおりの ${ok.length} 件をまとめて承認</button></div>` : ''}
+    </section>`;
+  }
+
+  function detailScreen() {
+    const x = S.item === 'r2' ? R2 : R1;
+    let rule, kv;
+    if (x.id === 'r1' && S.resubmitted) {
+      rule = `<div class="ds-alert ds-alert--success" id="rule-gap">${icon('success')}<div class="ds-alert__body"><div class="ds-alert__title">規定どおり</div>交際費（事前申請 交-2026-118）。1 人あたり 10,000 円まで。
+        <dl class="p-gap"><dt>1 人あたり</dt><dd>8,100 円</dd><dt>上限</dt><dd>10,000 円</dd></dl></div></div>
+        <div class="ds-card" id="changes"><h2 class="ds-h4" style="margin:0 0 4px">前回からの変更</h2><ul class="p-checks"><li>${icon('edit')}区分：会議費 → 交際費</li><li>${icon('edit')}事前申請の番号を追加：交-2026-118</li></ul></div>`;
+    } else if (x.id === 'r1') {
+      rule = `<div class="ds-alert ds-alert--warning" id="rule-gap">${icon('warning')}<div class="ds-alert__body"><div class="ds-alert__title">規定から外れている</div>会議費の会食は、1 人あたり 5,000 円まで。
+        <dl class="p-gap"><dt>1 人あたり</dt><dd class="p-over">8,100 円（3,100 円超え）</dd><dt>上限</dt><dd>5,000 円</dd><dt>事前申請</dt><dd class="p-over">なし</dd></dl></div></div>`;
+    } else {
+      rule = `<div class="ds-alert ds-alert--warning" id="rule-gap">${icon('warning')}<div class="ds-alert__body"><div class="ds-alert__title">規定から外れている</div>タクシーは 22 時以降の乗車だけが対象。
+        <dl class="p-gap"><dt>乗車</dt><dd class="p-over">21:40</dd><dt>対象</dt><dd>22:00 以降</dd></dl></div></div>`;
+    }
+    kv = `<dl class="ds-kv ds-kv--2col">
+      <div><dt>申請者</dt><dd>${esc(x.who)}</dd></div><div><dt>金額</dt><dd class="p-amount">${yen(x.yen)}</dd></div>
+      <div><dt>区分</dt><dd>${x.id === 'r1' && S.resubmitted ? '交際費' : esc(x.kind)}</dd></div><div><dt>日時</dt><dd>${esc(x.date)}</dd></div>
+      ${x.place ? `<div><dt>店</dt><dd>${esc(x.place)}</dd></div>` : ''}${x.people ? `<div><dt>参加者</dt><dd>${esc(x.people)}</dd></div>` : ''}</dl>`;
+    return `<section class="ds-screen" data-tabbar="hidden" aria-labelledby="d-title">
+      <header class="ds-appbar"><div class="ds-appbar__row">
+        <button type="button" class="ds-btn ds-btn--icon" data-act="back" aria-label="戻る" id="back-btn">${icon('arrow-left')}</button>
+        <h1 class="ds-appbar__title" id="d-title">${esc(x.title)}<span class="ds-appbar__sub">${esc(x.who)} ・ ${yen(x.yen)}</span></h1></div></header>
+      ${offlineBanner()}
+      <main class="ds-content"><div class="ds-pad ds-stack">
+        ${rule}${kv}
+        <div class="p-receipt" id="receipt">${icon('image')}<span>領収書の写真</span><span class="p-unimpl">拡大は未実装</span></div>
+      </div></main>
+      <div class="ds-bottombar">
+        <button type="button" class="ds-btn" id="return-btn" data-act="returnSheet">${icon('undo')}差し戻す</button>
+        <button type="button" class="ds-btn ds-btn--primary" id="approve-btn" data-act="approve">${icon('success')}承認する</button>
+      </div>
+    </section>`;
+  }
+
+  function bulkSheet() {
+    const ok = okItems(), sum = ok.reduce((a, x) => a + x.yen, 0);
+    return `<div class="ds-scrim" data-act="closeSheet"></div>
+    <div class="ds-sheet" role="dialog" aria-labelledby="bs-title" id="bulk-sheet">
+      <button type="button" class="ds-sheet__handle" data-act="closeSheet" aria-label="閉じる"></button>
+      <div class="ds-sheet__header"><h2 class="ds-sheet__title" id="bs-title">規定どおりの ${ok.length} 件を承認する</h2></div>
+      <div class="ds-sheet__body ds-stack">
+        <div class="ds-card" id="bulk-checks"><h3 class="ds-h4" style="margin:0 0 6px">自動で確かめたこと</h3><ul class="p-checks">
+          <li>${icon('check')}金額が区分ごとの上限の中にある</li><li>${icon('check')}領収書の写真が付いている</li><li>${icon('check')}必要な事前申請がある</li></ul></div>
+        <div class="p-total"><span>合計</span><b>${yen(sum)}</b></div>
+        <ul class="ds-list p-sheet-list" style="margin-inline:calc(var(--ds-space-screen) * -1)">${ok.slice(0, 20).map(x => `<li><div class="ds-cell"><span class="ds-cell__body"><span class="ds-cell__title">${esc(x.title)}</span><span class="ds-cell__sub">${esc(x.who)}</span></span><span class="ds-cell__trail"><span class="p-amount">${yen(x.yen)}</span></span></div></li>`).join('')}</ul>
+      </div>
+      <div class="ds-sheet__footer"><button type="button" class="ds-btn" data-act="closeSheet">やめる</button><button type="button" class="ds-btn ds-btn--primary" id="bulk-ok" data-act="bulkOk">${ok.length} 件を承認する</button></div>
+    </div>`;
+  }
+
+  function returnSheet() {
+    const reasons = [['pre', '事前申請がない', true], ['limit', '1 人あたりの上限を超えている', true], ['receipt', '領収書が読めない', false], ['other', 'その他', false]];
+    return `<div class="ds-scrim" data-act="closeSheet"></div>
+    <div class="ds-sheet" role="dialog" aria-labelledby="rs-title" id="return-sheet">
+      <button type="button" class="ds-sheet__handle" data-act="closeSheet" aria-label="閉じる"></button>
+      <div class="ds-sheet__header"><h2 class="ds-sheet__title" id="rs-title">差し戻す理由</h2></div>
+      <div class="ds-sheet__body ds-stack">
+        <p class="ds-text-small" style="margin:0">外れていた規定から、理由を選んである。申請者には、理由と直し方が届く。</p>
+        <ul class="ds-list ds-list--inset" id="return-reasons">${reasons.map(([v, t, on]) => `<li><label class="ds-cell"><span class="ds-cell__body"><span class="ds-cell__title">${t}</span></span><span class="ds-choice"><input type="checkbox" value="${v}"${on ? ' checked' : ''}></span></label></li>`).join('')}</ul>
+        <div class="ds-field"><label class="ds-field__label" for="rs-note">直し方の案内</label>
+          <textarea class="ds-textarea" id="rs-note">交際費として、事前申請の番号を付けて出し直してください。</textarea></div>
+      </div>
+      <div class="ds-sheet__footer"><button type="button" class="ds-btn ds-btn--primary ds-btn--block" id="return-send" data-act="returnSend">差し戻しを送る</button></div>
+    </div>`;
+  }
+
+  /* ---------- 操作 ---------- */
+  function set(p) { Object.assign(S, p); render(); }
+  const snack = message => { if (window.ds && ds.snackbar) ds.snackbar({ message, within: app }); };
+  app.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    e.preventDefault();
+    const a = b.dataset.act;
+    if (a === 'open') set({ screen: 'detail', item: b.dataset.id });
+    else if (a === 'back') set({ screen: 'inbox', item: null, sheet: null });
+    else if (a === 'bulk') set({ sheet: 'bulk' });
+    else if (a === 'closeSheet') set({ sheet: null });
+    else if (a === 'bulkOk') { set({ sheet: null, approvedBulk: true }); snack(okItems().length + ' 件を承認した'); }
+    else if (a === 'undoBulk') set({ approvedBulk: false });
+    else if (a === 'returnSheet') set({ sheet: 'return' });
+    else if (a === 'returnSend') { set({ sheet: null, screen: 'inbox', item: null, returned: true, sent: !S.offline }); snack(S.offline ? '差し戻しを端末に残した。つながったら送る' : '差し戻した'); }
+    else if (a === 'approve') { set(S.item === 'r2' ? { approvedR2: true, screen: 'inbox', item: null } : { approvedR1: true, screen: 'inbox', item: null }); snack('承認した'); }
+    else if (a === 'unimpl') snack('この見本では未実装');
+  });
+  document.querySelector('.dv-controls').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.scn) set(Object.assign({}, DEFAULT, { scn: b.dataset.scn }));
+    if (b.dataset.ev === 'offline') set({ offline: !S.offline });
+    if (b.dataset.ev === 'resubmit') set({ returned: true, resubmitted: true, time: '11:40' });
+    if (b.dataset.ev === 'acct') set({ approvedBulk: true, acct: true, time: '16:30' });
+  });
+
+  /* ---------- デモから状態を当てる ---------- */
+  window.uxDemoApply = function (state) {
+    S = Object.assign({}, DEFAULT, state);
+    render();
+  };
+  // device.js が時刻の帯を作ったあとで描く（時刻を合わせるため）
+  window.addEventListener('load', render);
+  render();
+})();
+</script>
+</body>
+</html>

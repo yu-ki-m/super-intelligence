@@ -1,0 +1,337 @@
+/*
+ * player.css — 仮説デモの画面（左にプロトタイプ、右に登場人物の会話・心の声・状況）
+ * デザインシステムの tokens.css・components.css の後に読み込む。色・余白・文字はすべて DS の意味トークンを使う。
+ * 右の会話の欄は製品の画面ではないので、プロトタイプとは別の面（枠の外）に置き、見分けられるようにしている。
+ */
+
+.uxd {
+  --uxd-pane: 460px;
+  --uxd-tone-1: var(--ds-color-text-link);
+  --uxd-tone-2: var(--ds-color-success);
+  --uxd-tone-3: var(--ds-color-warning);
+  --uxd-tone-4: var(--ds-color-info);
+  --uxd-tone-5: var(--ds-color-severity-high);
+  margin: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--ds-color-bg-page);
+  color: var(--ds-color-text-body);
+  overflow: hidden;
+}
+.uxd [hidden] { display: none !important; }
+.uxd-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- 上の帯：題名・場面の一覧・表示の設定 ---------- */
+.uxd-top {
+  display: flex; align-items: center; gap: var(--ds-space-m);
+  min-height: 52px; padding: var(--ds-space-xs) var(--ds-space-m);
+  border-bottom: 1px solid var(--ds-color-border-divider);
+  background: var(--ds-color-bg-container);
+}
+.uxd-kind {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px;
+  border: 1px dashed var(--ds-color-warning-border);
+  background: var(--ds-color-warning-bg); color: var(--ds-color-text-body);
+  font-size: var(--ds-font-size-body-s); line-height: 20px; font-weight: var(--ds-font-weight-bold);
+}
+.uxd-kind .ds-icon { color: var(--ds-color-warning); }
+.uxd-heading { min-width: 0; flex: 0 1 auto; }
+.uxd-heading h1 { margin: 0; font-size: var(--ds-font-size-heading-s); line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uxd-heading p { margin: 0; color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-s); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uxd-scenes { flex: 1 1 auto; min-width: 0; display: flex; gap: 4px; overflow-x: auto; padding: 2px; margin: 0; list-style: none; scrollbar-width: thin; }
+.uxd-scenes button {
+  position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; max-width: 200px; padding: 0 10px;
+  border: 1px solid var(--ds-color-border-container); border-radius: 8px;
+  background: var(--ds-color-bg-container); color: var(--ds-color-text-secondary);
+  font: inherit; font-size: var(--ds-font-size-body-s); cursor: pointer;
+}
+.uxd-scenes button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uxd-scenes button b { font-variant-numeric: tabular-nums; }
+.uxd-scenes button:hover { color: var(--ds-color-text-body); border-color: var(--ds-color-border-input); }
+.uxd-scenes button.is-done { color: var(--ds-color-text-body); background: var(--ds-color-bg-subtle); }
+.uxd-scenes button[aria-current="step"] { color: var(--ds-color-text-body); border-color: var(--ds-color-border-focus); box-shadow: inset 0 0 0 1px var(--ds-color-border-focus); font-weight: var(--ds-font-weight-bold); }
+.uxd-scenes button.has-memo::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ds-color-warning); }
+.uxd-top__end { flex: none; display: flex; align-items: center; gap: var(--ds-space-xxs); }
+.uxd-settings { min-width: 260px; padding: var(--ds-space-xs) var(--ds-space-s); display: grid; gap: var(--ds-space-xs); }
+.uxd-settings .ds-choice { font-size: var(--ds-font-size-body-m); }
+
+/* ---------- 本体：左に舞台（プロトタイプ）、右に会話の欄 ---------- */
+.uxd-body { display: grid; grid-template-columns: minmax(0, 1fr) 8px var(--uxd-pane); min-height: 0; }
+
+/* 会話の欄の幅を変える境目 */
+.uxd-resizer {
+  position: relative; z-index: 2;
+  cursor: col-resize; touch-action: none;
+  background: var(--ds-color-bg-container);
+  border-left: 1px solid var(--ds-color-border-divider);
+  outline: none;
+}
+.uxd-resizer::before {   /* 掴む所の印 */
+  content: ""; position: absolute; top: 50%; left: 50%; width: 4px; height: 40px; margin: -20px 0 0 -2px;
+  border-radius: 2px; background: var(--ds-color-border-input);
+  transition: background var(--ds-motion-duration-fast) var(--ds-motion-ease-standard), height var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+.uxd-resizer::after { content: ""; position: absolute; inset: 0 -4px; }   /* 掴める幅を左右に広げる */
+.uxd-resizer:hover::before, .uxd-resizer:focus-visible::before, .uxd.is-resizing .uxd-resizer::before { background: var(--ds-color-border-focus); height: 64px; margin-top: -32px; }
+.uxd-resizer:focus-visible { box-shadow: inset 0 0 0 2px var(--ds-color-focus-ring); }
+.uxd.is-resizing { cursor: col-resize; user-select: none; }
+.uxd.is-resizing iframe { pointer-events: none; }   /* ドラッグ中に iframe がマウスを奪わないように */
+
+.uxd-stage { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: var(--ds-space-m); background: var(--ds-color-bg-subtle); }
+.uxd-frame {
+  position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column;
+  border: 1px solid var(--ds-color-border-container); border-radius: 12px; overflow: hidden;
+  background: var(--ds-color-bg-container);
+  box-shadow: 0 10px 30px var(--ds-color-shadow);
+}
+.uxd-frame__bar {
+  flex: none; display: flex; align-items: center; gap: var(--ds-space-xs);
+  height: 36px; padding: 0 var(--ds-space-s);
+  border-bottom: 1px solid var(--ds-color-border-divider);
+  background: var(--ds-color-bg-subtle);
+  font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary);
+}
+.uxd-dots { display: inline-flex; gap: 5px; margin-right: 4px; }
+.uxd-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--ds-color-border-input); }
+.uxd-frame__file { font-family: var(--ds-font-family-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.uxd-frame__screen { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 1px 8px; border-radius: 6px; background: var(--ds-color-bg-container); border: 1px solid var(--ds-color-border-container); color: var(--ds-color-text-body); }
+.uxd-frame__warn { display: inline-flex; align-items: center; gap: 4px; flex: none; margin-left: auto; color: var(--ds-color-warning); font-weight: var(--ds-font-weight-bold); }
+.uxd-frame__warn .ds-icon { color: var(--ds-color-warning); }
+.uxd-frame iframe { flex: 1; width: 100%; min-height: 0; border: 0; display: block; background: var(--ds-color-bg-page); transition: opacity var(--ds-motion-duration-base) var(--ds-motion-ease-standard), filter var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.uxd-frame.is-changing iframe { opacity: .25; filter: blur(2px); transition-duration: 0s; }
+
+/* 場面が変わるときの字幕（時刻と場面の題名） */
+.uxd-caption {
+  position: absolute; left: 50%; bottom: calc(var(--ds-space-m) + 28px); z-index: 3;
+  transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  display: grid; justify-items: center; gap: 2px;
+  max-width: min(640px, calc(100% - 64px));
+  padding: var(--ds-space-s) var(--ds-space-xl);
+  border-radius: 14px;
+  background: var(--ds-color-coach-bg); color: #fff;
+  box-shadow: 0 12px 30px var(--ds-color-shadow-strong);
+  text-align: center;
+  transition: opacity var(--ds-motion-duration-slow) var(--ds-motion-ease-standard), transform var(--ds-motion-duration-slow) var(--ds-motion-ease-enter);
+}
+.uxd-caption.is-shown { opacity: 1; transform: translate(-50%, 0); }
+.uxd-caption small { font-size: var(--ds-font-size-body-s); opacity: .85; letter-spacing: .04em; }
+.uxd-caption strong { font-size: var(--ds-font-size-heading-l); line-height: 1.4; }
+
+/* ---------- 右の欄 ---------- */
+.uxd-pane {
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
+  min-height: 0; min-width: 0; overflow: hidden;
+  background: var(--ds-color-bg-container);
+}
+.uxd-pane__tabs { grid-row: 1; padding: var(--ds-space-xs) var(--ds-space-m) 0; }
+.uxd-scenehead { grid-row: 2; }
+.uxd-scroll { grid-row: 3; }
+.uxd-foot { grid-row: 4; }
+.uxd-pane__tabs .ds-tabs { width: 100%; }
+.uxd-pane__tabs .ds-tabs__tab { flex: 1; }
+.uxd-count { margin-left: 4px; font-variant-numeric: tabular-nums; color: var(--ds-color-text-description); }
+
+.uxd-scenehead { padding: var(--ds-space-s) var(--ds-space-m); border-bottom: 1px solid var(--ds-color-border-divider); display: grid; gap: 6px; }
+.uxd-scenehead__no { font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); font-variant-numeric: tabular-nums; }
+.uxd-scenehead__title { margin: 0; font-size: var(--ds-font-size-heading-s); line-height: 22px; }
+.uxd-scenehead__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+.uxd-scenehead__meta > span { display: inline-flex; align-items: center; gap: 4px; }
+.uxd-present { display: flex; align-items: center; gap: 4px; }
+.uxd-present .uxd-avatar { width: 28px; height: 28px; font-size: 12px; }
+
+.uxd-scroll { overflow-y: auto; min-height: 0; overscroll-behavior: contain; scroll-behavior: smooth; }
+.uxd-log { display: flex; flex-direction: column; gap: var(--ds-space-s); padding: var(--ds-space-m) var(--ds-space-m) var(--ds-space-xxl); }
+
+/* 人物の印 */
+.uxd-avatar {
+  --tone: var(--ds-color-text-description);
+  display: inline-grid; place-items: center; flex: none;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, var(--ds-color-bg-container));
+  color: var(--ds-color-text-body);
+  font-size: var(--ds-font-size-body-m); font-weight: var(--ds-font-weight-bold); line-height: 1;
+}
+.uxd-avatar--face { overflow: hidden; }
+.uxd-avatar--face svg { display: block; width: 100%; height: 100%; }
+[data-tone="1"] { --tone: var(--uxd-tone-1); }
+[data-tone="2"] { --tone: var(--uxd-tone-2); }
+[data-tone="3"] { --tone: var(--uxd-tone-3); }
+[data-tone="4"] { --tone: var(--uxd-tone-4); }
+[data-tone="5"] { --tone: var(--uxd-tone-5); }
+
+/* 根拠のラベル。実際の証拠（観察・発言・資料）は塗り、設計者の置いたもの（推論・仮定・机上・AI模擬）は点線 */
+.uxd-label {
+  display: inline-flex; align-items: center; flex: none;
+  padding: 0 6px; border-radius: 4px;
+  font-size: 11px; line-height: 16px; font-weight: var(--ds-font-weight-normal);
+  color: var(--ds-color-text-secondary); white-space: nowrap;
+}
+.uxd-label--evidence { background: var(--ds-color-bg-muted); border: 1px solid var(--ds-color-border-input); color: var(--ds-color-text-body); font-weight: var(--ds-font-weight-bold); }
+.uxd-label--design { border: 1px dashed var(--ds-color-border-input); }
+.uxd.hide-labels .uxd-label { display: none; }
+
+/* 会話の一手 */
+.uxd-beat { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; transition: opacity var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.uxd-beat--wide { grid-template-columns: minmax(0, 1fr); }
+.uxd-beat.is-past { opacity: .62; }
+.uxd-beat.is-past:hover, .uxd-beat.is-past:focus-within { opacity: 1; }
+.uxd-beat.is-new { animation: uxd-rise var(--ds-motion-duration-slow) var(--ds-motion-ease-enter) both; }
+@keyframes uxd-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.uxd-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 2px 0 4px; font-size: var(--ds-font-size-body-s); line-height: 16px; color: var(--ds-color-text-description); }
+.uxd-who b { color: var(--ds-color-text-body); font-size: var(--ds-font-size-body-m); }
+.uxd-who .uxd-label { margin-left: auto; }
+.uxd-bubble {
+  position: relative; margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: 4px 16px 16px 16px;
+  background: var(--ds-color-bg-container);
+  font-size: 15px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.uxd-beat.is-current .uxd-bubble,
+.uxd-beat.is-current .uxd-situation,
+.uxd-beat.is-current .uxd-do,
+.uxd-beat.is-current .uxd-note { box-shadow: 0 0 0 2px var(--ds-color-focus-ring); }
+
+/* 心の声：点線の吹き出しと、人物から伸びる小さな丸 */
+.uxd-beat--think .uxd-bubble {
+  border-style: dashed; border-color: var(--tone, var(--ds-color-border-input));
+  border-radius: 18px;
+  background: var(--ds-color-bg-subtle);
+  color: var(--ds-color-text-secondary);
+  margin-left: 6px;
+}
+.uxd-beat--think .uxd-bubble::before,
+.uxd-beat--think .uxd-bubble::after { content: ""; position: absolute; border: 1px dashed var(--tone, var(--ds-color-border-input)); border-radius: 50%; background: var(--ds-color-bg-subtle); }
+.uxd-beat--think .uxd-bubble::before { width: 9px; height: 9px; left: -12px; top: 6px; }
+.uxd-beat--think .uxd-bubble::after { width: 5px; height: 5px; left: -19px; top: 0; }
+.uxd-think-tag { display: inline-flex; align-items: center; gap: 3px; color: var(--ds-color-text-description); }
+.uxd-think-tag .ds-icon { width: 12px; height: 12px; }
+.uxd.hide-think .uxd-beat--think { display: none; }
+
+/* 状況の説明（語り手） */
+.uxd-situation {
+  margin: 0; padding: 10px 14px;
+  border-left: 3px solid var(--ds-color-text-description);
+  border-radius: 0 10px 10px 0;
+  background: var(--ds-color-bg-muted);
+  font-size: var(--ds-font-size-body-m); line-height: 1.75; white-space: pre-wrap;
+}
+.uxd-situation__meta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold); }
+.uxd-situation__meta .uxd-label { margin-left: auto; }
+
+/* 画面の操作 */
+.uxd-do {
+  display: flex; align-items: center; gap: 8px; margin-left: 0;
+  padding: 6px 6px 6px 10px; border-radius: 10px;
+  border: 1px solid var(--ds-color-border-container);
+  background: var(--ds-color-bg-selected);
+  font-size: var(--ds-font-size-body-m); line-height: 1.6;
+}
+.uxd-do > .ds-icon { flex: none; color: var(--tone, var(--ds-color-text-link)); }
+.uxd-do__text { flex: 1; min-width: 0; }
+.uxd-do__text b { font-weight: var(--ds-font-weight-bold); }
+.uxd-do .ds-btn { flex: none; }
+
+/* 仮説・未確認（設計チームの書き込み） */
+.uxd-note {
+  margin: 0 0 0 46px; padding: 10px 14px; border-radius: 10px;
+  font-size: var(--ds-font-size-body-m); line-height: 1.7;
+}
+.uxd-note--hypothesis { border: 1px solid var(--ds-color-warning-border); background: var(--ds-color-warning-bg); }
+.uxd-note--question { border: 1px dashed var(--ds-color-info); background: var(--ds-color-info-bg); }
+.uxd-note__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); }
+.uxd-note__head .ds-icon { width: 14px; height: 14px; }
+.uxd-note--hypothesis .uxd-note__head .ds-icon { color: var(--ds-color-warning); }
+.uxd-note--question .uxd-note__head .ds-icon { color: var(--ds-color-info); }
+.uxd-note__head .uxd-label { margin-left: auto; }
+.uxd-note p { margin: 0; white-space: pre-wrap; }
+.uxd-note dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 6px 0 0; font-size: var(--ds-font-size-body-s); line-height: 1.6; }
+.uxd-note dt { color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold); }
+.uxd-note dd { margin: 0; }
+.uxd-note .ds-btn--link { padding: 0 4px; min-height: 0; height: auto; font-size: inherit; }
+.uxd.hide-notes .uxd-beat--hypothesis, .uxd.hide-notes .uxd-beat--question { display: none; }
+
+/* 場面の区切り */
+.uxd-scene { display: flex; align-items: center; gap: 8px; margin-top: var(--ds-space-s); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); font-weight: var(--ds-font-weight-bold); }
+.uxd-scene::after { content: ""; flex: 1; height: 1px; background: var(--ds-color-border-divider); }
+.uxd-scene:first-child { margin-top: 0; }
+.uxd-past { display: grid; gap: var(--ds-space-s); }
+.uxd-past[open] { padding-bottom: var(--ds-space-xs); }
+.uxd-past > summary { list-style: none; cursor: pointer; margin-top: 0; }
+.uxd-past > summary::-webkit-details-marker { display: none; }
+.uxd-past > summary::before { content: "▸"; font-size: 10px; transition: transform var(--ds-motion-duration-fast) var(--ds-motion-ease-standard); }
+.uxd-past[open] > summary::before { transform: rotate(90deg); }
+.uxd-past > summary:hover { color: var(--ds-color-text-body); }
+.uxd-past + .uxd-past, .uxd-card + .uxd-past { margin-top: calc(-1 * var(--ds-space-xs)); }
+
+/* はじめと終わりの札 */
+.uxd-card { border: 1px solid var(--ds-color-border-container); border-radius: 14px; padding: var(--ds-space-m); background: var(--ds-color-bg-container); display: grid; gap: var(--ds-space-s); }
+.uxd-card h2 { margin: 0; font-size: var(--ds-font-size-heading-m); line-height: 1.4; }
+.uxd-card h3 { margin: var(--ds-space-xs) 0 0; font-size: var(--ds-font-size-body-m); color: var(--ds-color-text-secondary); }
+.uxd-card p { margin: 0; line-height: 1.75; }
+.uxd-cast { display: grid; gap: var(--ds-space-xs); margin: 0; padding: 0; list-style: none; }
+.uxd-cast li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; }
+.uxd-cast__name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.uxd-cast__name b { font-size: var(--ds-font-size-body-m); }
+.uxd-cast__name span { font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); }
+.uxd-cast__name .uxd-label { margin-left: auto; }
+.uxd-cast__profile { margin: 2px 0 0; font-size: var(--ds-font-size-body-s); line-height: 1.6; color: var(--ds-color-text-secondary); }
+.uxd-hlist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: var(--ds-font-size-body-m); line-height: 1.6; }
+.uxd-hlist li { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.uxd-hid { font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); padding: 1px 6px; border-radius: 4px; background: var(--ds-color-warning-bg); border: 1px solid var(--ds-color-warning-border); height: fit-content; white-space: nowrap; }
+.uxd-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+.uxd-legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* 仮説とメモの一覧 */
+.uxd-list { display: grid; gap: var(--ds-space-s); padding: var(--ds-space-m) var(--ds-space-m) var(--ds-space-xxl); }
+.uxd-hcard { border: 1px solid var(--ds-color-border-container); border-radius: 12px; padding: var(--ds-space-s) var(--ds-space-m); display: grid; gap: 6px; }
+.uxd-hcard__head { display: flex; align-items: center; gap: 8px; }
+.uxd-hcard__head .uxd-label { margin-left: auto; }
+.uxd-hcard p { margin: 0; line-height: 1.7; }
+.uxd-hcard dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: var(--ds-font-size-body-s); line-height: 1.6; }
+.uxd-hcard dt { color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold); }
+.uxd-hcard dd { margin: 0; }
+.uxd-jumps { display: flex; flex-wrap: wrap; gap: 4px; }
+.uxd-jumps button { font: inherit; font-size: var(--ds-font-size-body-s); padding: 0 8px; height: 24px; border-radius: 6px; border: 1px solid var(--ds-color-border-container); background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); cursor: pointer; }
+.uxd-jumps button:hover { border-color: var(--ds-color-border-input); }
+.uxd-field-label { font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.uxd-memo-item { border-left: 3px solid var(--ds-color-warning); padding: 4px 0 4px 12px; display: grid; gap: 4px; }
+.uxd-memo-item b { font-size: var(--ds-font-size-body-m); }
+.uxd-memo-item p { margin: 0; white-space: pre-wrap; line-height: 1.7; font-size: var(--ds-font-size-body-m); }
+.uxd-empty-note { color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-m); line-height: 1.7; margin: 0; }
+
+/* ---------- 下の操作 ---------- */
+.uxd-foot { border-top: 1px solid var(--ds-color-border-divider); background: var(--ds-color-bg-container); }
+.uxd-progress { height: 3px; background: var(--ds-color-bg-muted); }
+.uxd-progress i { display: block; height: 100%; width: 0; background: var(--ds-color-btn-primary-bg); transition: width var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.uxd-memo { padding: var(--ds-space-s) var(--ds-space-m) 0; display: grid; gap: 4px; }
+.uxd-memo .ds-textarea { min-height: 72px; font-size: var(--ds-font-size-body-m); }
+.uxd-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-xs); padding: var(--ds-space-s) var(--ds-space-m); }
+.uxd-controls .ds-btn--primary { min-width: 112px; justify-content: center; }
+.uxd-controls .ds-kbd { margin-left: 4px; background: transparent; color: inherit; border-color: currentColor; opacity: .8; }
+.uxd-controls .ds-select { width: 76px; min-width: 0; }
+.uxd-pos { margin-left: auto; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-description); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.uxd-btn-memo.has-memo { color: var(--ds-color-text-body); }
+.uxd-btn-memo.has-memo::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ds-color-warning); margin-left: 2px; }
+
+/* ---------- 狭い画面 ---------- */
+@media (max-width: 1080px) {
+  .uxd { height: auto; min-height: 100vh; overflow: visible; }
+  .uxd-top { flex-wrap: wrap; }
+  .uxd-scenes { order: 3; flex-basis: 100%; }
+  .uxd-body { grid-template-columns: minmax(0, 1fr); }
+  .uxd-resizer { display: none; }
+  .uxd-stage { height: 62vh; padding: var(--ds-space-s); }
+  .uxd-pane { border-left: 0; border-top: 1px solid var(--ds-color-border-divider); max-height: none; }
+  .uxd-scroll { max-height: 60vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .uxd-beat.is-new { animation: none; }
+  .uxd-caption, .uxd-frame iframe, .uxd-progress i { transition: none; }
+  .uxd-scroll { scroll-behavior: auto; }
+}

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!--
+  見本のプロトタイプ：C-02「取り込む前に全行を検査し、問題のある行だけを理由ごとに直す」
+  - 反復：iter-01（見本。架空の案件「顧客管理SaaSのCSV取込」）
+  - 検証する仮説：H-01 取込前の検査、H-02 理由ごとのまとまり、H-03 変更前後つきの一括修正、H-04 部分取込と保留、H-05 翌朝の入口に保留を出す
+  - 模擬している部分：検査と取込は setTimeout。行のデータは JavaScript で作った架空のもの。担当者マスタへの追加は「翌朝」の切替えで模擬
+  - 未実装：1 行ずつの手入力による修正（画面に「未実装」と表示）、列の対応づけの変更、通知の一覧
+  - デザインシステム：既定の DS（sample-design-system）、見た目はコンソール（一覧と設定が中心の業務画面のため）。DS 外の部品：なし
+  - デモ：demo-bridge.js を読み込み、window.uxDemoApply で台本の状態を受け取る。デモの中では検証用パネルを隠す
+-->
+<html lang="ja" data-look="console">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>顧客データの取込 | 顧客管理（プロトタイプ C-02）</title>
+<script>
+  try {
+    const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (_) {}
+</script>
+<link rel="stylesheet" href="../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../sample-design-system/components.css">
+<script src="../sample-design-system/components.js" defer></script>
+<script src="../demo-player/demo-bridge.js" defer></script>
+<style>
+  .p-drop { display: grid; justify-items: center; gap: var(--ds-space-s); padding: var(--ds-space-xxl) var(--ds-space-l); border: 2px dashed var(--ds-color-border-input); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-subtle); text-align: center; }
+  .p-drop .ds-icon--l { color: var(--ds-color-text-description); }
+  .p-file { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--ds-space-s); align-items: start; padding: var(--ds-space-m); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); }
+  .p-file__name { font-weight: var(--ds-font-weight-bold); overflow-wrap: anywhere; }
+  .p-file__meta { color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-m); }
+  .p-num { display: grid; gap: 2px; padding: var(--ds-space-m) var(--ds-space-l); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); }
+  .p-num b { font-size: var(--ds-font-size-display-l); line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .p-num span { display: inline-flex; align-items: center; gap: 6px; }
+  .p-num--ok { border-left: 4px solid var(--ds-color-success); }
+  .p-num--ng { border-left: 4px solid var(--ds-color-warning); }
+  .p-groups { list-style: none; margin: 0; padding: 0; display: grid; }
+  .p-group { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--ds-space-s); align-items: center; padding: var(--ds-space-s) var(--ds-space-l); border-top: 1px solid var(--ds-color-border-divider); }
+  .p-group:first-child { border-top: 0; }
+  .p-group[aria-current="true"] { background: var(--ds-color-bg-selected); box-shadow: inset 3px 0 0 var(--ds-color-border-focus); }
+  .p-group__title { font-weight: var(--ds-font-weight-bold); }
+  .p-group__desc { color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-before { color: var(--ds-color-error); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .p-after { color: var(--ds-color-success); font-weight: var(--ds-font-weight-bold); }
+  .p-actions { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-m); padding: var(--ds-space-s) var(--ds-space-l); border: 1px solid var(--ds-color-border-container); border-radius: var(--ds-radius-container); background: var(--ds-color-bg-container); box-shadow: var(--ds-shadow-sticky); }
+  .p-actions__text { flex: 1; min-width: 240px; }
+  .p-unimpl { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; border: 1px dashed var(--ds-color-border-input); border-radius: 4px; color: var(--ds-color-text-description); font-size: var(--ds-font-size-body-s); }
+  .p-names { display: flex; flex-wrap: wrap; gap: var(--ds-space-xs); margin: 0; padding: 0; list-style: none; }
+  .p-names li { padding: 2px 10px; border: 1px solid var(--ds-color-border-container); border-radius: 999px; background: var(--ds-color-bg-subtle); }
+  .p-hist { font-size: var(--ds-font-size-body-s); }
+  .p-hist .ds-sidenav__link { align-items: flex-start; padding-block: 6px; }
+  .p-hist small { display: block; color: var(--ds-color-text-description); }
+  /* 検証用パネル（製品の画面ではない）。デモの中では隠す */
+  .proto-panel { position: fixed; right: 12px; bottom: 12px; z-index: 50; width: 250px; padding: 10px 12px; border: 2px dashed #b45309; border-radius: 10px; background: #fffbeb; color: #1c1917; font: 12px/1.6 system-ui, sans-serif; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+  .proto-panel h2 { margin: 0 0 6px; font-size: 12px; }
+  .proto-panel button { margin: 2px 2px 0 0; padding: 2px 8px; border: 1px solid #b45309; border-radius: 6px; background: #fff; color: #1c1917; font: inherit; cursor: pointer; }
+  .proto-panel button[aria-pressed="true"] { background: #b45309; color: #fff; }
+  html[data-ux-demo] .proto-panel, html[data-panel="off"] .proto-panel { display: none; }
+</style>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 4.5v.5"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 6v4M8 12v.5"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V10M8 12v.5"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+</svg>
+
+<div class="ds-app">
+  <header class="ds-topnav">
+    <span class="ds-topnav__brand"><svg class="ds-icon"><use href="#ds-i-package"/></svg>顧客管理</span>
+    <span class="ds-topnav__divider"></span>
+    <label class="ds-topnav__search"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input type="search" placeholder="顧客・会社名を検索" aria-label="顧客・会社名を検索"></label>
+    <span class="ds-topnav__spacer"></span>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="通知" id="bell"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></button>
+    <button class="ds-btn ds-btn--icon" style="color:inherit" aria-label="ヘルプ"><svg class="ds-icon"><use href="#ds-i-help"/></svg></button>
+    <span class="ds-topnav__divider"></span>
+    <span class="ds-topnav__item">佐藤 美咲 ▾</span>
+  </header>
+  <div class="ds-subbar">
+    <ol class="ds-breadcrumb">
+      <li><a href="#" onclick="return false">顧客</a></li>
+      <li><a href="#" onclick="return false">取込</a></li>
+      <li><span aria-current="page" id="crumb">新しい取込</span></li>
+    </ol>
+  </div>
+  <nav class="ds-sidenav" aria-label="顧客メニュー">
+    <p class="ds-sidenav__title">顧客</p>
+    <ul class="ds-sidenav__list">
+      <li><a class="ds-sidenav__link" href="#" onclick="return false"><svg class="ds-icon"><use href="#ds-i-list"/></svg>顧客の一覧</a></li>
+      <li><a class="ds-sidenav__link" href="#" onclick="return false" aria-current="page"><svg class="ds-icon"><use href="#ds-i-inbox"/></svg>取込</a></li>
+    </ul>
+    <p class="ds-sidenav__section">取込の履歴</p>
+    <ul class="ds-sidenav__list p-hist" id="history"></ul>
+  </nav>
+  <main class="ds-main" id="main" tabindex="-1"></main>
+  <footer class="ds-footer"><span>顧客管理（プロトタイプ C-02 / iter-01）</span></footer>
+</div>
+
+<aside class="proto-panel" aria-label="検証用パネル（製品の一部ではない）">
+  <h2>検証用（Shift+? で隠す）</h2>
+  <div>シナリオ：
+    <button type="button" data-scn="normal">通常 3,214 行</button>
+    <button type="button" data-scn="large">大量 48,000 行</button>
+    <button type="button" data-scn="clean">問題なし</button>
+    <button type="button" data-scn="broken">読めない</button>
+  </div>
+  <div>時刻：
+    <button type="button" data-jump="review">検査結果へ</button>
+    <button type="button" data-jump="morning">翌朝にする</button>
+  </div>
+</aside>
+
+<div aria-live="polite" class="uxd-sr" id="live" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+
+<script>
+(function () {
+  'use strict';
+  /* ---------- データ（架空） ---------- */
+  /* 実在の会社・会場・電話番号・メールアドレスを使わない。電話番号は市内局番を 0000 にする（0 で始まる局番は割り当てられない）。
+     メールアドレスは例示用に予約された example.com（RFC 2606）にする */
+  const FILE = '顧客リスト_2026秋_サンプル展示会来場者_見本ホール西_最終版(2)_田中課長確認済み_重複削除前.csv';
+  const SCN = {
+    normal: { total: 3214, phone: 18, email: 17, company: 6, owner: 6 },
+    large: { total: 48000, phone: 702, email: 431, company: 96, owner: 83 },
+    clean: { total: 1280, phone: 0, email: 0, company: 0, owner: 0 },
+    broken: { total: 0, phone: 0, email: 0, company: 0, owner: 0, broken: true }
+  };
+  const OWNERS = ['小野寺 拓真', '早瀬 由紀', '宮内 晃'];
+  const COMPANIES = ['サンプル精機株式会社', '見本物流有限会社', '架空テクノサービス株式会社', 'サンプル・ホールディングス', '例示商事株式会社', '見本システム開発株式会社', 'Sample Bridge Partners 合同会社', 'サンプル食品工業株式会社'];
+  const toFull = s => s.replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 0xFEE0)).replace(/\(/g, '（').replace(/\)/g, '）');
+  function rows(kind, n) {
+    const out = [];
+    for (let i = 0; i < Math.min(n, 50); i++) {
+      const line = 12 + ((i * 67 + kind.length * 131) % 3190);
+      const company = COMPANIES[(i * 3 + kind.length) % COMPANIES.length];
+      if (kind === 'phone') { const a = '0000', b = 1000 + i * 7; out.push({ line, company, before: toFull(i % 3 ? `03(${a})${b}` : `03-${a}-${b}`), after: `03-${a}-${b}` }); }
+      else if (kind === 'email') { const u = ['tanaka', 'k.mori', 'info', 'suzuki_h', 'sales'][i % 5]; out.push({ line, company, before: (i % 2 ? 'ｓ' + u.slice(1) : u) + (i % 3 ? '＠' : '@') + 'example.com' + (i % 4 === 0 ? '　' : ''), after: (i % 2 ? 's' + u.slice(1) : u) + '@example.com' }); }
+      else if (kind === 'company') out.push({ line, company: '（空欄）', person: ['青木 さくら', '石田 亮', '上野 美穂', '江口 大地', '小川 純', '加藤 光'][i % 6], note: '個人での来場' });
+      else out.push({ line, company, owner: OWNERS[i % OWNERS.length] });
+    }
+    return out;
+  }
+
+  /* ---------- 状態 ---------- */
+  const DEFAULT = { scn: 'normal', screen: 'upload', file: false, progress: 0, group: null, fixedPhone: false, fixedEmail: false, imported: 0, handoff: false, morning: false, ownerImported: false, excluded: false, toast: null };
+  let S = Object.assign({}, DEFAULT);
+  let timer = 0;
+  const fmt = n => n.toLocaleString('ja-JP');
+  const C = () => SCN[S.scn];
+  function remaining() {
+    const c = C();
+    return { phone: S.fixedPhone ? 0 : c.phone, email: S.fixedEmail ? 0 : c.email, company: S.excluded ? 0 : c.company, owner: S.ownerImported ? 0 : c.owner };
+  }
+  const sum = o => o.phone + o.email + o.company + o.owner;
+  const problemsTotal = () => { const c = C(); return c.phone + c.email + c.company + c.owner; };
+
+  const GROUPS = [
+    { id: 'phone', title: '電話番号の形式', desc: '全角の数字や括弧が混ざっている。半角とハイフンに揃えられる', how: 'まとめて直せる' },
+    { id: 'email', title: 'メールアドレスの形式', desc: '全角の文字や、末尾の空白が混ざっている', how: 'まとめて直せる' },
+    { id: 'company', title: '会社名が空', desc: '会社名は必須の項目。個人での来場者が含まれている可能性がある', how: '入力するか、取り込まない' },
+    { id: 'owner', title: '担当者が担当者マスタにいない', desc: 'マスタに登録されていない名前。担当者を追加できるのは管理者だけ', how: '管理者の追加が必要' }
+  ];
+
+  /* ---------- 描画 ---------- */
+  const icon = (n, cls) => `<svg class="ds-icon${cls ? ' ' + cls : ''}" aria-hidden="true"><use href="#ds-i-${n}"/></svg>`;
+  const main = document.getElementById('main');
+
+  let shown = null;   // いま描いてある画面
+  function render() {
+    document.getElementById('crumb').textContent = S.screen === 'done' ? '展示会来場者 2026秋' : '新しい取込';
+    renderHistory();
+    // 検査中は進み具合が 0.4 秒ごとに変わる。そのたびに画面を丸ごと描き直すと、部品が作り直され、
+    // DS の「浮かび上がる」動きと読み込み中の回転が毎回最初から動いて、ちらつく。数値と棒だけを書き換える
+    if (S.screen === 'checking' && shown === 'checking') { updateChecking(); return; }
+    shown = S.screen;
+    if (S.screen === 'upload') main.innerHTML = upload();
+    else if (S.screen === 'checking') main.innerHTML = checking();
+    else if (S.screen === 'review') main.innerHTML = review();
+    else if (S.screen === 'importing') main.innerHTML = importing();
+    else main.innerHTML = done();
+    document.querySelectorAll('.proto-panel [data-scn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scn === S.scn)));
+  }
+
+  function header(desc) {
+    return `<div class="ds-page-header"><div><h1 class="ds-h1">顧客データの取込</h1><p class="ds-page-header__description">${desc}</p></div></div>`;
+  }
+
+  function upload() {
+    const c = C();
+    let body;
+    if (!S.file) {
+      body = `<div class="p-drop" id="dropzone">${icon('file', 'ds-icon--l')}<div><b>CSV ファイルをここに置く</b><div class="ds-text-small">または</div></div><button class="ds-btn" id="pick-btn" data-act="pick">ファイルを選ぶ</button><div class="ds-text-small">1 回に 50,000 行まで。文字コードは自動で判定する</div></div>`;
+    } else if (c.broken) {
+      body = `<div class="ds-alert ds-alert--error">${icon('error')}<div class="ds-alert__content"><b>ファイルを読めない</b><br>3 行目から列の数が合わない（見出しは 15 列、3 行目は 9 列）。Excel で保存し直すときに「CSV UTF-8」を選ぶと直ることが多い。</div></div>
+        <div class="ds-btn-group" style="margin-top:var(--ds-space-m)"><button class="ds-btn" data-act="reset">別のファイルを選ぶ</button></div>`;
+    } else {
+      body = `<div class="p-file" id="file-row">${icon('file')}<div><div class="p-file__name">${FILE}</div><div class="p-file__meta">1.8 MB　・　${fmt(c.total)} 行（見出しを除く）　・　文字コード Shift_JIS</div></div><button class="ds-btn ds-btn--link" data-act="reset">選び直す</button></div>
+        <div class="ds-alert" style="margin-top:var(--ds-space-m)">${icon('info')}<div class="ds-alert__content">15 列のうち 14 列を顧客の項目に対応づけた。「備考2」は取り込まない。<span class="p-unimpl">対応づけの変更は未実装</span></div></div>
+        <div class="ds-btn-group" style="margin-top:var(--ds-space-l)"><button class="ds-btn ds-btn--primary" id="check-btn" data-act="check">取り込む前に検査する</button><span class="ds-text-small">検査では顧客データは変わらない</span></div>`;
+    }
+    return header('CSV を選ぶと、取り込む前に全行を検査する。問題のある行だけを直してから取り込める。') +
+      `<section class="ds-container"><div class="ds-container__header"><h2 class="ds-container__title">ファイル</h2></div><div class="ds-container__body">${body}</div></section>`;
+  }
+
+  function checkingText() {
+    const c = C();
+    const done = Math.round(c.total * S.progress / 100);
+    const found = Math.round(problemsTotal() * S.progress / 100);
+    return { count: `${fmt(done)} / ${fmt(c.total)} 行`, note: `残り約 ${Math.max(1, Math.round((100 - S.progress) * 0.5))} 秒　・　見つかった問題 ${fmt(found)} 行（途中）` };
+  }
+  function updateChecking() {
+    const t = checkingText();
+    document.getElementById('check-count').textContent = t.count;
+    document.getElementById('check-note').textContent = t.note;
+    document.getElementById('check-bar').style.setProperty('--ds-value', S.progress + '%');
+  }
+  function checking() {
+    const t = checkingText();
+    return header('取り込む前に全行を検査している。顧客データはまだ変わっていない。') +
+      `<section class="ds-container"><div class="ds-container__header"><h2 class="ds-container__title"><span class="ds-spinner" aria-hidden="true"></span> 検査している</h2></div>
+      <div class="ds-container__body ds-stack ds-stack--s">
+        <div class="p-file__name" style="font-weight:normal">${FILE}</div>
+        <div class="ds-progress" id="check-progress"><span id="check-count">${t.count}</span><div class="ds-progress__track"><div class="ds-progress__bar" id="check-bar" style="--ds-value:${S.progress}%"></div></div><span class="ds-text-small" id="check-note">${t.note}</span></div>
+        <div class="ds-alert" id="leave-note">${icon('info')}<div class="ds-alert__content">この画面を離れても検査は続く。終わったら右上の${icon('bell')}で知らせる。</div></div>
+        <div><button class="ds-btn" data-act="reset">検査を止める</button></div>
+      </div></section>`;
+  }
+
+  function review() {
+    const c = C(), r = remaining();
+    const left = sum(r), fixed = problemsTotal() - left;
+    const ready = c.total - left;
+    const groups = GROUPS.filter(g => c[g.id] > 0).map(g => {
+      const n = c[g.id], isFixed = r[g.id] === 0;
+      const status = isFixed ? `<span class="ds-status ds-status--success">${icon('success')}${g.id === 'company' ? '取り込まない' : '直した'}（${fmt(n)} 行）</span>` : `<span class="ds-status ds-status--warning">${icon('warning')}${fmt(n)} 行</span>`;
+      return `<li class="p-group" id="group-${g.id}" aria-current="${S.group === g.id}">${status}<div><div class="p-group__title">${g.title}</div><div class="p-group__desc">${g.desc}</div></div>
+        ${isFixed ? `<button class="ds-btn ds-btn--link" data-act="undo" data-g="${g.id}">元に戻す</button>` : `<button class="ds-btn" data-act="group" data-g="${g.id}">${g.how === 'まとめて直せる' ? 'まとめて直す' : '見る'}</button>`}</li>`;
+    }).join('');
+    const clean = problemsTotal() === 0;
+    return header('取り込む前の検査が終わった。顧客データはまだ変わっていない。') +
+      `<div class="ds-stack">
+      <div class="p-nums" id="summary">
+        <div class="p-num p-num--ok"><span class="ds-status ds-status--success">${icon('success')}取り込める</span><b>${fmt(ready)} 行</b></div>
+        <div class="p-num p-num--ng"><span class="ds-status ds-status--warning">${icon('warning')}直す必要がある</span><b>${fmt(left)} 行</b>${fixed ? `<span class="ds-text-small">${fmt(fixed)} 行は直した</span>` : ''}</div>
+      </div>
+      ${clean ? `<div class="ds-alert ds-alert--success">${icon('success')}<div class="ds-alert__content">問題のある行は見つからなかった。</div></div>` :
+      `<section class="ds-container"><div class="ds-container__header"><div><h2 class="ds-container__title">直す必要がある行（理由ごと）</h2><p class="ds-container__description">同じ理由の行は、まとめて直せる。直さずに保留にして、あとで直すこともできる。</p></div></div>
+        <div class="ds-container__body ds-container__body--flush"><ul class="p-groups" id="groups">${groups}</ul></div></section>`}
+      ${S.group ? groupDetail(S.group) : ''}
+      <div class="p-actions" id="actions">
+        <div class="p-actions__text">${left ? `直した行を含めて <b>${fmt(ready)} 行</b>を取り込む。残りの <b>${fmt(left)} 行</b>は保留にし、取込の履歴からあとで直せる。` : `<b>${fmt(c.total)} 行</b>をすべて取り込める。`}</div>
+        <button class="ds-btn ds-btn--primary" id="partial-btn" data-act="import">${left ? `${fmt(ready)} 行を取り込む（${fmt(left)} 行は保留）` : `${fmt(c.total)} 行を取り込む`}</button>
+      </div></div>`;
+  }
+
+  function groupDetail(id) {
+    const c = C(), n = c[id], list = rows(id, n);
+    const more = n > list.length ? `<p class="ds-text-small" style="margin:var(--ds-space-s) var(--ds-space-l)">ほか ${fmt(n - list.length)} 行。確定すると、同じ規則で全 ${fmt(n)} 行を直す。</p>` : '';
+    const g = GROUPS.find(x => x.id === id);
+    let inner = '';
+    if (id === 'phone' || id === 'email') {
+      inner = `<div class="ds-container__body ds-stack ds-stack--s"><div class="ds-alert">${icon('sparkle')}<div class="ds-alert__content"><b>提案：</b>${id === 'phone' ? '全角の数字と括弧を、半角の数字とハイフンに揃える' : '全角の文字を半角にし、末尾の空白を取る'}（${fmt(n)} 行）。<b>まだ直していない。</b>変更前と変更後を確かめてから確定する。</div></div></div>
+        <div class="ds-table-wrap"><table class="ds-table"><thead><tr><th>行</th><th>会社名</th><th>変更前</th><th>変更後（提案）</th></tr></thead><tbody>
+        ${list.map(x => `<tr><td class="ds-mono">${x.line}</td><td>${x.company}</td><td class="ds-mono"><span class="p-before">${x.before.replace(/　/g, '␣')}</span></td><td class="ds-mono"><span class="p-after">${x.after}</span></td></tr>`).join('')}
+        </tbody></table></div>${more}
+        <div class="ds-container__footer"><div class="ds-btn-group"><button class="ds-btn ds-btn--primary" id="apply-${id}" data-act="apply" data-g="${id}">${fmt(n)} 行の変更を確定</button><button class="ds-btn" data-act="group" data-g="">閉じる</button><span class="p-unimpl">1 行ずつ直す：未実装</span></div></div>`;
+    } else if (id === 'company') {
+      inner = `<div class="ds-table-wrap"><table class="ds-table"><thead><tr><th>行</th><th>会社名</th><th>氏名</th><th>備考</th></tr></thead><tbody>
+        ${list.map(x => `<tr><td class="ds-mono">${x.line}</td><td style="color:var(--ds-color-text-description)">${x.company}</td><td>${x.person}</td><td>${x.note}</td></tr>`).join('')}
+        </tbody></table></div>${more}
+        <div class="ds-container__footer"><div class="ds-btn-group"><button class="ds-btn" id="exclude-company" data-act="exclude">${fmt(n)} 行を取り込まない</button><button class="ds-btn" data-act="group" data-g="">閉じる</button><span class="p-unimpl">会社名の入力：未実装</span></div></div>`;
+    } else {
+      inner = `<div class="ds-container__body ds-stack ds-stack--s"><div class="ds-alert ds-alert--warning">${icon('warning')}<div class="ds-alert__content">担当者マスタにいない名前が ${OWNERS.length} 名（${fmt(n)} 行）。担当者を追加できるのは管理者（情報システム　山本 健）だけ。</div></div>
+        <ul class="p-names">${OWNERS.map(o => `<li>${icon('user')} ${o}</li>`).join('')}</ul></div>
+        <div class="ds-container__footer"><div class="ds-btn-group"><button class="ds-btn" data-act="group" data-g="">閉じる</button><span class="ds-text-small">取り込んだあと、保留の行から管理者に依頼できる</span></div></div>`;
+    }
+    return `<section class="ds-container" id="group-detail"><div class="ds-container__header"><div><h2 class="ds-container__title">${g.title}（${fmt(n)} 行）</h2><p class="ds-container__description">${g.desc}</p></div></div>${inner}</section>`;
+  }
+
+  function importing() {
+    return header('取り込んでいる。') + `<section class="ds-container"><div class="ds-container__body ds-row"><span class="ds-spinner" aria-hidden="true"></span>取り込んでいる…</div></section>`;
+  }
+
+  function done() {
+    const c = C(), r = remaining();
+    const held = sum(r);
+    const time = S.morning ? '昨日 17:21' : '17:21';
+    let banner = '';
+    if (S.morning && !S.ownerImported && c.owner) {
+      banner = `<div class="ds-flash" id="morning-banner">${icon('info')}<div class="ds-flash__content"><div class="ds-flash__title">昨日の取込に保留が ${fmt(held)} 行ある</div>担当者 ${OWNERS.length} 名は、山本 健（情報システム）が担当者マスタに追加した（今日 8:12）。担当者の ${fmt(c.owner)} 行は、そのまま取り込める。</div><button class="ds-btn ds-btn--primary" id="import-owner" data-act="ownerImport">${fmt(c.owner)} 行を取り込む</button></div>`;
+    }
+    const heldRows = [];
+    if (r.company) heldRows.push(`<li class="p-group" id="held-company"><span class="ds-status ds-status--warning">${icon('warning')}${fmt(r.company)} 行</span><div><div class="p-group__title">会社名が空</div><div class="p-group__desc">個人での来場者が含まれている。会社名を入れるか、取り込まない</div></div><button class="ds-btn" id="exclude-company" data-act="exclude">取り込まない</button></li>`);
+    if (r.owner) {
+      const status = S.morning ? `<span class="ds-status ds-status--success">${icon('success')}追加済み（今日 8:12）</span>` : S.handoff ? `<span class="ds-status ds-status--info" id="handoff-status">${icon('clock')}山本 健に依頼済み（17:24）</span>` : `<button class="ds-btn" id="handoff-btn" data-act="handoff">管理者に追加を依頼</button>`;
+      heldRows.push(`<li class="p-group" id="held-owner"><span class="ds-status ds-status--warning">${icon('warning')}${fmt(r.owner)} 行</span><div><div class="p-group__title">担当者が担当者マスタにいない</div><div class="p-group__desc">${OWNERS.join('、')}。追加できるのは管理者（山本 健）</div></div>${status}</li>`);
+    }
+    const flash = held
+      ? `<div class="ds-alert ds-alert--success" id="done-flash">${icon('success')}<div class="ds-alert__content"><b>${fmt(S.imported)} 行を取り込んだ</b>（${time}）。保留は ${fmt(held)} 行。保留の行は、この画面と取込の履歴に残る。</div></div>`
+      : `<div class="ds-alert ds-alert--success" id="done-flash">${icon('success')}<div class="ds-alert__content"><b>取込が終わった。</b>${fmt(S.imported)} 行を取り込み${S.excluded ? `、${fmt(c.company)} 行を取り込まなかった` : ''}。保留の行はない。</div></div>`;
+    return `<div class="ds-page-header"><div><h1 class="ds-h1">展示会来場者 2026秋</h1><p class="ds-page-header__description p-file__name" style="font-weight:normal">${FILE}</p></div></div>
+      <div class="ds-stack">${banner}${flash}
+      ${held ? `<section class="ds-container" id="held"><div class="ds-container__header"><div><h2 class="ds-container__title">保留の行（${fmt(held)} 行）</h2><p class="ds-container__description">まだ取り込んでいない行。直すと、ここから取り込める。</p></div></div><div class="ds-container__body ds-container__body--flush"><ul class="p-groups">${heldRows.join('')}</ul></div></section>` : ''}
+      <div><a class="ds-link" href="#" onclick="return false">取り込んだ顧客を一覧で見る</a></div></div>`;
+  }
+
+  function renderHistory() {
+    const c = C(), held = sum(remaining());
+    const items = [];
+    if (S.screen === 'done') items.push(`<li><a class="ds-sidenav__link" href="#" onclick="return false" aria-current="${S.screen === 'done'}">${held ? icon('warning') : icon('success')}<span>展示会来場者 2026秋<small>${held ? `保留 ${fmt(held)} 行` : '完了'}　・　${S.morning ? '昨日' : '今日'} 17:21</small></span></a></li>`);
+    else if (S.file && S.screen !== 'upload') items.push(`<li><a class="ds-sidenav__link" href="#" onclick="return false">${icon('clock')}<span>展示会来場者 2026秋<small>${S.screen === 'checking' ? '検査中' : '検査済み・未取込'}</small></span></a></li>`);
+    items.push(`<li><a class="ds-sidenav__link" href="#" onclick="return false">${icon('success')}<span>既存顧客の更新 10月分<small>完了　・　10/31</small></span></a></li>`);
+    const h = document.getElementById('history'), html = items.join('');
+    if (h.innerHTML !== html) h.innerHTML = html;   // 同じなら書き換えない
+  }
+
+  /* ---------- 操作 ---------- */
+  function set(p) { Object.assign(S, p); render(); }
+  function say(t) { document.getElementById('live').textContent = t; }
+  function runCheck() {
+    clearInterval(timer);
+    set({ screen: 'checking', progress: 4 });
+    timer = setInterval(() => {
+      if (S.screen !== 'checking') { clearInterval(timer); return; }
+      const p = Math.min(100, S.progress + 12);
+      if (p >= 100) { clearInterval(timer); set({ screen: 'review', progress: 100 }); say('検査が終わった'); if (window.ds) ds.toast({ title: '検査が終わった', message: `直す必要がある行：${fmt(problemsTotal())} 行`, tone: problemsTotal() ? 'warning' : 'success' }); }
+      else set({ progress: p });
+    }, 400);
+  }
+  main.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act, g = b.dataset.g;
+    const c = C();
+    if (a === 'pick') set({ file: true });
+    else if (a === 'reset') { clearInterval(timer); set(Object.assign({}, DEFAULT, { scn: S.scn })); }
+    else if (a === 'check') runCheck();
+    else if (a === 'group') set({ group: g || null });
+    else if (a === 'apply') { set(g === 'phone' ? { fixedPhone: true, group: null } : { fixedEmail: true, group: null }); say(`${fmt(c[g])} 行を直した`); }
+    else if (a === 'undo') set(g === 'phone' ? { fixedPhone: false } : g === 'email' ? { fixedEmail: false } : g === 'company' ? { excluded: false } : {});
+    else if (a === 'exclude') set({ excluded: true, group: null, imported: S.imported });
+    else if (a === 'import') { const ready = c.total - sum(remaining()); set({ screen: 'importing', group: null }); setTimeout(() => { set({ screen: 'done', imported: ready }); say(`${fmt(ready)} 行を取り込んだ`); }, 900); }
+    else if (a === 'handoff') { set({ handoff: true }); if (window.ds) ds.toast({ title: '依頼した', message: '山本 健に担当者 3 名の追加を依頼した', tone: 'info' }); }
+    else if (a === 'ownerImport') { set({ ownerImported: true, imported: S.imported + c.owner }); say(`${fmt(c.owner)} 行を取り込んだ`); }
+  });
+  document.querySelector('.proto-panel').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.scn) { clearInterval(timer); set(Object.assign({}, DEFAULT, { scn: b.dataset.scn })); }
+    if (b.dataset.jump === 'review') set({ file: true, screen: 'review', progress: 100 });
+    if (b.dataset.jump === 'morning') { const c = C(); set({ file: true, screen: 'done', imported: S.imported || c.total - problemsTotal() + c.phone + c.email, fixedPhone: true, fixedEmail: true, handoff: true, morning: true }); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === '?' && e.shiftKey) { const h = document.documentElement; h.dataset.panel = h.dataset.panel === 'off' ? 'on' : 'off'; } });
+
+  /* ---------- URL とデモから状態を当てる ---------- */
+  function fromHash() {
+    const q = Object.fromEntries(location.hash.replace(/^#/, '').split('&').filter(Boolean).map(kv => kv.split('=')));
+    if (q.scenario && SCN[q.scenario]) S.scn = q.scenario;
+  }
+  window.uxDemoApply = function (state) {
+    clearInterval(timer);
+    S = Object.assign({}, DEFAULT, state);
+    shown = null;   // デモから当てるときは、画面を丸ごと描き直す
+    render();
+    if (state.toast && window.ds) ds.toast(state.toast);
+  };
+  fromHash();
+  render();
+})();
+</script>
+</body>
+</html>

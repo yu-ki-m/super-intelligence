@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+  見本の仮説デモ：D-01（C-02 / S-02 / iter-01）
+  架空の案件「顧客管理SaaSのCSV取込を作り直す」の、締め切り前に一部の行が失敗する場面。
+  台本の書き方は references/demo.md。プロトタイプは同じフォルダの proto-C-02.html。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仮説デモ D-01 締め切り前に失敗行だけ直す</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../sample-design-system/components.css">
+<link rel="stylesheet" href="../demo-player/player.css">
+<script src="../sample-design-system/components.js" defer></script>
+<script>
+window.UX_DEMO = {
+  id: 'D-01',
+  title: 'CSV取込：締め切り前に、失敗した行だけ直して取り込む',
+  disclaimer: 'これはスキルに同梱した見本で、案件・会社名・電話番号・メールアドレス・人物はすべて架空である。登場人物の発言と心の声は設計チームが置いたもので、[発言] [観察] [資料] 以外は実ユーザーの証拠ではない。',
+  refs: { case: 'C-02', scenario: 'S-02', iteration: 'iter-01' },
+  prototype: 'proto-C-02.html',
+  purpose: '展示会のリストを今日中に取り込みたい担当者が、一部の行の失敗にどこで気付き、何を考えて、どう片付けるかを、画面の切り替わりと一緒に追う。取込前の検査・理由ごとのまとまり・保留と依頼が、本当に担当者の判断と手間を減らすのか、どこで崩れそうかを、チームで話し合うためのデモ。',
+
+  cast: [
+    { id: 'sato', name: '佐藤 美咲', initial: '佐', role: '顧客企業の営業企画（事務）', tone: 1, face: { hair: 'long' }, label: '[仮定]',
+      profile: '月に 2〜3 回、展示会やセミナーの来場者リストを取り込む。Excel には慣れているが、取込の規則（必須の項目、形式）は覚えていない。' },
+    { id: 'tanaka', name: '田中 浩二', initial: '田', role: '佐藤さんの上司（営業企画の課長）', tone: 3, face: { hair: 'short', hairColor: 'gray', glasses: true }, label: '[仮定]',
+      profile: '取り込んだリストで、翌朝に御礼のメールを配信したい。取込の中身は見ず、「入ったかどうか」だけを気にしている。' },
+    { id: 'yamamoto', name: '山本 健', initial: '山', role: '情報システム（顧客管理の管理者）', tone: 2, face: { hair: 'side', skin: 1 }, label: '[仮定]',
+      profile: '担当者マスタを管理している唯一の人。依頼はふだんチャットで受け、まとめて処理する。' }
+  ],
+
+  hypotheses: [
+    { id: 'H-01', label: '[推論]',
+      text: '取り込む前に全行を検査し、結果をその場で見せると、失敗に気付くのが「数分後のメール」から「その場」になり、行番号だけのエラーによる問い合わせが減る。',
+      falsify: '検査結果を見ても、何をどう直せばよいか分からず、サポートに問い合わせる。',
+      check: '失敗を含むファイルを実ユーザーに渡し、問い合わせずに取込を終えられるかを観察する。' },
+    { id: 'H-02', label: '[推論]',
+      text: '問題のある行を理由ごとにまとめると、47 行を 1 行ずつ見るより、判断の回数が減る（47 回から 4 回）。',
+      falsify: '同じ理由のまとまりの中に、1 行ずつ判断しないといけない行が多く混ざる（例：形式は違うが、実は別の番号）。',
+      check: '実際の失敗行を理由ごとに分け、まとまりの中で判断が分かれる行の割合を数える。',
+      alt: '判断の回数ではなく、「自分に直せるかどうか」が分かることのほうが効いている可能性がある。' },
+    { id: 'H-03', label: '[推論]',
+      text: 'まとめて直す提案を「変更前と変更後」と並べて見せれば、利用者は確かめてから確定し、誤った自動修正を見逃さない。',
+      falsify: '変更後を見ずに確定する。または、怖がって確定しない。',
+      check: '提案に誤りを 1 件混ぜたファイルで、利用者が気付くかを観察する。' },
+    { id: 'H-04', label: '[推論]',
+      text: '取り込める行だけ先に取り込み、残りを保留にできれば、締め切りを守りながら、直せない行を忘れずに済む。',
+      falsify: '保留の行が、直されないまま放置される。',
+      check: '公開後、保留の行が解消されるまでの日数と、1 週間後に残っている割合を計測する。' },
+    { id: 'H-05', label: '[仮定]',
+      text: '管理者にしか直せない行をその場で管理者に依頼でき、翌朝の入口に結果が出れば、利用者はチャットやメモで追いかけずに済む。',
+      falsify: '依頼したあとも、利用者がチャットで催促する。または、翌朝に保留があることに気付かない。',
+      check: '依頼から解消までの間に、利用者が画面の外で行った確認・催促を聞き取る。' }
+  ],
+
+  scenes: [
+    { id: 'sc-01', title: '明日の配信に間に合わせたい', short: '依頼を受ける', time: '火曜 16:40', place: '営業企画の島',
+      screen: '取込（ファイル未選択）', state: { screen: 'upload', file: false },
+      beats: [
+        { type: 'situation', when: '状況', text: '展示会の来場者リスト 3,214 件を、今日中に顧客管理へ取り込む必要がある。田中課長は、明日の朝 9 時に来場の御礼メールを配信したい。', label: '[仮定]' },
+        { type: 'say', who: 'tanaka', text: '展示会のリスト、今日中に入れておいてもらえる？ 明日の朝イチで御礼のメールを出したいから。', label: '[仮定]' },
+        { type: 'say', who: 'sato', text: 'はい、夕方までに入れておきます。', label: '[仮定]' },
+        { type: 'think', who: 'sato', text: '前に取り込んだときは、何分かたってから「47 行目 不正な値」っていうメールだけが来た。どこが悪いのか分からなくて、サポートに電話したんだった。', label: '[推論]' },
+        { type: 'situation', when: 'これまでの取込', text: '今の取込では、取り込んでから数分後に「エラー：47 行目 不正な値」のようなメールが届くだけである。取込の失敗は、サポートへの問い合わせの 3 割を占めている。', label: '[発言]' }
+      ] },
+
+    { id: 'sc-02', title: 'ファイルを選ぶ', short: 'ファイル選択', time: '火曜 16:45', place: '自席',
+      screen: '取込（ファイル選択済み・検査前）', state: { file: true },
+      beats: [
+        { type: 'do', who: 'sato', text: '来場者リストの CSV を選ぶ', highlight: '#file-row' },
+        { type: 'think', who: 'sato', text: 'ファイル名が長いけど、「最終版(2)」で合ってるはず……。3,214 行なら、課長からもらった件数と同じ。', label: '[推論]' },
+        { type: 'question', text: '利用者は、取り込むファイルを取り違えていないことを何で確かめているか（ファイル名、行数、中身の数行）。行数を出すだけで足りるのか。', to: '実ユーザーの観察（取込の場面を見せてもらう）' },
+        { type: 'do', who: 'sato', text: '「取り込む前に検査する」を押す', highlight: '#check-btn' },
+        { type: 'hypothesis', ref: 'H-01' }
+      ] },
+
+    { id: 'sc-03', title: '検査が終わるのを待つ', short: '検査中', time: '火曜 16:46', place: '自席',
+      screen: '検査中（62%）', state: { screen: 'checking', progress: 62 },
+      beats: [
+        { type: 'situation', when: '状況', text: '3,214 行の検査に、約 40 秒かかる。この値はプロトタイプで置いた仮のもの。', label: '[仮定]', highlight: '#check-progress' },
+        { type: 'think', who: 'sato', text: 'まだ何も取り込まれていないなら、途中で止めても大丈夫そう。見つかった問題が増えていくのが、ちょっと怖いけど。', label: '[推論]' },
+        { type: 'question', text: '3,000 行と 50,000 行の検査に、実際どれくらいかかるか。1 分を超えるなら、待たずに別の仕事へ移れることのほうが大事になる。', to: '開発チーム（技術確認）' }
+      ] },
+
+    { id: 'sc-04', title: '47 行に問題があった', short: '検査結果', time: '火曜 16:47', place: '自席',
+      screen: '検査結果（47 行 要修正）', state: { screen: 'review', progress: 100 },
+      beats: [
+        { type: 'say', who: 'sato', text: '47 行……。でも、3,167 行はもう入れられるんだ。', label: '[仮定]', highlight: '#summary', tag: '取り込める行と、直す必要がある行' },
+        { type: 'think', who: 'sato', text: '1 行ずつ直すなら、今日中には終わらない。', label: '[推論]' },
+        { type: 'situation', when: '画面', text: '問題のある 47 行は、4 つの理由にまとめて表示されている。それぞれに、まとめて直せるか、管理者が必要かが書かれている。', highlight: '#groups' },
+        { type: 'think', who: 'sato', text: '電話番号とメールは、まとめて直せそう。担当者の 6 行は……私には直せないやつだ。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-02' }
+      ] },
+
+    { id: 'sc-05', title: '電話番号をまとめて直す', short: 'まとめて直す', time: '火曜 16:52', place: '自席',
+      screen: '電話番号の変更前と変更後', state: {},
+      beats: [
+        { type: 'do', who: 'sato', text: '「電話番号の形式」の「まとめて直す」を押す', highlight: '#group-phone' },
+        { type: 'situation', when: '画面', text: '直す提案の 18 行が、変更前と変更後で並んでいる。確定するまで、データは変わらない。', state: { group: 'phone' }, highlight: '#group-detail' },
+        { type: 'think', who: 'sato', text: '勝手に直されるのは怖い。でも、前と後が並んでいれば、おかしいのは分かる。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-03' },
+        { type: 'do', who: 'sato', text: '「18 行の変更を確定」を押す', highlight: '#apply-phone' },
+        { type: 'do', who: 'sato', text: 'メールアドレスの 17 行も、同じように確かめて確定する', state: { group: null, fixedPhone: true, fixedEmail: true }, screen: '検査結果（12 行 要修正）', highlight: '#groups' }
+      ] },
+
+    { id: 'sc-06', title: '会議に呼ばれる', short: '中断', time: '火曜 17:20', place: '会議室の前',
+      screen: '検査結果（12 行 要修正）', state: {},
+      beats: [
+        { type: 'say', who: 'tanaka', text: '佐藤さん、もう会議始まるよ。リストは入った？', label: '[仮定]' },
+        { type: 'think', who: 'sato', text: '会社名が空の 6 行と、担当者の 6 行が残ってる。全部直してからだと、配信に間に合わない。', label: '[推論]' },
+        { type: 'do', who: 'sato', text: '「3,202 行を取り込む（12 行は保留）」を押す', highlight: '#partial-btn' },
+        { type: 'say', who: 'sato', text: '先に 3,202 件入れました。残りの 12 件は保留にしてあります。', label: '[仮定]', state: { screen: 'done', imported: 3202 }, screen: '取込完了（保留 12 行）', highlight: '#done-flash' },
+        { type: 'hypothesis', ref: 'H-04' },
+        { type: 'question', text: '保留の行を、利用者はあとで本当に直すか。直さないまま 1 週間たつ割合はどれくらいか。', to: '公開後の計測（保留が解消されるまでの日数）' }
+      ] },
+
+    { id: 'sc-07', title: '担当者の追加を頼む', short: '管理者に依頼', time: '火曜 17:23', place: '会議室',
+      screen: '取込完了（保留 12 行）', state: {},
+      beats: [
+        { type: 'think', who: 'sato', text: '担当者マスタは山本さんしか触れない。いつもはチャットで頼んで、返事が来たかを自分で見に行ってた。', label: '[推論]' },
+        { type: 'do', who: 'sato', text: '保留の行から「管理者に追加を依頼」を押す', highlight: '#handoff-btn' },
+        { type: 'situation', when: '画面', text: '依頼が山本さんに届き、保留の行に「依頼済み」と表示される。', state: { handoff: true }, highlight: '#handoff-status' },
+        { type: 'say', who: 'yamamoto', text: '（通知を見て）3 名ですね。明日の朝、追加しておきます。', label: '[仮定]' },
+        { type: 'question', text: '顧客企業で、担当者マスタを管理しているのは誰か。管理者がいない会社や、管理者が社外にいる会社では、この依頼の流れは成り立たない。', to: '依頼者（営業・カスタマーサクセス）' }
+      ] },
+
+    { id: 'sc-08', title: '翌朝、保留を片付ける', short: '翌朝に再開', time: '水曜 8:50', place: '自席',
+      screen: '翌朝の取込の画面', state: { morning: true },
+      beats: [
+        { type: 'situation', when: '状況', text: '山本さんは 8:12 に担当者 3 名を追加した。配信の 10 分前に、佐藤さんは取込の履歴を開いた。', label: '[仮定]', highlight: '#morning-banner' },
+        { type: 'think', who: 'sato', text: '昨日の続きがいちばん上に出てる。担当者の 6 行は、もう入れられるんだ。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-05' },
+        { type: 'do', who: 'sato', text: '「6 行を取り込む」を押す', highlight: '#import-owner' },
+        { type: 'do', who: 'sato', text: '会社名が空の 6 行は、個人での来場者なので「取り込まない」を押す', state: { ownerImported: true, imported: 3208 }, highlight: '#exclude-company' },
+        { type: 'say', who: 'tanaka', text: 'おはよう。リスト、全部入った？', label: '[仮定]', state: { excluded: true }, screen: '取込完了（保留なし）', highlight: '#done-flash' },
+        { type: 'say', who: 'sato', text: '3,208 件入りました。会社名のない 6 件は個人の方なので、外してあります。', label: '[仮定]' },
+        { type: 'think', who: 'tanaka', text: '件数が分かっていれば、それでいい。', label: '[推論]' }
+      ] }
+  ]
+};
+</script>
+<script src="../demo-player/player.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>
