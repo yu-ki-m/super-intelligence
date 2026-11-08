@@ -25,6 +25,7 @@
 
 /* ========== 1. 台 ========== */
 .dv-stage {
+  box-sizing: border-box;   /* 余白の分だけ縦にはみ出し、スクロールバーが出るのを防ぐ */
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -86,6 +87,15 @@
 }
 .dv-phone::before { top: 28%; height: 9%; }
 .dv-phone::after { top: 40%; height: 5.5%; }
+
+/* タブレット（data-device="tablet"）。縦が既定、data-orientation="landscape" で横。
+ * 画面の大きさ・黒い縁・角丸・側面のボタンの位置だけを変え、時刻の帯・下の操作の帯・キーボードはそのまま広がる */
+.dv-phone[data-device="tablet"] { --dv-screen-w: 800px; --dv-screen-h: 1280px; --dv-bezel: 16px; --dv-radius: 40px; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"] { --dv-screen-w: 1280px; --dv-screen-h: 800px; }
+.dv-phone[data-device="tablet"]::before { top: 10%; height: 5%; }
+.dv-phone[data-device="tablet"]::after { top: 17%; height: 3.5%; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"]::before { top: 14%; height: 8%; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"]::after { top: 26%; height: 5%; }
 
 /* 黒い縁（ガラス） */
 .dv-phone__glass {
@@ -218,6 +228,9 @@ iframe.dv-viewport { height: calc(100% - var(--dv-kb-h)); background: transparen
 .dv-phone[data-nav="buttons"] .dv-navbar { height: 48px; }
 .dv-phone[data-nav="buttons"] .dv-navbar__handle { display: none; }
 .dv-phone[data-nav="buttons"] .dv-navbar__buttons { display: flex; justify-content: space-around; width: 100%; padding: 0 36px; }
+/* タブレットでは、3 つのボタンを左右に広げず、中央に寄せる */
+.dv-phone[data-device="tablet"][data-nav="buttons"] .dv-navbar__buttons { justify-content: center; gap: 120px; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"][data-nav="buttons"] .dv-navbar__buttons { gap: 160px; }
 .dv-navbar__btn {
   display: grid; place-items: center;
   width: 56px; height: 40px;

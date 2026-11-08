@@ -2,9 +2,9 @@
   <!-- 16x16 の線のアイコン（自作）。<svg class="ds-icon"><use href="icons.svg#ds-i-info"/></svg> で使う。
        file:// で開くと外部参照が読めないブラウザがあるため、見本の HTML には同じ定義を埋め込んでいる。
        アイコンを足したら sync-icons.py を実行して、HTML の埋め込みも揃える。 -->
-  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7v5M8 4.5v.5"/></symbol>
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7.6v4"/><circle cx="8" cy="4.4" r="1.15" fill="currentColor" stroke="none"/></symbol>
   <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
-  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 6v4M8 12v.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 5.9v3.3"/><circle cx="8" cy="11.8" r="1.05" fill="currentColor" stroke="none"/></symbol>
   <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
   <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
   <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
@@ -12,7 +12,7 @@
   <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
   <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
   <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
-  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V10M8 12v.5"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9v.5"/><circle cx="8" cy="11.9" r="1.1" fill="currentColor" stroke="none"/></symbol>
   <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
   <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
   <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>

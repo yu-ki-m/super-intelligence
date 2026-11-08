@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!--
+  見本の仮説デモ（縦のタブレット）：D-03（C-01 / S-02 / iter-01）
+  架空の案件「工場の設備の日常点検を、紙の点検表からタブレットに移す」の、巡回中に異音に気付き、途中で呼ばれて中断し、保全が受け取る場面。
+  台本の書き方は references/demo.md。プロトタイプは同じフォルダの proto-C-01.html（縦のタブレットの枠に入った画面）。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仮説デモ D-03 巡回しながら設備を点検する</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../demo-player/player.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_DEMO = {
+  id: 'D-03',
+  title: '設備点検：巡回しながら、異常だけをその場で保全に送る',
+  disclaimer: 'これはスキルに同梱した見本で、案件・工場・設備・人物はすべて架空である。登場人物の発言と心の声は設計チームが置いたもので、[発言] [観察] [資料] 以外は実ユーザーの証拠ではない。',
+  refs: { case: 'C-01', scenario: 'S-02', iteration: 'iter-01' },
+  prototype: 'proto-C-01.html',
+  purpose: '工場の点検員が、タブレットを縦に持って巡回しながら設備を点検する。数値の記録、異音の判断、異常の引継ぎ、途中で呼ばれたあとの再開までを、片手で持つ状況・手袋・判断する人がいない時間と一緒に追い、紙の点検表から移す仕組みが現場で成り立つかを話し合うためのデモ。',
+
+  cast: [
+    { id: 'takagi', name: '高木 涼', initial: '高', role: '製造課の点検員（入社 2 年目）', tone: 1, face: { hair: 'side' }, label: '[仮定]',
+      profile: '毎朝、第 2 ラインの 12 設備を巡回して点検する。手袋をしたまま、片手でタブレットを持つことが多い。異常の判断に迷うと、班長に聞いてきた。' },
+    { id: 'inoue', name: '井上 誠司', initial: '井', role: '製造課の班長', tone: 3, face: { hair: 'short', hairColor: 'gray', glasses: true }, label: '[仮定]',
+      profile: '点検の結果を確かめ、運転を止めるかを決める。朝は搬入や段取りで、ラインを離れていることが多い。' },
+    { id: 'ono', name: '大野 由美', initial: '大', role: '保全課（設備の修理）', tone: 2, face: { hair: 'bob' }, label: '[仮定]',
+      profile: '異常の連絡を受けて、修理の段取りと部品の手配をする。これまでは、昼の報告会で点検の結果を知ることが多かった。' }
+  ],
+
+  hypotheses: [
+    { id: 'H-01', label: '[推論]',
+      text: '前回の値と基準の範囲を数値の横に並べれば、点検員は読み違いに気付き、基準から外れた値をそのまま記録しない。',
+      falsify: '基準から外れた値を、警告を見ずにそのまま記録する。',
+      check: '基準から外れる値を含む点検で、記録の前に測り直した割合を観察する。' },
+    { id: 'H-02', label: '[推論]',
+      text: '判断の基準をその項目の中で開けるようにすれば、経験の浅い点検員でも「要注意」と「異常」を取り違えない。',
+      falsify: '基準を開かずに判定する。または、開いても人によって判定が割れる。',
+      check: '同じ設備の状態を、新人と熟練者に判定してもらい、一致する割合を比べる。',
+      alt: '取り違えの原因は基準の文ではなく、音を言葉にしにくいことにあるかもしれない。' },
+    { id: 'H-03', label: '[推論]',
+      text: '異常をその場で写真と所見つきで保全に送れば、修理の判断が昼の報告会を待たずに始まる。',
+      falsify: '保全が送られた異常を見るのが、結局は昼の報告会になる。',
+      check: '異常を記録してから保全が受け取るまでの時間を、紙の点検表のときと比べる。' },
+    { id: 'H-04', label: '[仮定]',
+      text: '中断しても、順路の位置と記録した項目の数が残れば、点検の飛ばしと二重の記録が起きない。',
+      falsify: '再開したあとに項目を飛ばす。または、同じ設備を二度記録する。',
+      check: '中断を含む巡回で、記録の抜けと重なりを数える。' }
+  ],
+
+  scenes: [
+    { id: 'sc-01', title: '3 台目のポンプの前で', short: '巡回中', time: '火曜 8:41', place: '第 2 ライン 床下ピット',
+      screen: '点検（P-03 冷却水ポンプ）', state: { time: '8:41', screen: 'route', eq: 2 },
+      beats: [
+        { type: 'situation', when: '状況', text: '高木さんは、第 2 ラインの日常点検を巡回している。12 設備・48 項目。今日は班長の井上さんが別の作業で、判断は自分でする。', label: '[仮定]', highlight: '#route' },
+        { type: 'situation', when: 'これまで', text: '紙の点検表では、異常に気付いても、保全への連絡は昼の報告会まで待っていた。', label: '[仮定]' },
+        { type: 'think', who: 'takagi', text: '次は P-03。床下だから、片手でタブレットを持ったままになる。', label: '[推論]' }
+      ] },
+
+    { id: 'sc-02', title: '吐出圧を記録する', short: '数値の記録', time: '火曜 8:42', place: '第 2 ライン 床下ピット',
+      screen: '点検（吐出圧）', state: { time: '8:42' },
+      beats: [
+        { type: 'do', who: 'takagi', text: '圧力計を読み、吐出圧に 0.42 を入れる', highlight: '#check-pressure' },
+        { type: 'situation', when: '画面', text: '基準の範囲と前回の値が、目盛りの上に並ぶ。', state: { pressure: '0.42' }, highlight: '#check-pressure' },
+        { type: 'think', who: 'takagi', text: '範囲の中。前回より少し低いけど、まだ大丈夫。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-01' },
+        { type: 'question', text: '手袋をしたまま、数字を正しく入れられるか。入れにくいなら、数字の入力よりも、目盛りの範囲を選ぶ形のほうがよいかもしれない。', to: '現場の観察（点検の巡回に同行する）' }
+      ] },
+
+    { id: 'sc-03', title: '異音に気付く', short: '異音の判断', time: '火曜 8:44', place: '第 2 ライン 床下ピット',
+      screen: '点検（異音の判断の基準）', state: { time: '8:44' },
+      beats: [
+        { type: 'situation', when: '状況', text: 'ポンプから、かすかに金属がこすれるような音がする。', label: '[仮定]' },
+        { type: 'think', who: 'takagi', text: '要注意？ 異常？ 紙の表だと「異音：有・無」しかなかった。', label: '[推論]' },
+        { type: 'do', who: 'takagi', text: '異音の「判断の基準」を開く', highlight: '#check-sound' },
+        { type: 'situation', when: '画面', text: '項目の中に、判断の基準が出る。', state: { open: 'sound' }, highlight: '#criteria-sound' },
+        { type: 'think', who: 'takagi', text: 'こすれる音は「異常」か。迷わなくていい。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-02' }
+      ] },
+
+    { id: 'sc-04', title: '異常を保全に送る', short: '保全に送る', time: '火曜 8:45', place: '第 2 ライン 床下ピット',
+      screen: '異常の記録', state: { time: '8:45' },
+      beats: [
+        { type: 'do', who: 'takagi', text: '異音の「異常」を押す', highlight: '#check-sound' },
+        { type: 'situation', when: '画面', text: '異常を記録するシートが下から出る。', state: { sound: 'ng', sheet: 'abnormal' }, highlight: '#finding-chips' },
+        { type: 'do', who: 'takagi', text: '所見「金属のこすれる音」を選ぶ', state: { finding: true }, highlight: '#finding-chips' },
+        { type: 'do', who: 'takagi', text: '「写真を撮る」を押し、ポンプの軸受けの付近を撮る', state: { photo: true }, highlight: '#photo' },
+        { type: 'question', text: '音は写真に残らない。保全が判断するには、録音が要るか。', to: '保全課（大野さん）' },
+        { type: 'do', who: 'takagi', text: '「記録して保全に送る」を押す', highlight: '#send-abnormal' },
+        { type: 'situation', when: '画面', text: '異音の項目に「保全に送った」と残る。', state: { sheet: null, sent: true, time: '8:47' }, screen: '点検（P-03 保全に送った）', highlight: '#sent-note' },
+        { type: 'hypothesis', ref: 'H-03' }
+      ] },
+
+    { id: 'sc-05', title: '班長に呼ばれる', short: '中断', time: '火曜 8:52', place: '第 2 ライン C-01 の前',
+      screen: '点検（C-01 冷却塔ファン）', state: { time: '8:52', eq: 3 },
+      beats: [
+        { type: 'say', who: 'inoue', text: '（無線で）高木さん、手が空いたら搬入口に来て。荷下ろしを手伝ってほしい。', label: '[仮定]', highlight: '#route' },
+        { type: 'think', who: 'takagi', text: 'C-01 の途中だけど……。あとで、どこまでやったか分かるかな。', label: '[推論]' },
+        { type: 'situation', when: '状況', text: 'タブレットを点検台に置いて、12 分ほど離れる。', label: '[仮定]' }
+      ] },
+
+    { id: 'sc-06', title: '続きから再開する', short: '再開', time: '火曜 9:06', place: '第 2 ライン C-01 の前',
+      screen: '点検（再開）', state: { time: '9:06', resumed: true },
+      beats: [
+        { type: 'situation', when: '画面', text: '開くと、中断した設備と、記録した項目の数が上に出る。', highlight: '#resume-banner' },
+        { type: 'think', who: 'takagi', text: 'C-01 の途中からだ。飛ばさずに済む。', label: '[推論]' },
+        { type: 'hypothesis', ref: 'H-04' },
+        { type: 'question', text: '中断のあいだに、別の人が同じ設備を点検した場合、どちらの記録を残すか。', to: '班長（井上さん）と開発チーム' }
+      ] },
+
+    { id: 'sc-07', title: '保全が受け取る', short: '保全の受け取り', time: '火曜 9:40', place: '保全課',
+      screen: '点検の終わり（保全が受け取った）', state: { time: '9:40', screen: 'done', accepted: true },
+      beats: [
+        { type: 'say', who: 'ono', text: 'P-03 の異音、写真を見ました。軸受けかもしれないので、昼に止めて見ます。', label: '[仮定]', highlight: '#handoff-status' },
+        { type: 'think', who: 'ono', text: '写真と所見があるから、現場に行く前に部品を用意できる。', label: '[推論]' },
+        { type: 'question', text: '保全は、送られた異常をどの端末で受けるのか（タブレット、スマートフォン、パソコン）。受ける端末によって、通知の出し方が変わる。', to: '保全課' }
+      ] }
+  ]
+};
+</script>
+<script src="../../demo-player/player.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

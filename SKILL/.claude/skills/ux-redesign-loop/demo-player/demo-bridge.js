@@ -72,18 +72,54 @@
     cancelAnimationFrame(raf);
   }
 
+  /* 枠はページの一番上の層に描くので、そのままでは、対象を切り取っている枠（スマートフォンの端末の画面、スクロールする欄）の
+     外にも出てしまう。対象の祖先のうち、はみ出しを隠すものをたどり、その範囲と重なる部分だけを見せる */
+  var clipFor = null, clippers = [];
+  function clipAncestors(el) {
+    var list = [], n = el.parentElement;
+    while (n && n !== document.documentElement) {
+      var cs = getComputedStyle(n);
+      if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') list.push(n);
+      n = n.parentElement;
+    }
+    return list;
+  }
+  function visibleBox() {
+    var b = { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+    clippers.forEach(function (c) {
+      var r = c.getBoundingClientRect();
+      b.top = Math.max(b.top, r.top); b.left = Math.max(b.left, r.left);
+      b.right = Math.min(b.right, r.right); b.bottom = Math.min(b.bottom, r.bottom);
+    });
+    return b;
+  }
+
   function place() {
     if (!target || !target.isConnected) { hide(); return; }
+    if (clipFor !== target) { clippers = clipAncestors(target); clipFor = target; }
     var r = target.getBoundingClientRect();
+    var c = visibleBox();
+    var v = { top: Math.max(r.top, c.top), left: Math.max(r.left, c.left), right: Math.min(r.right, c.right), bottom: Math.min(r.bottom, c.bottom) };
+    var shown = v.right - v.left > 2 && v.bottom - v.top > 2;   // 対象が少しでも見えているか
     ring.style.top = r.top + 'px';
     ring.style.left = r.left + 'px';
     ring.style.width = r.width + 'px';
     ring.style.height = r.height + 'px';
+    ring.style.visibility = shown ? 'visible' : 'hidden';
+    // 見えている部分だけを残す。切り取られていない辺は、枠の線（外側に約 8px）が見えるよう、少し外まで残す
+    ring.style.clipPath = ring.hasAttribute('data-spot') ? 'none' : 'inset(' + [
+      v.top > r.top ? v.top - r.top : -10,
+      r.right > v.right ? r.right - v.right : -10,
+      r.bottom > v.bottom ? r.bottom - v.bottom : -10,
+      v.left > r.left ? v.left - r.left : -10
+    ].map(function (x) { return x + 'px'; }).join(' ') + ')';
     if (tag.textContent) {
-      var th = tag.offsetHeight || 24;
-      var below = r.top - th - 12 < 4;
-      tag.style.top = (below ? r.bottom + 12 : r.top - th - 12) + 'px';
-      tag.style.left = Math.max(4, Math.min(r.left, window.innerWidth - tag.offsetWidth - 4)) + 'px';
+      tag.style.visibility = shown ? 'visible' : 'hidden';
+      // 説明の札も、見えている範囲の中に置く（上に置けなければ下、どちらも無理なら見えている部分の内側の上）
+      var th = tag.offsetHeight || 24, tw = tag.offsetWidth || 120;
+      var top = v.top - th - 12 >= c.top ? v.top - th - 12 : v.bottom + 12 + th <= c.bottom ? v.bottom + 12 : v.top + 6;
+      tag.style.top = top + 'px';
+      tag.style.left = Math.max(c.left + 4, Math.min(v.left, c.right - tw - 4)) + 'px';
     }
     raf = requestAnimationFrame(place);
   }

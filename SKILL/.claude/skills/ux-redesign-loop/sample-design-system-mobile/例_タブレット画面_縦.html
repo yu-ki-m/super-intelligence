@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<!--
+  縦のタブレットの画面の例：工場の設備の日常点検（架空）
+  点検員が巡回しながら、タブレットを縦に片手で持って点検項目を記録する。上に点検の順路、中央に今の設備の点検項目を
+  大きな切り替えボタン（正常・要注意・異常）で並べ、異常のときは下からシートを出して保全に送る。
+  - 端末：.dv-phone に data-device="tablet"（800 × 1280）。縮め方・時刻の帯・下の帯・キーボードは device.js が受け持つ
+  - 中身の幅：DS の .ds-content は中身を幅 640px で中央に寄せるので、この画面ではタブレットの幅を使うよう上限を外している
+  - 画面の状態は、1 つの状態オブジェクトから描き直す。端末の「戻る」は、開いているシートを閉じ、前の設備へ戻る
+  - 右のデモの操作盤で、端末の色・下の帯・明るさ・見た目、端末の出来事（保全からの返事の通知・使い方の案内・ホーム画面。スマートフォンの例と同じ 3 つ）、大量の設備、中断からの再開、保全の受け取りを試せる
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>日常点検（縦のタブレットの画面例）</title>
+<script>
+  try {
+    const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    const l = localStorage.getItem('ds-look'); if (l === 'console') document.documentElement.dataset.look = l; else if (l === 'minimal') delete document.documentElement.dataset.look;
+  } catch (_) {}
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="device.css">
+<script src="components.js" defer></script>
+<script src="device.js" defer></script>
+<style>
+  /* この画面だけの見た目 */
+  .ds-content > * { max-width: none; }   /* タブレットの幅を使い切る（DS の既定は 640px で中央に寄せる） */
+  .p-route { display: flex; gap: 8px; overflow-x: auto; padding: var(--ds-space-xs) var(--ds-space-screen) var(--ds-space-s); scrollbar-width: none; background: var(--ds-color-bg-container); border-bottom: 1px solid var(--ds-color-border-divider); }
+  .p-stop { flex: none; display: grid; gap: 2px; min-width: 104px; padding: 8px 12px; border: 1px solid var(--ds-color-border-container); border-radius: 12px; background: var(--ds-color-bg-page); font-size: var(--ds-font-size-body-s); }
+  .p-stop b { font-size: var(--ds-font-size-body-m); }
+  .p-stop[aria-current="step"] { border: 2px solid var(--ds-color-border-selected); background: var(--ds-color-bg-container); }
+  .p-stop .ds-status { font-size: 12px; }
+  .p-eq { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: start; }
+  .p-eq h1 { margin: 0; font-size: 26px; line-height: 1.3; }
+  .p-eq .ds-text-small { color: var(--ds-color-text-secondary); }
+  .p-item { display: grid; gap: 10px; padding: 18px 20px; border: 1px solid var(--ds-color-border-container); border-radius: 16px; background: var(--ds-color-bg-container); }
+  .p-item[data-state="ng"] { border-color: var(--ds-color-error); box-shadow: inset 4px 0 0 var(--ds-color-error); }
+  .p-item[data-state="warn"] { border-color: var(--ds-color-warning-border); box-shadow: inset 4px 0 0 var(--ds-color-warning); }
+  .p-item__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .p-item__head h2 { margin: 0; font-size: 19px; }
+  .p-item__head span { color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-item .ds-segmented > button { min-height: 56px; font-size: 16px; }
+  .p-num { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: center; }
+  .p-num .ds-input { font-size: 28px; height: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+  .p-gauge { position: relative; height: 10px; border-radius: 5px; background: var(--ds-color-bg-muted); }
+  .p-gauge__ok { position: absolute; top: 0; bottom: 0; left: 20%; right: 20%; border-radius: 5px; background: var(--ds-color-success-bg); border: 1px solid var(--ds-color-success); }
+  .p-gauge__mark { position: absolute; top: -6px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: var(--ds-color-text-body); }
+  .p-gauge__prev { position: absolute; top: -4px; width: 2px; height: 18px; margin-left: -1px; background: var(--ds-color-text-description); }
+  .p-gauge-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--ds-color-text-secondary); margin-top: 8px; }
+  .p-criteria { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-body-m); line-height: 1.7; }
+  .p-criteria b { display: block; margin-bottom: 2px; }
+  .p-unimpl { display: inline-flex; padding: 0 6px; border: 1px dashed var(--ds-color-border-input); border-radius: 4px; color: var(--ds-color-text-secondary); font-size: 12px; }
+  .p-photo { display: grid; place-items: center; gap: 4px; height: 150px; border: 1px dashed var(--ds-color-border-input); border-radius: 12px; color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+  .p-photo.is-taken { border-style: solid; background: linear-gradient(135deg, var(--ds-color-bg-muted), var(--ds-color-bg-subtle)); color: var(--ds-color-text-body); }
+  /* 異常を記録するシート：タブレットの幅と高さを使う。左に所見の大きな選択肢とメモ、右に大きな写真の枠 */
+  .p-sheet-wide { left: 24px; right: 24px; max-height: 62%; border-radius: 28px 28px 0 0; }
+  .p-sheet-wide .ds-sheet__header { padding-top: 4px; }
+  .p-ab-context { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 4px; font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-normal); }
+  .p-ab-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+  .p-ab-label { margin: 0 0 8px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+  .p-find { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .p-find button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px; border: 1px solid var(--ds-color-border-input); border-radius: 14px; background: var(--ds-color-bg-container); color: var(--ds-color-text-body); font: inherit; font-size: 17px; text-align: left; cursor: pointer; }
+  .p-find__box { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border: 2px solid var(--ds-color-border-input); border-radius: 6px; color: transparent; }
+  .p-find__box .ds-icon { width: 16px; height: 16px; }
+  .p-find button[aria-pressed="true"] { border-color: var(--ds-color-border-selected); box-shadow: inset 0 0 0 1px var(--ds-color-border-selected); font-weight: var(--ds-font-weight-bold); }
+  .p-find button[aria-pressed="true"] .p-find__box { border-color: var(--ds-color-border-selected); background: var(--ds-color-border-selected); color: #fff; }
+  .p-ab-grid .p-photo { height: 240px; }
+  .p-ab-grid .ds-textarea { min-height: 72px; margin-top: 12px; }
+</style>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7.6v4"/><circle cx="8" cy="4.4" r="1.15" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 5.9v3.3"/><circle cx="8" cy="11.8" r="1.05" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
+  <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9v.5"/><circle cx="8" cy="11.9" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
+  <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
+  <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+  <symbol id="ds-i-angle-right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="ds-i-angle-left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="ds-i-caret-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="ds-i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V2H2v9h3"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-more" viewBox="0 0 16 16"><path d="M8 3v.5M8 8v.5M8 13v.5" stroke-width="2.5"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="ds-i-bulb" viewBox="0 0 16 16"><path d="M6 12.5h4M6.5 15h3M5.5 10.5C4.3 9.6 3.5 8.3 3.5 6.5a4.5 4.5 0 0 1 9 0c0 1.8-.8 3.1-2 4z"/></symbol>
+  <symbol id="ds-i-terminal" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-tree" viewBox="0 0 16 16"><path d="M3 2v11h5M3 7h5"/><rect x="9" y="5" width="5" height="4" rx="1"/><rect x="9" y="11" width="5" height="4" rx="1"/></symbol>
+  <symbol id="ds-i-trophy" viewBox="0 0 16 16"><path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0zM4.5 3.5H2v1a2.5 2.5 0 0 0 2.5 2.5M11.5 3.5H14v1A2.5 2.5 0 0 1 11.5 7M8 9.5V12M5 14.5h6M6 12h4"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-filter" viewBox="0 0 16 16"><path d="M1.5 2.5h13l-5 6v5l-3 1.5v-6.5z"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-folder" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 2h6.5v8h-13z"/></symbol>
+  <symbol id="ds-i-paperclip" viewBox="0 0 16 16"><path d="M13.5 7.5l-5.8 5.8a3.5 3.5 0 0 1-5-5L8.5 2.5a2.3 2.3 0 0 1 3.3 3.3L6 11.6a1.2 1.2 0 0 1-1.7-1.7L9.5 4.7"/></symbol>
+  <symbol id="ds-i-medal" viewBox="0 0 16 16"><circle cx="8" cy="10" r="4.5"/><path d="M5 6.5L3 1.5h3.5L8 5M11 6.5l2-5H9.5L8 5M8 8.2l.6 1.2 1.3.2-1 .9.3 1.3L8 11.2l-1.2.6.3-1.3-1-.9 1.3-.2z"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-target" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1"/></symbol>
+  <symbol id="ds-i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></symbol>
+  <symbol id="ds-i-moon" viewBox="0 0 16 16"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></symbol>
+  <symbol id="ds-i-theme" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13A6.5 6.5 0 0 0 8 1.5z" fill="currentColor"/></symbol>
+  <symbol id="ds-i-scale" viewBox="0 0 16 16"><path d="M8 1.5v13M4.5 14.5h7M2.5 4.5h11M2.5 4.5L.5 9a2 2 0 0 0 4 0zM13.5 4.5l-2 4.5a2 2 0 0 0 4 0z"/></symbol>
+  <symbol id="ds-i-sidebar" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/><path d="M4 6.5L3 8l1 1.5"/></symbol>
+  <symbol id="ds-i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-arrow-up" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+  <symbol id="ds-i-compose" viewBox="0 0 16 16"><path d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M12 1.5l2.5 2.5L8 10.5H5.5V8z"/></symbol>
+  <symbol id="ds-i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+  <symbol id="ds-i-monitor" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="ds-i-cloud" viewBox="0 0 16 16"><path d="M4.5 13a3 3 0 0 1-.4-6A4.5 4.5 0 0 1 12.8 7a3 3 0 0 1-.3 6z"/></symbol>
+  <symbol id="ds-i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 0 1 4 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 0 1-4-4L5 7.5"/></symbol>
+  <symbol id="ds-i-globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c2 2 2 11 0 13M8 1.5c-2 2-2 11 0 13"/></symbol>
+  <symbol id="ds-i-panel-right" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></symbol>
+  <symbol id="ds-i-panel-bottom" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M1.5 10h13"/></symbol>
+  <symbol id="ds-i-maximize" viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></symbol>
+  <symbol id="ds-i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-4 2.5-7.5 4.5"/></symbol>
+  <symbol id="ds-i-bars" viewBox="0 0 16 16"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"/></symbol>
+  <symbol id="ds-i-sliders" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-paperclip-2" viewBox="0 0 16 16"><path d="M10.5 5L5.8 9.7a1.2 1.2 0 0 0 1.7 1.7l5-5a2.6 2.6 0 0 0-3.7-3.7L3.7 7.8a4 4 0 0 0 5.7 5.7L13 9.9"/></symbol>
+  <symbol id="ds-i-home" viewBox="0 0 16 16"><path d="M2 7.5L8 2.5l6 5"/><path d="M3.5 6.5V14H7v-3.5h2V14h3.5V6.5"/></symbol>
+  <symbol id="ds-i-trash" viewBox="0 0 16 16"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.5 6.5v4.5M9.5 6.5v4.5"/></symbol>
+  <symbol id="ds-i-share" viewBox="0 0 16 16"><circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/></symbol>
+  <symbol id="ds-i-edit" viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8h-3v-3z"/><path d="M9 4l3 3"/></symbol>
+  <symbol id="ds-i-undo" viewBox="0 0 16 16"><path d="M5 3.5L2 6.5l3 3"/><path d="M2 6.5h7a3.5 3.5 0 0 1 0 7H6"/></symbol>
+  <symbol id="ds-i-star" viewBox="0 0 16 16"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></symbol>
+  <symbol id="ds-i-mic" viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></symbol>
+  <symbol id="ds-i-backspace" viewBox="0 0 16 16"><path d="M5.5 3H14v10H5.5L1.5 8z"/><path d="M7.5 6l4 4M11.5 6l-4 4"/></symbol>
+  <symbol id="ds-i-shift" viewBox="0 0 16 16"><path d="M8 2L2.5 8h3v5.5h5V8h3z"/></symbol>
+  <symbol id="ds-i-enter" viewBox="0 0 16 16"><path d="M13.5 3v5.5h-10"/><path d="M6 6L3.5 8.5 6 11"/></symbol>
+  <symbol id="ds-i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="ds-i-swipe" viewBox="0 0 16 16"><path d="M2 5h9M8.5 2.5L11 5 8.5 7.5"/><path d="M14 11H5M7.5 8.5L5 11l2.5 2.5"/></symbol>
+  <symbol id="ds-i-send" viewBox="0 0 16 16"><path d="M14.5 1.5L7 9M14.5 1.5L10 14.5 7 9 1.5 6z"/></symbol>
+  <symbol id="ds-i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></symbol>
+  <symbol id="ds-i-image" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M14.5 11l-4-4-6 6.5"/></symbol>
+  <symbol id="dv-i-nav-back" viewBox="0 0 16 16"><path d="M11.5 2.5v11L3 8z"/></symbol>
+  <symbol id="dv-i-nav-home" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></symbol>
+  <symbol id="dv-i-nav-recents" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5"/></symbol>
+  <symbol id="dv-i-wifi" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 13.8L.4 5.3A11 11 0 0 1 8 2.2a11 11 0 0 1 7.6 3.1z"/></symbol>
+  <symbol id="dv-i-signal" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M14.5 1.5v13h-13z"/></symbol>
+</svg>
+
+<div class="dv-stage">
+  <div class="dv-phone" data-device="tablet" data-frame="silver" data-nav="buttons" data-app-name="設備点検" data-app-icon="点" data-battery="82" data-time="8:30" id="phone">
+    <div class="dv-phone__glass">
+      <div class="dv-screen">
+        <div class="dv-viewport">
+          <div class="ds-app" id="app"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="dv-controls" aria-label="デモの操作盤">
+    <h2 class="dv-controls__title">デモの操作盤</h2>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">端末の色</span>
+      <div class="ds-segmented" role="group" aria-label="端末の色">
+        <button type="button" data-dv-frame="mint" aria-pressed="false">ミント</button>
+        <button type="button" data-dv-frame="silver" aria-pressed="false">シルバー</button>
+        <button type="button" data-dv-frame="graphite" aria-pressed="false">グラファイト</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">下の操作の帯</span>
+      <div class="ds-segmented" role="group" aria-label="下の操作の帯">
+        <button type="button" data-dv-nav="gesture" aria-pressed="false">ジェスチャー</button>
+        <button type="button" data-dv-nav="buttons" aria-pressed="true">3 つのボタン</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">画面の明るさ</span>
+      <div class="ds-segmented" role="group" aria-label="画面の明るさ">
+        <button type="button" data-theme-choice="auto">自動</button>
+        <button type="button" data-theme-choice="light">明るい</button>
+        <button type="button" data-theme-choice="dark">暗い</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">見た目</span>
+      <div class="ds-segmented" role="group" aria-label="見た目">
+        <button type="button" data-look-choice="minimal">ミニマル</button>
+        <button type="button" data-look-choice="console">コンソール</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">シナリオ</span>
+      <div class="ds-segmented" role="group" aria-label="シナリオ" id="scn">
+        <button type="button" data-scn="normal" aria-pressed="true">通常 12 設備</button>
+        <button type="button" data-scn="large" aria-pressed="false">大量 60 設備</button>
+      </div>
+      <div class="ds-btn-stack">
+        <button type="button" class="ds-btn" data-ev="resume">中断から戻る</button>
+        <button type="button" class="ds-btn" data-ev="accept">保全が受け取る</button>
+      </div>
+    </div>
+    <div class="dv-controls__group">
+      <span class="dv-controls__label">端末の出来事を起こす</span>
+      <div class="ds-btn-stack">
+        <button type="button" class="ds-btn" id="demo-notify"><svg class="ds-icon"><use href="#ds-i-bell"/></svg>保全からの返事を通知する</button>
+        <button type="button" class="ds-btn" id="demo-coach"><svg class="ds-icon"><use href="#ds-i-bulb"/></svg>使い方の案内を出す</button>
+        <button type="button" class="ds-btn" id="demo-home"><svg class="ds-icon"><use href="#ds-i-home"/></svg>ホーム画面へ</button>
+      </div>
+    </div>
+    <p class="dv-controls__note">判定のボタンで「異常」を押すと、異常を記録するシートが下から出ます。「判断の基準」で、その項目の基準を開けます。画面の左右の端から内へ払うか、下の帯の ◁ で、前の設備へ戻ります。</p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  /* ---------- データ（架空） ---------- */
+  const BASE = [
+    { id: 'P-01', name: '原料ポンプ' }, { id: 'P-02', name: '補給水ポンプ' }, { id: 'P-03', name: '冷却水ポンプ', place: '第2ライン 東側・床下ピット' },
+    { id: 'C-01', name: '冷却塔ファン' }, { id: 'C-02', name: '冷却塔 散水', noPrev: true },
+    { id: 'M-01', name: '第1ミキサー' }, { id: 'M-02', name: '第2ミキサー（2024 年更新・インバーター制御。点検は停止中だけ可）' },
+    { id: 'H-01', name: '温水ヒーター' }, { id: 'F-01', name: '排気ファン' }, { id: 'F-02', name: '局所排気' },
+    { id: 'A-01', name: 'エアコンプレッサー' }, { id: 'A-02', name: 'エアドライヤー' }
+  ];
+  const ITEMS = [
+    { id: 'pressure', title: '吐出圧', kind: 'num', unit: 'MPa', min: 0.40, max: 0.50, prev: 0.45 },
+    { id: 'sound', title: '異音', kind: 'judge', criteria: '金属がこすれる音・周期的な打音は「異常」。モーターの一定のうなり音だけなら「正常」。いつもと違うが判断できないときは「要注意」にして写真を残す。' },
+    { id: 'leak', title: '漏れ（継手・パッキン）', kind: 'judge', criteria: '床に水たまりがある、滴が続けて落ちるなら「異常」。にじみだけなら「要注意」。' },
+    { id: 'vib', title: '振動', kind: 'judge', criteria: '手を当てて、前回より明らかに大きいなら「要注意」。ボルトの緩みがあれば「異常」。' }
+  ];
+  const JUDGE = [['ok', '正常'], ['warn', '要注意'], ['ng', '異常']];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const icon = n => `<svg class="ds-icon" aria-hidden="true"><use href="#ds-i-${n}"/></svg>`;
+  function equipments() {
+    if (S.scn !== 'large') return BASE;
+    const out = BASE.slice();
+    for (let i = 0; i < 48; i++) out.push({ id: 'X-' + String(i + 1).padStart(2, '0'), name: '付帯設備 ' + (i + 1) });
+    return out;
+  }
+
+  /* ---------- 状態 ---------- */
+  const DEFAULT = { scn: 'normal', time: '8:30', screen: 'route', eq: 2, pressure: '', sound: null, leak: null, vib: null, open: null, sheet: null, finding: false, picked: '', note: '', photo: false, sent: false, resumed: false, accepted: false };
+  let S = Object.assign({}, DEFAULT);
+  const app = document.getElementById('app');
+
+  function render() {
+    const focused = document.activeElement;
+    if (focused && app.contains(focused)) focused.blur();   // 入力欄に焦点があるまま描き直すと、端末のキーボードが残るため
+    document.getElementById('phone').dataset.time = S.time;
+    const t = document.querySelector('.dv-time'); if (t) t.textContent = S.time;
+    app.innerHTML = `<div class="ds-app__stack">${S.screen === 'done' ? doneScreen() : routeScreen()}</div>${S.sheet === 'abnormal' ? abnormalSheet() : ''}`;
+    document.querySelectorAll('#scn [data-scn]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scn === S.scn)));
+  }
+
+  function routeBar(list) {
+    return `<nav class="p-route" id="route" aria-label="点検の順路">${list.map((e, i) => {
+      const done = i < S.eq, cur = i === S.eq;
+      const st = done ? (e.id === 'P-03' && S.sent ? `<span class="ds-status ds-status--error">${icon('error')}異常 1</span>` : `<span class="ds-status ds-status--success">${icon('success')}済み</span>`)
+        : cur ? `<span class="ds-status ds-status--info">${icon('clock')}点検中</span>` : `<span class="ds-status ds-status--pending">${icon('pending')}まだ</span>`;
+      return `<div class="p-stop"${cur ? ' aria-current="step"' : ''}><b>${e.id}</b>${st}</div>`;
+    }).join('')}</nav>`;
+  }
+
+  function itemHtml(it) {
+    if (it.kind === 'num') {
+      const v = parseFloat(S.pressure);
+      const pos = x => Math.max(0, Math.min(100, 20 + (x - it.min) / (it.max - it.min) * 60));
+      return `<section class="p-item" id="check-${it.id}">
+        <div class="p-item__head"><h2>${it.title}</h2><span>基準 ${it.min.toFixed(2)}〜${it.max.toFixed(2)} ${it.unit} ・ 前回 ${it.prev.toFixed(2)}（昨日 8:41 宮下）</span></div>
+        <div class="p-num"><input class="ds-input" inputmode="decimal" aria-label="${it.title}（${it.unit}）" value="${esc(S.pressure)}" placeholder="0.00" data-act="pressure">
+          <div><div class="p-gauge" aria-hidden="true"><div class="p-gauge__ok"></div><div class="p-gauge__prev" style="left:${pos(it.prev)}%"></div>${isNaN(v) ? '' : `<div class="p-gauge__mark" style="left:${pos(v)}%"></div>`}</div>
+          <div class="p-gauge-legend"><span>低い</span><span>基準の範囲（細い線は前回）</span><span>高い</span></div></div></div>
+        ${isNaN(v) ? '' : v < it.min || v > it.max ? `<div class="ds-alert ds-alert--warning">${icon('warning')}<div class="ds-alert__body">基準から外れている（${v.toFixed(2)} ${it.unit}）。測り直してから「要注意」か「異常」を記録する。</div></div>` : `<span class="ds-status ds-status--success">${icon('success')}基準の範囲（前回より ${(it.prev - v).toFixed(2)} 低い）</span>`}
+      </section>`;
+    }
+    const val = S[it.id];
+    return `<section class="p-item" id="check-${it.id}"${val ? ` data-state="${val}"` : ''}>
+      <div class="p-item__head"><h2>${it.title}</h2><button type="button" class="ds-btn ds-btn--link" data-act="criteria" data-id="${it.id}" aria-expanded="${S.open === it.id}">${icon('help')}判断の基準</button></div>
+      ${S.open === it.id ? `<p class="p-criteria" id="criteria-${it.id}"><b>判断の基準</b>${esc(it.criteria)} <span class="p-unimpl">音の見本：未実装</span></p>` : ''}
+      <div class="ds-segmented" role="group" aria-label="${it.title}の判定">${JUDGE.map(([k, l]) => `<button type="button" data-act="judge" data-id="${it.id}" data-v="${k}" aria-pressed="${val === k}">${l}</button>`).join('')}</div>
+      ${it.id === 'sound' && S.sent ? `<div class="ds-alert ds-alert--success" id="sent-note">${icon('success')}<div class="ds-alert__body"><div class="ds-alert__title">保全に送った（8:47）</div>所見：金属のこすれる音 ・ 写真 1 枚。${S.accepted ? '大野が受け取った。' : '受け取りを待っている。'}</div></div>` : ''}
+    </section>`;
+  }
+
+  function routeScreen() {
+    const list = equipments(), e = list[S.eq] || list[0];
+    const answered = ITEMS.filter(it => it.kind === 'num' ? S.pressure !== '' : S[it.id]).length;
+    const next = list[S.eq + 1];
+    return `<section class="ds-screen" aria-labelledby="eq-title">
+      <header class="ds-appbar"><div class="ds-appbar__row"><h1 class="ds-appbar__title">日常点検　第2ライン<span class="ds-appbar__sub">高木 涼 ・ 8:30 開始 ・ ${S.eq} / ${list.length} 設備が済み</span></h1>
+        <div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="点検表を印刷（未実装）">${icon('file')}</button></div></div></header>
+      ${routeBar(list)}
+      ${S.resumed ? `<div class="ds-banner" id="resume-banner">${icon('info')}<div class="ds-banner__body">${esc(e.id)} の途中から続ける（8:52〜9:04 に中断）。記録したのは ${answered} / ${ITEMS.length} 項目。</div></div>` : ''}
+      <main class="ds-content"><div class="ds-pad ds-stack">
+        <div class="p-eq"><div><h1 id="eq-title">${esc(e.id)}　${esc(e.name)}</h1><div class="ds-text-small">${esc(e.place || '第2ライン')} ・ ${e.noPrev ? '前回の記録なし' : '前回：昨日 8:41 宮下 ・ すべて正常'}</div></div>
+          <span class="ds-badge">${answered} / ${ITEMS.length} 項目</span></div>
+        ${S.eq === 2 ? ITEMS.map(itemHtml).join('') : `<div class="ds-alert">${icon('info')}<div class="ds-alert__body">この設備の点検項目は、見本では省いている（未実装）。</div></div>`}
+      </div></main>
+      <div class="ds-bottombar">
+        <button type="button" class="ds-btn" data-act="prev"${S.eq === 0 ? ' disabled' : ''}>${icon('arrow-left')}前の設備</button>
+        <button type="button" class="ds-btn ds-btn--primary" id="next-btn" data-act="next">${next ? `次の設備へ（${esc(next.id)}）` : '点検を終える'}${icon('arrow-right')}</button>
+      </div>
+    </section>`;
+  }
+
+  function abnormalSheet() {
+    const findings = ['金属のこすれる音', '周期的な打音', '振動が大きい', '漏れ'];
+    const picked = new Set(String(S.picked || '').split(',').filter(Boolean).map(Number));
+    if (S.finding) picked.add(0);
+    return `<div class="ds-scrim" data-act="closeSheet"></div>
+    <div class="ds-sheet p-sheet-wide" role="dialog" aria-labelledby="ab-title" id="abnormal-sheet">
+      <button type="button" class="ds-sheet__handle" data-act="closeSheet" aria-label="閉じる"></button>
+      <div class="ds-sheet__header"><h2 class="ds-sheet__title" id="ab-title">異常を記録する
+        <span class="p-ab-context">P-03 冷却水ポンプ ・ 異音 <span class="ds-status ds-status--error">${icon('error')}異常</span> ・ 第2ライン 東側・床下ピット</span></h2></div>
+      <div class="ds-sheet__body ds-stack">
+        <div class="p-ab-grid">
+          <div>
+            <p class="p-ab-label">所見（当てはまるものをすべて選ぶ）</p>
+            <ul class="p-find" id="finding-chips">${findings.map((f, i) => `<li><button type="button" aria-pressed="${picked.has(i)}" data-act="finding" data-i="${i}"><span class="p-find__box">${icon('check')}</span>${f}</button></li>`).join('')}</ul>
+            <label class="p-ab-label" for="ab-note" style="display:block;margin-top:16px">気付いたこと（任意）</label>
+            <textarea class="ds-textarea" id="ab-note" placeholder="いつから、どのくらいの音か、ほかに変わったこと" data-act="note">${esc(S.note || '')}</textarea>
+          </div>
+          <div>
+            <p class="p-ab-label">写真</p>
+            <div class="p-photo${S.photo ? ' is-taken' : ''}" id="photo">${icon('image')}<span>${S.photo ? '写真 1 枚（ポンプの軸受けの付近）' : 'まだ撮っていない'}</span><span class="p-unimpl">撮影：未実装</span></div>
+            <button type="button" class="ds-btn ds-btn--block" style="margin-top:8px" data-act="photo">${icon('image')}${S.photo ? '撮り直す' : '写真を撮る'}</button>
+          </div>
+        </div>
+        <div class="ds-alert">${icon('info')}<div class="ds-alert__body">保全（大野）に、所見と写真が届く。運転を止めるかは、班長と保全が決める。</div></div>
+      </div>
+      <div class="ds-sheet__footer"><button type="button" class="ds-btn" data-act="closeSheet">あとで</button><button type="button" class="ds-btn ds-btn--primary" id="send-abnormal" data-act="send">記録して保全に送る</button></div>
+    </div>`;
+  }
+
+  function doneScreen() {
+    const list = equipments();
+    return `<section class="ds-screen" aria-labelledby="done-title">
+      <header class="ds-appbar"><div class="ds-appbar__row"><h1 class="ds-appbar__title" id="done-title">日常点検　第2ライン<span class="ds-appbar__sub">高木 涼 ・ 9:38 終了</span></h1></div></header>
+      <main class="ds-content"><div class="ds-pad ds-stack">
+        <div class="ds-stats" id="summary-done">
+          <div class="ds-stat"><span class="ds-stat__label">記録した設備</span><span class="ds-stat__value">${list.length}<span class="ds-stat__unit">設備</span></span><span class="ds-stat__delta">${list.length * 4} 項目</span></div>
+          <div class="ds-stat"><span class="ds-stat__label">異常 ・ 要注意</span><span class="ds-stat__value">1 ・ 1<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta">P-03 異音 ・ C-01 振動</span></div>
+        </div>
+        <div class="ds-alert ${S.accepted ? 'ds-alert--success' : ''}" id="handoff-status">${icon(S.accepted ? 'success' : 'clock')}<div class="ds-alert__body"><div class="ds-alert__title">${S.accepted ? '保全（大野）が受け取った（9:40）' : '保全の受け取りを待っている'}</div>P-03 冷却水ポンプ：金属のこすれる音。写真 1 枚。${S.accepted ? '「昼に止めて軸受けを見る」' : ''}</div></div>
+      </div></main>
+    </section>`;
+  }
+
+  /* ---------- 操作 ---------- */
+  function set(p) { Object.assign(S, p); render(); }
+  app.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act;
+    if (a === 'judge') { const p = { [b.dataset.id]: b.dataset.v }; if (b.dataset.v === 'ng') p.sheet = 'abnormal'; set(p); }
+    else if (a === 'criteria') set({ open: S.open === b.dataset.id ? null : b.dataset.id });
+    else if (a === 'finding') {
+      const i = Number(b.dataset.i);
+      if (i === 0) set({ finding: !S.finding });
+      else { const p = new Set(String(S.picked || '').split(',').filter(Boolean)); p.has(String(i)) ? p.delete(String(i)) : p.add(String(i)); set({ picked: [...p].join(',') }); }
+    }
+    else if (a === 'photo') set({ photo: true });
+    else if (a === 'send') set({ sheet: null, sent: true });
+    else if (a === 'closeSheet') set({ sheet: null });
+    else if (a === 'next') { if (S.eq + 1 >= equipments().length) set({ screen: 'done' }); else set({ eq: S.eq + 1 }); }
+    else if (a === 'prev') set({ eq: Math.max(0, S.eq - 1) });
+  });
+  app.addEventListener('change', e => { if (e.target.dataset.act === 'pressure') set({ pressure: e.target.value }); if (e.target.dataset.act === 'note') S.note = e.target.value; });
+  document.querySelector('.dv-controls').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.scn) set(Object.assign({}, DEFAULT, { scn: b.dataset.scn }));
+    if (b.dataset.ev === 'resume') set({ resumed: true, eq: 3, time: '9:06' });
+    if (b.dataset.ev === 'accept') set({ screen: 'done', sent: true, accepted: true, time: '9:40' });
+  });
+
+  /* ---------- 端末の出来事（スマートフォンの例と同じ 3 つ） ---------- */
+  const phone = document.getElementById('phone');
+  document.getElementById('demo-notify').addEventListener('click', () => {
+    dv.notify({
+      title: '保全（大野）からの返事',
+      text: 'P-03 冷却水ポンプ ・ 昼に止めて軸受けを見ます',
+      // 通知から開くと、点検の終わりの画面（保全の受け取り）へ直接移る
+      onTap: () => set({ screen: 'done', sent: true, accepted: true, sound: 'ng', sheet: null, time: '9:40' }),
+    });
+  });
+  document.getElementById('demo-home').addEventListener('click', () => dv.home(phone));
+  document.getElementById('demo-coach').addEventListener('click', () => {
+    dv.openApp(phone);
+    set({ screen: 'route', sheet: null, eq: 2 });
+    setTimeout(() => ds.coach([
+      { target: '#route', text: '点検の順路です。済んだ設備・点検中の設備・まだの設備が、左から順に並びます。' },
+      { target: '#check-sound', text: '項目ごとに「正常・要注意・異常」を押します。迷ったら「判断の基準」を開きます。「異常」を押すと、所見と写真を保全に送れます。' },
+      { target: '#next-btn', text: '項目を記録したら、次の設備へ進みます。途中で離れても、戻るとこの設備から続けられます。' },
+    ], { within: app }), 450);
+  });
+
+  /* ---------- 端末の「戻る」：開いているシートを閉じ、前の設備へ戻る ---------- */
+  function appBack() {
+    if (S.sheet) { set({ sheet: null }); return true; }
+    if (S.screen === 'route' && S.eq > 0) { set({ eq: S.eq - 1 }); return true; }
+    return false;
+  }
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.ds && ds.back) { const dsBack = ds.back; ds.back = scope => appBack() || dsBack(scope); }
+  });
+  // device.js が時刻の帯を作ったあとで描き直す（時刻を合わせるため）
+  window.addEventListener('load', render);
+
+  render();
+})();
+</script>
+</body>
+</html>

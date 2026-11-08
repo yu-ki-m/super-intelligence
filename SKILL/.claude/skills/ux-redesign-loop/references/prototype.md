@@ -74,7 +74,7 @@ URL のハッシュ（例：`proto-C-01.html#scenario=failure`）でもシナリ
 - `<script src="../demo/player/demo-bridge.js" defer></script>` を読み込む。iframe の中で開かれたときだけ働き、デモの画面から送られた状態を当て、強調する要素に枠を描く。単独で開いたときは何もしない。
 - 検証用パネルは `html[data-ux-demo]` のときに隠す。デモでは製品の画面だけを見せるため。
 
-デモで強調する要素（主な操作のボタン、判断に使う数値、状態の表示）には `id` を付ける。見本は `<SKILL_DIR>/sample-demo/proto-C-02.html`（PC）と `<SKILL_DIR>/sample-demo/mobile/proto-C-01.html`（スマートフォン）。スマートフォンの場合の注意は `references/demo.md` の7章にある。
+デモで強調する要素（主な操作のボタン、判断に使う数値、状態の表示）には `id` を付ける。見本は `<SKILL_DIR>/sample-demo/proto-C-02.html`（PC）、`mobile/proto-C-01.html`（スマートフォン）、`tablet-portrait/proto-C-01.html`（縦のタブレット）、`tablet-landscape/proto-C-01.html`（横のタブレット）。スマートフォンとタブレットの場合の注意は `references/demo.md` の7章にある。
 
 ## 撮影と目視
 

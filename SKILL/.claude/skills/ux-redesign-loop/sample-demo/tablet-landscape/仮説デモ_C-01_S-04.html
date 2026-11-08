@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+  見本の仮説デモ（横のタブレット）：D-04（C-01 / S-04 / iter-01）
+  架空の案件「ホームセンターの店頭受け取りカウンターを、紙の控えからタブレットに移す」の、同じ名前の注文・一部の欠品・後ろの行列が重なる場面。
+  台本の書き方は references/demo.md。プロトタイプは同じフォルダの proto-C-01.html（横のタブレットの枠に入った画面）。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仮説デモ D-04 店頭受け取りのカウンターで受け渡す</title>
+<script>
+  try { const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}
+</script>
+<link rel="stylesheet" href="../../sample-design-system/tokens.css">
+<link rel="stylesheet" href="../../sample-design-system/components.css">
+<link rel="stylesheet" href="../../demo-player/player.css">
+<script src="../../sample-design-system/components.js" defer></script>
+<script>
+window.UX_DEMO = {
+  id: 'D-04',
+  title: '店頭受け取り：カウンターで本人を確かめ、欠品の代わりを選んでもらう',
+  disclaimer: 'これはスキルに同梱した見本で、案件・店・商品・人物はすべて架空である。登場人物の発言と心の声は設計チームが置いたもので、[発言] [観察] [資料] 以外は実ユーザーの証拠ではない。',
+  refs: { case: 'C-01', scenario: 'S-04', iteration: 'iter-01' },
+  prototype: 'proto-C-01.html',
+  purpose: 'ホームセンターの店頭受け取りカウンターで、店員が横置きのタブレットを使って注文を受け渡す。同じ名前の注文、一部の欠品、後ろに並ぶお客さんが重なったときに、一覧と詳細を並べた画面で取り違えずに速く片付けられるか、お客さんが納得できるかを話し合うためのデモ。',
+
+  cast: [
+    { id: 'morikawa', name: '森川 綾', initial: '森', role: '受け取りカウンターの店員（パート）', tone: 1, face: { hair: 'long', hairColor: 'brown' }, label: '[仮定]',
+      profile: '週 4 日、昼から受け取りカウンターに立つ。売場の在庫には詳しくなく、欠品のときは売場の担当に聞きに行っていた。' },
+    { id: 'ishii', name: '石井 春香', initial: '石', role: 'お客さん（ネットで注文）', tone: 3, face: { hair: 'bob' }, label: '[仮定]',
+      profile: '庭の手入れの道具をまとめてネットで注文し、昼休みに受け取りに来た。午後に作業をするつもりでいる。' },
+    { id: 'yoshida', name: '吉田 健', initial: '吉', role: '倉庫の担当', tone: 2, face: { hair: 'short' }, label: '[仮定]',
+      profile: '受け取りの注文を棚にそろえ、欠品と入荷を管理する。' }
+  ],
+
+  hypotheses: [
+    { id: 'H-01', label: '[推論]',
+      text: '同じ名前の注文があるとき、本人確認の手がかり（電話番号の下 4 桁）を一覧の時点で見せれば、店員は取り違えずに 1 回で正しい注文を開ける。',
+      falsify: '下 4 桁を聞く前に、名前だけで注文を開いて渡しかける。',
+      check: '同じ名前の注文を含む受け渡しで、最初に開いた注文が正しかった割合を数える。' },
+    { id: 'H-02', label: '[推論]',
+      text: '欠品の行に、代わりの品と差額を一緒に出せば、店員は売場へ確かめに行かずに、その場でお客さんに選んでもらえる。',
+      falsify: '店員が代わりの品を確かめに売場へ行く。または、お客さんが差額に納得せず、やり取りが長引く。',
+      check: '欠品を含む受け渡しの時間と、店員がカウンターを離れた回数を測る。',
+      alt: '時間が減るのは代わりの品を出したからではなく、欠品が棚へ行く前に分かるからかもしれない。' },
+    { id: 'H-03', label: '[仮定]',
+      text: '受け渡しの記録と差額の案内が同じ画面に残れば、レジで差額を打ち間違えたり、受け取り忘れたりしない。',
+      falsify: 'レジで差額を打ち間違える。または、差額を受け取り忘れる。',
+      check: '公開後、店頭受け取りの差額の打ち間違いと受け取り忘れの件数を比べる。' }
+  ],
+
+  scenes: [
+    { id: 'sc-01', title: '昼休み明けのカウンター', short: 'カウンター', time: '土曜 13:05', place: '受け取りカウンター',
+      screen: '受け取り待ちの一覧', state: { time: '13:05' },
+      beats: [
+        { type: 'situation', when: '状況', text: '昼休み明けで、受け取りのお客さんが続けて来る時間。受け取り待ちは 7 件。', label: '[仮定]', highlight: '#order-list' },
+        { type: 'situation', when: 'これまで', text: '紙の控えを名前で探し、棚まで取りに行ってから欠品に気付くことがあった。', label: '[仮定]' },
+        { type: 'think', who: 'morikawa', text: '名前を聞いてから探すのに、いつも時間がかかる。', label: '[推論]' }
+      ] },
+
+    { id: 'sc-02', title: '同じ名前の注文から探す', short: '本人確認', time: '土曜 13:06', place: '受け取りカウンター',
+      screen: '検索の結果（同じ名前が 2 件）', state: { time: '13:06' },
+      beats: [
+        { type: 'say', who: 'ishii', text: 'ネットで注文した、石井です。', label: '[仮定]' },
+        { type: 'do', who: 'morikawa', text: '「石井」で探す', highlight: '#search' },
+        { type: 'situation', when: '画面', text: '石井さんの注文が 2 件出る。同じ名前があることと、電話番号の下 4 桁が一覧に出ている。', state: { query: '石井' }, highlight: '#same-name' },
+        { type: 'say', who: 'morikawa', text: 'お電話番号の下 4 桁を教えていただけますか。', label: '[仮定]' },
+        { type: 'say', who: 'ishii', text: '1842 です。', label: '[仮定]' },
+        { type: 'do', who: 'morikawa', text: '下 4 桁が 1842 の注文を開く', highlight: '#row-W-24117' },
+        { type: 'situation', when: '画面', text: '注文の詳細が右に出る。いちばん上に本人確認の欄がある。', state: { sel: 'W-24117' }, screen: '注文の詳細（W-24117）', highlight: '#id-check' },
+        { type: 'do', who: 'morikawa', text: '「下 4 桁が合った」を押す', state: { idChecked: true }, highlight: '#id-check' },
+        { type: 'hypothesis', ref: 'H-01' }
+      ] },
+
+    { id: 'sc-03', title: '一部が欠品している', short: '欠品', time: '土曜 13:08', place: '受け取りカウンター',
+      screen: '注文の詳細（一部欠品）', state: { time: '13:08' },
+      beats: [
+        { type: 'situation', when: '画面', text: '5 点のうち、防草シートが欠品になっている。倉庫にも在庫がない。', highlight: '#shortage' },
+        { type: 'say', who: 'ishii', text: 'え、シートが無いんですか。今日の午後に使うつもりだったのに。', label: '[仮定]' },
+        { type: 'think', who: 'morikawa', text: '代わりの品があったはず。でも、勝手に替えていいのかな……。', label: '[推論]' },
+        { type: 'situation', when: '画面', text: '欠品の下に、代わりの品と、売場の在庫と、差額が出ている。', highlight: '#substitute-offer' },
+        { type: 'hypothesis', ref: 'H-02' }
+      ] },
+
+    { id: 'sc-04', title: '後ろにお客さんが並ぶ', short: '行列', time: '土曜 13:10', place: '受け取りカウンター',
+      screen: '注文の詳細（代わりの品）', state: { time: '13:10', queue: 4 },
+      beats: [
+        { type: 'situation', when: '状況', text: '後ろに 3 人並んだ。画面の上の「待っている人」が 4 人になる。', label: '[仮定]', highlight: '#queue' },
+        { type: 'think', who: 'morikawa', text: '急がないと。でも、差額のことはちゃんと説明しないと。', label: '[推論]' },
+        { type: 'say', who: 'morikawa', text: '厚手のものでしたら在庫があります。差額の 480 円は、レジでお願いします。', label: '[仮定]' },
+        { type: 'say', who: 'ishii', text: 'じゃあ、それにします。', label: '[仮定]' },
+        { type: 'do', who: 'morikawa', text: '「代わりの品を勧める」を押す', highlight: '#substitute' },
+        { type: 'situation', when: '画面', text: '欠品の行が、代わりの品に替わる。', state: { shortage: 'substitute' }, highlight: '#items' },
+        { type: 'question', text: '差額をこのタブレットで受け取れるか（レジとの連携）。レジに回すと、後ろの列がさらに延びる。', to: '店舗運営と開発チーム' }
+      ] },
+
+    { id: 'sc-05', title: '受け渡す', short: '受け渡し', time: '土曜 13:14', place: '受け取りカウンター',
+      screen: '受け渡し済み', state: { time: '13:14' },
+      beats: [
+        { type: 'do', who: 'morikawa', text: '「受け渡す」を押す', highlight: '#hand-btn' },
+        { type: 'situation', when: '画面', text: '受け渡しの記録と、レジでの差額の案内が右に残る。一覧からは消える。', state: { handed: true, query: '' }, highlight: '#handed-note' },
+        { type: 'hypothesis', ref: 'H-03' }
+      ] },
+
+    { id: 'sc-06', title: '倉庫から入荷の連絡が来る', short: '入荷の連絡', time: '土曜 13:30', place: '倉庫',
+      screen: '受け渡し済み（入荷の連絡）', state: { time: '13:30', restock: true },
+      beats: [
+        { type: 'say', who: 'yoshida', text: '元の防草シート、明日入ります。石井さんに連絡しますか？', label: '[仮定]', highlight: '#restock-note' },
+        { type: 'think', who: 'morikawa', text: '厚手で納得してくれたけど、知らせたほうがいいのかな。', label: '[推論]' },
+        { type: 'question', text: '欠品の代わりを受け取ったお客さんに、元の品の入荷を知らせるか。知らせるなら、店から電話するのか、本部のメールで送るのか。', to: '店長' }
+      ] }
+  ]
+};
+</script>
+<script src="../../demo-player/player.js" defer></script>
+</head>
+<body class="ds-body"></body>
+</html>

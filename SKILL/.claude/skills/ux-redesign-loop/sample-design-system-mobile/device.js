@@ -7,7 +7,8 @@
  *   ・戻る: 3 つのボタンの「戻る」、画面の左右の端から内へ払う、Esc。アプリの ds.back() を呼び、戻れなければホーム画面へ
  *   ・ホーム: 3 つのボタンの「ホーム」、下のつまみを上へ払う。アプリのアイコンを押すと戻る
  *   ・キーボード: 画面の中の入力欄を選ぶと下から出て、アプリの表示面が縮む。キーを押すと入力欄に文字が入る
- *   ・台に合わせて縮める: .dv-stage の中の端末を、ブラウザの高さに収まるよう縮める（data-dv-scale="1" で縮めない）
+ *   ・台に合わせて縮める: .dv-stage の中の端末を、ブラウザの高さと幅に収まるよう縮める（data-dv-scale="1" で縮めない）
+ *   ・タブレット: .dv-phone に data-device="tablet" を付ける。横は data-orientation="landscape"（大きさは device.css）
  * 画面の側から使う関数: dv.notify()、dv.toast()、dv.permission()、dv.home()、dv.back()、dv.setFrame()、dv.setNav()
  * 幅の狭い画面（実機）では、端末の部品は表示せず、キーボードも出さない（device.css の「実機で開いたとき」）。
  */
@@ -86,9 +87,11 @@ window.dv = (() => {
   const fit = () => phones().forEach(p => {
     const stage = p.closest('.dv-stage');
     if (!stage || p.dataset.dvScale === '1' || real.matches) { p.style.removeProperty('--dv-scale'); return; }
-    const avail = window.innerHeight - 48;
-    const h = p.offsetHeight;
-    p.style.setProperty('--dv-scale', String(Math.min(1, Math.max(0.5, avail / h))));
+    // 高さと幅の両方に収める（横のタブレットは、高さだけで縮めると横にはみ出す）。操作盤は収まらなければ下へ回る
+    const availH = window.innerHeight - 48;
+    const availW = stage.clientWidth - 48;
+    const min = p.dataset.device === 'tablet' ? 0.3 : 0.5;
+    p.style.setProperty('--dv-scale', String(Math.min(1, Math.max(min, Math.min(availH / p.offsetHeight, availW / p.offsetWidth)))));
   });
   addEventListener('resize', fit);
   real.addEventListener('change', fit);
