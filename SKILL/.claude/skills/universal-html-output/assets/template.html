@@ -196,6 +196,21 @@ body.is-resizing-columns { cursor: col-resize; user-select: none; }
   font-size: 13px;
   background: linear-gradient(var(--ln), var(--ln)) 0 0 / 100% 1px no-repeat, var(--depth-fill);
 }
+
+/* グループ行の開閉ボタン。行全体ではなく、番号の左にある矢印だけが開閉を受け付ける。
+   閉じたグループの子孫行は hidden 属性で非表示にする。 */
+.tree tr[hidden] { display: none; }
+.tree .t-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin: 0 4px 0 -3px; padding: 0;
+  border: 0; border-radius: 4px; background: transparent; color: var(--muted);
+  font: inherit; line-height: 1; vertical-align: -3px; cursor: pointer;
+}
+.tree .t-toggle:hover { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
+.tree .t-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tree .t-toggle svg { width: 12px; height: 12px; transition: transform .15s ease; }
+.tree .t-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .tree .t-toggle svg { transition: none; } }
 </style>
 <!-- INJECT_HEAD_HTML -->
 </head>
@@ -289,13 +304,50 @@ function depthBackground(depth) {
   };
 }
 
-function renderRows(nodes, depth, body, columns) {
+/* グループ行の開閉。各行は自分の祖先グループの一覧を持ち、
+   どれか1つでも閉じていれば非表示にする。これにより、内側のグループを閉じたまま
+   外側を閉じて開き直しても、内側の子孫行は閉じた状態を保つ。 */
+function makeToggle(group, label) {
+  const button = el("button", "t-toggle");
+  button.type = "button";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 12 12");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M2.5 4.25 6 7.75l3.5-3.5");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "1.6");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.append(path);
+  button.append(svg);
+  const sync = () => {
+    button.setAttribute("aria-expanded", String(!group.collapsed));
+    const action = group.collapsed ? "開く" : "閉じる";
+    button.setAttribute("aria-label", `${label} の子の行を${action}`);
+    button.title = `子の行を${action}`;
+  };
+  sync();
+  button.addEventListener("click", event => {
+    event.stopPropagation();
+    group.collapsed = !group.collapsed;
+    sync();
+    for (const item of group.descendants) {
+      item.tr.hidden = item.ancestors.some(a => a.collapsed);
+    }
+  });
+  return button;
+}
+
+function renderRows(nodes, depth, body, columns, ancestors = []) {
   nodes.forEach((node, index) => {
     // どの階層も兄弟行ごとに 1., 2., ... と採番する。
     // children を再帰処理するため、子の番号は常に 1. から始まる。
     const number = `${index + 1}.`;
     const hasChildren = Array.isArray(node.children) && node.children.length > 0;
     let tr;
+    const group = hasChildren ? { collapsed: false, descendants: [] } : null;
     if (hasChildren) {
       // グループ単位で結合表示か列別表示を選べる。無指定時は cells の有無で判定。
       const hasGroupCells = node.cells && Object.keys(node.cells).length > 0;
@@ -307,6 +359,7 @@ function renderRows(nodes, depth, body, columns) {
       tr = el("tr", `${className}${columnsMode ? " t-group-columns" : ""}`);
       const td = el("td");
       if (!columnsMode) td.colSpan = columns.length;
+      td.append(makeToggle(group, `${number} ${plainRichText(node.name || "【分類名】")}`));
       if (depth === 0) {
         td.append(el("span", "", `${number} `));
         td.append(renderRich(el("span"), node.name || "【分類名】"));
@@ -346,7 +399,10 @@ function renderRows(nodes, depth, body, columns) {
       tr.style.setProperty("--depth-background", bg.background);
     }
     body.append(tr);
-    if (hasChildren) renderRows(node.children, depth + 1, body, columns);
+    // 祖先グループそれぞれに、この行を開閉の対象として登録する。
+    const item = { tr, ancestors };
+    for (const a of ancestors) a.descendants.push(item);
+    if (hasChildren) renderRows(node.children, depth + 1, body, columns, [...ancestors, group]);
   });
 }
 

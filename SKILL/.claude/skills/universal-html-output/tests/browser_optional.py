@@ -91,6 +91,21 @@ with sync_playwright() as pw:
     assert rows.nth(4).locator('td').count() == 5  # deeper group with cells
     assert rows.nth(6).locator('td').count() == 1  # explicit merged group
     assert not errors, errors
+    # Only the arrow button collapses a group; clicking elsewhere in the row does nothing.
+    visible = lambda: group_page.evaluate(
+        "() => [...document.querySelectorAll('table.tree tbody tr')].map((r, i) => r.hidden ? '-' : String(i)).join('')")
+    assert group_page.locator('table.tree .t-toggle').count() == 5
+    rows.nth(0).locator('td').nth(1).click()
+    assert visible() == '01234567'
+    rows.nth(1).locator('.t-toggle').click()
+    assert visible() == '01-34567'
+    rows.nth(0).locator('.t-toggle').click()
+    assert visible() == '0-----67'
+    assert rows.nth(0).locator('.t-toggle').get_attribute('aria-expanded') == 'false'
+    rows.nth(0).locator('.t-toggle').click()
+    assert visible() == '01-34567'  # inner group stays collapsed
+    rows.nth(1).locator('.t-toggle').click()
+    assert visible() == '01234567'
     start = group_page.locator('table.tree thead th').nth(1).bounding_box()['x']
     target = group_page.locator('table.tree thead th').nth(2)
     grip = target.locator('.resize-handle')

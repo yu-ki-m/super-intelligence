@@ -94,6 +94,7 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(tables[0]["rows"][1].get("layout"), None)
         final = embed((ROOT / "assets/template.html").read_text(encoding="utf-8"), doc, tables)
         self.assertIn("t-group-columns", final)
+        self.assertIn("makeToggle(group,", final)  # グループ行の開閉ボタン
 
     def test_group_cells_validation_failures(self):
         src = json.loads((ROOT / "examples/group-columns.json").read_text(encoding="utf-8"))
