@@ -40,7 +40,7 @@
 ux-design/<YYYY_MMDD>_<案件名>/
 ├── demo/
 │   ├── player/                       # <SKILL_DIR>/demo-player/ の複製（player.css・player.js・demo-bridge.js）
-│   ├── 仮説デモ_<案ID>_<シナリオID>.html  # 台本と再生の部品を読み込むデモ
+│   ├── 仮説デモ_<案ID>_<シナリオID>_v<NN>.html  # 台本と再生の部品を読み込むデモ。版ごとに別ファイルにし、上書きしない（SKILL.md 9章）
 │   ├── screens/                      # 場面ごとのスクリーンショット（撮れた場合）
 │   ├── 仮説メモ_<デモID>_<日付>.md     # チームが書き出したメモ（ユーザーから受け取った場合）
 │   └── デモ記録.md                    # デモの目的、台本と根拠の対応、メモの反映先（書式は templates.md の13章）
