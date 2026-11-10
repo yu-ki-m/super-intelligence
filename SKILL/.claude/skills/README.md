@@ -21,10 +21,8 @@
 | コード閲覧・読解 | [codebase-guide](codebase-guide/SKILL.md) | リポジトリをHTML化し、必要に応じて読む順番や処理フローの解説を付ける | コード閲覧HTML、定義リンク、読解・レビューガイド |
 | コード閲覧 | [repository-html-browser](repository-html-browser/SKILL.md) | リポジトリをディレクトリ構造ごと静的HTMLへ変換する | フォルダーツリーと各ファイルの閲覧HTML |
 | シーケンス図 | [sequence-diagram](sequence-diagram/SKILL.md) | ソースコード・設計書・処理仕様から、メソッド単位のライフラインで処理を追跡したシーケンス図を作る。条件分岐・繰り返し・例外・トランザクション・排他ロック・非同期・DBアクセスを表し、根拠のソース行を付けて確認済みと推定を区別する | クリックで引数・戻り値・SQL・根拠を確認できる単一ファイルのHTMLビューア、処理モデルJSON、検証レポート |
-| 詳細設計書 | [sequential-design-doc](sequential-design-doc/SKILL.md) | 既存のソースコードから、リクエスト受信から応答まで（バッチは起動から終了まで）の処理を実行順どおりに日本語で書き起こす。共通処理を呼び出し先まで展開し、分岐・繰り返し・例外・トランザクション・非同期の流れとSQL全文・データの変化を表で示し、ソースと照合して検証する | 表中心の単一ファイルの詳細設計書HTML（処理ごとのタブ・検証記録付き）、追跡台帳 |
 | 詳細設計書（グループ付き） | [sequential-design-doc-layered](sequential-design-doc-layered/SKILL.md) | 詳細設計書の全行を残したまま、処理のまとまりをグループで示し、版の間の変更を git のように色で示す。既存コードの書き起こし、変更設計、新規設計、コミット間の仕様差分に使う | 単一HTML（逐次処理・グループ・変更の印） |
 | 変更影響分析 | [diff-decision-trees](diff-decision-trees/SKILL.md) | Git差分から変更前後の条件と最終結果を調べ、判定決定木にする | 日本語HTML、調査モデル、テストケース |
-| 設計・実装レビュー | [design-impl-review](design-impl-review/SKILL.md) | 設計書と実装コードを突き合わせ、要求違反・設計の矛盾・未定義の振る舞い・影響漏れ・実装の誤りを根拠付きで洗い出す。中断しても途中から再開できる | 要件一覧・要件ごとの指摘のHTML（事象・原因・修正案・再現手順・根拠） |
 | 考慮漏れレビュー | [requirements-gap-review](requirements-gap-review/SKILL.md) | 実装済みコードと変更差分から仕様・要件・要求へ遡り、仕様どおりに動いても業務が成立しない条件、未定義の例外、関係者・運用への負担、暗黙の品質（9品質特性・40副特性・605観点・1,833確認項目のカタログ）の考慮漏れを、6系統の要求発見と10項目の検証で洗い出す。修正すべき層と判断事項を特定する。コードがない設計だけのレビューにも使え、中断しても途中から再開できる | 根拠・確度（%）・推奨する修正付きの指摘表HTML、エスカレーション票、品質台帳JSON |
 | コードレビュー | [code-change-review-checklist](code-change-review-checklist/SKILL.md) | コード変更フローを重要度順に確認し、レビューの進捗を記録する | フローレポート、確認済みチェック・重要度付きHTML |
 | 汎用HTML出力 | [universal-html-output](universal-html-output/SKILL.md) | 文章・コード・差分・データなどを目的に合うHTMLにまとめる | HTML成果物、生成用JSON |
