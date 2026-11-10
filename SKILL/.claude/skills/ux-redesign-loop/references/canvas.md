@@ -30,7 +30,7 @@ ux-design/<YYYY_MMDD>_<案件名>/
 ├── canvas/
 │   ├── screen-canvas/                # <SKILL_DIR>/screen-canvas/ の複製（canvas.css・canvas.js）
 │   └── 画面一覧_<案ID>.html           # 台本（window.UX_CANVAS）と部品を読み込むキャンバス
-└── iter-NN/proto-<案ID>.html
+└── iter-NN/proto-<案ID>-v<NN>.html   # 今の版
 ```
 
 キャンバスの HTML は、DS の `tokens.css`・`components.css`・`components.js` と、`screen-canvas/canvas.css`・`canvas.js` を読み込む。見本の `<head>` を写し、パスだけを変えると早い。
@@ -42,7 +42,7 @@ window.UX_CANVAS = {
   id: 'K-01',                                   // キャンバスの ID
   title: '…',
   refs: { case: 'C-02', iteration: 'iter-01' },
-  prototype: '../iter-01/proto-C-02.html',      // キャンバスの HTML から見たプロトタイプのパス
+  prototype: '../iter-01/proto-C-02-v03.html',  // キャンバスの HTML から見たプロトタイプ（今の版）のパス
   device: 'pc',                                 // pc（1280 × 800）・phone（360 × 780）・tablet-portrait（800 × 1280）・tablet-landscape（1280 × 800）。{ w, h, label } でも書ける
   screens: [{
     id: 's-review', row: 0,                     // row は行。同じ行の画面は左から順に並ぶ

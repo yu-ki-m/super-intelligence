@@ -31,7 +31,7 @@
 ## 3. 作る時期と前提
 
 - ユーザーが頼んだときに作る（「デモを作って」「登場人物の会話つきで画面を見せたい」「チームで仮説を話し合う材料がほしい」など）。
-- 操作できるプロトタイプが必要である。まだなければ、反復の D（`references/prototype.md`）で先に作る。
+- 操作できるプロトタイプが必要である。まだなければ、反復の C（`references/prototype.md`）で先に作る。
 - 反復の中では E（検証）の補助になる。台本の場面は、検証記録のシナリオ走査を物語に書き直したものに近い。チームが書いたメモは、F（全体再評価）と次の反復の A に戻す（9章）。
 
 ## 4. 出力
@@ -44,7 +44,7 @@ ux-design/<YYYY_MMDD>_<案件名>/
 │   ├── screens/                      # 場面ごとのスクリーンショット（撮れた場合）
 │   ├── 仮説メモ_<デモID>_<日付>.md     # チームが書き出したメモ（ユーザーから受け取った場合）
 │   └── デモ記録.md                    # デモの目的、台本と根拠の対応、メモの反映先（書式は templates.md の13章）
-└── iter-NN/proto-<案ID>.html          # demo-bridge.js を読み込み、window.uxDemoApply を持つ
+└── iter-NN/proto-<案ID>-v<NN>.html    # 今の版。demo-bridge.js を読み込み、window.uxDemoApply を持つ
 ```
 
 `demo-player/` を複製する理由は、DS を `ds/` に複製するのと同じで、オフラインでも、スキルの部品が後で変わっても、同じように開けるようにするためである。デモの HTML は、DS の `../ds/tokens.css`・`../ds/components.css`・`../ds/components.js` と、`player/player.css`・`player/player.js` を読み込む。見本の `仮説デモ_C-02_S-02.html` の `<head>` を写し、パスだけを変えると早い。
@@ -81,7 +81,7 @@ window.UX_DEMO = {
   id: 'D-01',                                  // デモの ID
   title: '…',                                  // デモの題名
   refs: { case: 'C-02', scenario: 'S-02', iteration: 'iter-01' },
-  prototype: '../iter-01/proto-C-02.html',     // デモの HTML から見たプロトタイプのパス
+  prototype: '../iter-01/proto-C-02-v03.html', // デモの HTML から見たプロトタイプ（今の版）のパス
   purpose: '…',                                // このデモで考えたいこと（はじめの札に出る）
   disclaimer: '…',                             // 省略可。はじめの札の注意書きを差し替える
   cast: [{ id, name, initial, role, profile, label, tone, face }],   // tone は 1〜5（人物の印の色。顔の絵では服の色になる）
