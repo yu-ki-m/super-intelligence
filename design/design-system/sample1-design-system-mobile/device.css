@@ -1,0 +1,462 @@
+/*
+ * 汎用デザインシステム（スマートフォン版）— 端末の部品（デモ用）
+ *
+ * スマートフォン向けの画面を、パソコンのブラウザで「端末に入った姿」で見せるための部品。クラス名は dv- で始まる。
+ * アプリの部品（components.css の ds-）とは分けている。実機ではこのファイルの部品は表示しない（下の「実機で開いたとき」）。
+ *
+ * 想定する端末: 画面の真ん中上に丸いカメラの穴がある、平らな側面の Android 端末（画面 360 × 780、縦横比 19.5 : 9）。
+ *   枠の色は 3 つ（mint / silver / graphite）。右側面に音量ボタンと電源ボタンがある。
+ *
+ * 部品
+ *   .dv-stage                … 端末を並べる台（ブラウザの画面いっぱい。端末を画面の高さに合わせて縮める）
+ *   .dv-phone                … 端末の本体（枠・黒縁・側面のボタン）。data-frame="mint|silver|graphite"、data-nav="gesture|buttons"
+ *     .dv-screen             … 表示面。アプリの端（--ds-safe-top / --ds-safe-bottom）をここで決める
+ *       .dv-viewport         … アプリを入れる所（.ds-app を直接置くか、<iframe class="dv-viewport">）
+ *       .dv-statusbar        … 時刻・電波・電池の帯（device.js が作る）
+ *       .dv-camera           … カメラの穴
+ *       .dv-navbar           … 下の操作の帯（ジェスチャーのつまみ、または 戻る・ホーム・履歴 の 3 つのボタン）
+ *       .dv-keyboard         … 画面のキーボード（入力欄を選ぶと下から出る）
+ *       .dv-heads-up         … 画面の上に出る通知
+ *       .dv-toast            … 画面の下に出る、端末の短いお知らせ
+ *       .dv-perm             … 端末の許可のダイアログ（通知・位置情報など）
+ *       .dv-home             … ホーム画面（壁紙・時計・アプリのアイコン）
+ *   .dv-controls             … 端末の横に置く、デモの操作盤（枠の色・操作の帯・明るさ・通知を試す）
+ */
+
+/* ========== 1. 台 ========== */
+.dv-stage {
+  box-sizing: border-box;   /* 余白の分だけ縦にはみ出し、スクロールバーが出るのを防ぐ */
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 50% 0%, light-dark(rgba(120, 160, 140, 0.16), rgba(80, 140, 110, 0.12)), transparent 70%),
+    var(--ds-color-bg-subtle, light-dark(#f4f4f5, #141416));
+}
+
+/* ========== 2. 本体 ========== */
+.dv-phone {
+  --dv-screen-w: 360px;
+  --dv-screen-h: 780px;
+  --dv-bezel: 8px;                 /* 画面のまわりの黒い縁 */
+  --dv-rim: 4px;                   /* 側面の金属の枠 */
+  --dv-radius: 54px;
+  --dv-total-w: calc(var(--dv-screen-w) + 2 * (var(--dv-bezel) + var(--dv-rim)));
+  --dv-total-h: calc(var(--dv-screen-h) + 2 * (var(--dv-bezel) + var(--dv-rim)));
+  --dv-scale: 1;                   /* device.js が、台の高さに収まるよう縮める */
+  /* 枠の色（mint: 既定。添付の端末の、淡い緑がかった灰色） */
+  --dv-frame-1: #dfe9e2;
+  --dv-frame-2: #b8cbbf;
+  --dv-frame-3: #93a99b;
+  position: relative;
+  flex: none;
+  width: var(--dv-total-w);
+  height: var(--dv-total-h);
+  padding: var(--dv-rim);
+  border-radius: var(--dv-radius);
+  /* 平らな側面に光が当たったように、縁を明るく・内側を少し暗くする */
+  background: linear-gradient(145deg, var(--dv-frame-1) 0%, var(--dv-frame-2) 45%, var(--dv-frame-3) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 24px 60px -12px rgba(0, 0, 0, 0.35);
+  transform: scale(var(--dv-scale));
+  transform-origin: center;
+  /* 縮めた分だけ、まわりの場所も詰める（transform は場所の大きさを変えないため） */
+  margin: calc((var(--dv-scale) - 1) * var(--dv-total-h) / 2) calc((var(--dv-scale) - 1) * var(--dv-total-w) / 2);
+  font-family: "Roboto", "Noto Sans JP", "Segoe UI", system-ui, sans-serif;
+}
+.dv-phone[data-frame="silver"] { --dv-frame-1: #f1f2f4; --dv-frame-2: #cfd2d7; --dv-frame-3: #a9adb4; }
+.dv-phone[data-frame="graphite"] { --dv-frame-1: #5b5f66; --dv-frame-2: #3a3d42; --dv-frame-3: #24262a; }
+
+/* 側面のボタン（右: 上が音量、下が電源） */
+.dv-phone::before, .dv-phone::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  width: 4px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--dv-frame-3), var(--dv-frame-2));
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.4);
+}
+.dv-phone::before { top: 28%; height: 9%; }
+.dv-phone::after { top: 40%; height: 5.5%; }
+
+/* タブレット（data-device="tablet"）。縦が既定、data-orientation="landscape" で横。
+ * 画面の大きさ・黒い縁・角丸・側面のボタンの位置だけを変え、時刻の帯・下の操作の帯・キーボードはそのまま広がる */
+.dv-phone[data-device="tablet"] { --dv-screen-w: 800px; --dv-screen-h: 1280px; --dv-bezel: 16px; --dv-radius: 40px; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"] { --dv-screen-w: 1280px; --dv-screen-h: 800px; }
+.dv-phone[data-device="tablet"]::before { top: 10%; height: 5%; }
+.dv-phone[data-device="tablet"]::after { top: 17%; height: 3.5%; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"]::before { top: 14%; height: 8%; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"]::after { top: 26%; height: 5%; }
+
+/* 黒い縁（ガラス） */
+.dv-phone__glass {
+  height: 100%;
+  padding: var(--dv-bezel);
+  border-radius: calc(var(--dv-radius) - var(--dv-rim));
+  background: #050606;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* ========== 3. 表示面 ========== */
+.dv-screen {
+  /* アプリの端: 時刻の帯と、下の操作の帯の高さ（アプリはこの下まで描き、--ds-safe-* の分だけ中身を避ける） */
+  --ds-safe-top: 32px;
+  --ds-safe-bottom: 24px;
+  --ds-safe-left: 0px;
+  --ds-safe-right: 0px;
+  --dv-kb-h: 0px;
+  position: relative;
+  width: var(--dv-screen-w);
+  height: var(--dv-screen-h);
+  overflow: hidden;
+  border-radius: calc(var(--dv-radius) - var(--dv-rim) - var(--dv-bezel));
+  background: var(--ds-color-bg-page, #fff);
+  isolation: isolate;
+  user-select: none;
+}
+.dv-phone[data-nav="buttons"] .dv-screen { --ds-safe-bottom: 48px; }
+/* 実機のスクロールバーは中身に重ねて出て場所を取らないので、枠の中ではパソコンのスクロールバーを隠す */
+.dv-screen, .dv-screen * { scrollbar-width: none; }
+.dv-screen ::-webkit-scrollbar { display: none; }
+
+/* アプリを入れる所。キーボードが出ている間は、その分だけ縮む（Android の「サイズを変える」動き） */
+.dv-viewport {
+  position: absolute;
+  inset: 0 0 var(--dv-kb-h) 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 0;
+  transition: bottom var(--ds-motion-duration-slow, 320ms) var(--ds-motion-ease-standard, ease);
+  user-select: text;
+}
+iframe.dv-viewport { height: calc(100% - var(--dv-kb-h)); background: transparent; }
+.dv-screen.is-kb .dv-viewport { --ds-safe-bottom: 0px; }   /* キーボードが下の帯を覆うので、アプリは避けなくてよい */
+.dv-viewport > .ds-app { height: 100%; }
+
+/* ========== 4. 時刻の帯（ステータスバー） ========== */
+.dv-statusbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 2px 22px 0 26px;
+  color: var(--ds-color-statusbar-fg, #111);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: color var(--ds-motion-duration-base, 220ms);
+}
+.dv-phone[data-statusbar="light"] .dv-statusbar, .dv-screen.is-home .dv-statusbar, .dv-screen.has-perm .dv-statusbar { color: #fff; }
+.dv-phone[data-statusbar="dark"] .dv-statusbar { color: #111; }
+.dv-statusbar__left, .dv-statusbar__right { display: flex; align-items: center; gap: 6px; }
+.dv-statusbar .dv-icon { width: 15px; height: 15px; }
+.dv-statusbar .ds-icon, .dv-statusbar__left .dv-icon { width: 14px; height: 14px; stroke-width: 1.8; vertical-align: 0; }
+.dv-icon { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 電池（横向き。--dv-battery に 0〜100 を入れる） */
+.dv-battery {
+  position: relative;
+  display: inline-block;
+  width: 24px; height: 12px;
+  margin-right: 2px;
+  border: 1.5px solid currentColor;
+  border-radius: 3.5px;
+  opacity: 0.95;
+}
+.dv-battery::before {
+  content: "";
+  position: absolute; top: 1px; bottom: 1px; left: 1px;
+  width: calc((100% - 2px) * var(--dv-battery, 80) / 100);
+  border-radius: 1.5px;
+  background: currentColor;
+}
+.dv-battery::after { content: ""; position: absolute; right: -4px; top: 3px; width: 2px; height: 4px; border-radius: 0 1px 1px 0; background: currentColor; }
+.dv-battery[data-low] { color: #e5484d; }
+
+/* カメラの穴（画面の真ん中上） */
+.dv-camera {
+  position: absolute;
+  top: 10px; left: 50%;
+  z-index: 60;
+  width: 13px; height: 13px;
+  margin-left: -6.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2b3440 0 1.5px, #0b0d10 2.5px, #000 70%);
+  box-shadow: 0 0 0 1.5px #000;
+  pointer-events: none;
+}
+
+/* ========== 5. 下の操作の帯（ナビゲーションバー） ========== */
+.dv-navbar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  color: var(--ds-color-text-body, #111);
+  touch-action: none;
+}
+.dv-screen.is-home .dv-navbar, .dv-screen.has-perm .dv-navbar { color: #fff; }
+/* ジェスチャー: つまみ。上へ払うとホーム、画面の左右の端から内へ払うと戻る */
+.dv-navbar__handle {
+  width: 108px; height: 24px;
+  padding: 0; border: 0; background: none;
+  display: grid; place-items: center;
+  color: inherit;
+  cursor: grab;
+}
+.dv-navbar__handle::before { content: ""; width: 108px; height: 4px; border-radius: 2px; background: currentColor; opacity: 0.85; }
+.dv-navbar__buttons { display: none; }
+/* 3 つのボタン: 戻る・ホーム・履歴 */
+.dv-phone[data-nav="buttons"] .dv-navbar { height: 48px; }
+.dv-phone[data-nav="buttons"] .dv-navbar__handle { display: none; }
+.dv-phone[data-nav="buttons"] .dv-navbar__buttons { display: flex; justify-content: space-around; width: 100%; padding: 0 36px; }
+/* タブレットでは、3 つのボタンを左右に広げず、中央に寄せる */
+.dv-phone[data-device="tablet"][data-nav="buttons"] .dv-navbar__buttons { justify-content: center; gap: 120px; }
+.dv-phone[data-device="tablet"][data-orientation="landscape"][data-nav="buttons"] .dv-navbar__buttons { gap: 160px; }
+.dv-navbar__btn {
+  display: grid; place-items: center;
+  width: 56px; height: 40px;
+  padding: 0; border: 0; border-radius: 20px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.dv-navbar__btn:active { background: color-mix(in srgb, currentColor 14%, transparent); }
+.dv-navbar__btn .dv-icon { width: 18px; height: 18px; stroke-width: 1.6; opacity: 0.85; }
+.dv-navbar__btn[data-dv="back"] .dv-icon { width: 16px; height: 16px; }
+
+/* 戻るジェスチャーの印（端から払っている間、指の高さに出る） */
+.dv-back-arrow {
+  position: absolute;
+  z-index: 47;
+  top: 0;
+  width: 36px; height: 72px;
+  margin-top: -36px;
+  display: grid; place-items: center;
+  border-radius: 0 36px 36px 0;
+  background: light-dark(rgba(20, 20, 20, 0.82), rgba(240, 240, 240, 0.88));
+  color: light-dark(#fff, #111);
+  pointer-events: none;
+  transform: translateX(calc(-100% + var(--dv-back-pull, 0px)));
+  opacity: var(--dv-back-opacity, 0);
+}
+.dv-back-arrow[data-side="right"] { border-radius: 36px 0 0 36px; transform: translateX(calc(100% - var(--dv-back-pull, 0px))); }
+.dv-back-arrow .dv-icon { width: 16px; height: 16px; stroke-width: 2.2; transition: transform 120ms; }
+.dv-back-arrow[data-side="right"] .dv-icon { transform: scaleX(-1); }
+.dv-back-arrow.is-armed .dv-icon { transform: scale(1.25); }
+.dv-back-arrow[data-side="right"].is-armed .dv-icon { transform: scale(-1.25, 1.25); }
+
+/* ========== 6. 画面のキーボード ========== */
+.dv-keyboard {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 45;
+  padding: 0 4px calc(var(--ds-safe-bottom) + 4px);
+  background: light-dark(#e7eaee, #1d1f22);
+  color: light-dark(#1b1c1e, #e7e8ea);
+  transform: translateY(100%);
+  transition: transform var(--ds-motion-duration-slow, 320ms) var(--ds-motion-ease-standard, ease);
+  touch-action: none;
+  font-family: "Roboto", "Noto Sans JP", system-ui, sans-serif;
+}
+.dv-screen.is-kb .dv-keyboard { transform: none; }
+.dv-keyboard__strip { display: flex; align-items: center; justify-content: space-around; height: 40px; padding: 0 8px; font-size: 15px; color: light-dark(#3c4043, #c4c7c5); }
+.dv-keyboard__strip span { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-keyboard__strip span + span { border-left: 1px solid light-dark(#c9cdd2, #3a3d41); }
+.dv-keyboard__strip .dv-icon { width: 20px; height: 20px; vertical-align: -4px; }
+.dv-keyboard__row { display: flex; gap: 5px; justify-content: center; margin-bottom: 9px; }
+.dv-keyboard__row--offset { padding: 0 17px; }
+.dv-key {
+  flex: 1 1 0;
+  display: grid; place-items: center;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: light-dark(#ffffff, #3b3e42);
+  color: inherit;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: 0 1px 0 light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  user-select: none;
+}
+.dv-key:active, .dv-key.is-down { background: light-dark(#c9ced6, #5a5e64); }
+.dv-key--fn { flex-grow: 1.5; background: light-dark(#cdd3db, #2b2d31); font-size: 14px; }
+.dv-key--space { flex-grow: 5; font-size: 13px; color: light-dark(#5f6368, #9aa0a6); }
+.dv-key--enter { flex-grow: 1.5; background: light-dark(#bdd0f5, #3b4d72); }
+.dv-key[aria-pressed="true"] { background: light-dark(#bdd0f5, #3b4d72); }
+.dv-key .dv-icon { width: 20px; height: 20px; stroke-width: 1.7; }
+/* 数字の入力欄では、数字の並びにする */
+.dv-keyboard--numeric .dv-key { height: 48px; font-size: 22px; }
+
+/* ========== 7. 通知・お知らせ・許可 ========== */
+/* 画面の上に出る通知（ヘッドアップ通知）。上へ払うと消える */
+.dv-heads-up {
+  position: absolute;
+  top: 36px; left: 8px; right: 8px;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 2px 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 22px;
+  background: light-dark(#f3f6f4, #2a2d2b);
+  color: light-dark(#1b1c1e, #e7e8ea);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  touch-action: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+.dv-heads-up__icon { grid-row: span 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--ds-color-btn-primary-bg, #2563eb); color: #fff; font-weight: 700; font-size: 15px; }
+.dv-heads-up__app { font-size: 12px; color: light-dark(#5f6368, #9aa0a6); }
+.dv-heads-up__time { font-size: 12px; color: light-dark(#5f6368, #9aa0a6); }
+.dv-heads-up__title { grid-column: 2 / 4; font-weight: 600; }
+.dv-heads-up__text { grid-column: 2 / 4; color: light-dark(#3c4043, #c4c7c5); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+/* 端末の短いお知らせ（トースト）。アプリのスナックバーとは別。操作のボタンを持たない */
+.dv-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--ds-safe-bottom) + 72px);
+  z-index: 50;
+  max-width: calc(100% - 48px);
+  padding: 10px 16px;
+  border-radius: 22px;
+  background: light-dark(#e9ecef, #3c4043);
+  color: light-dark(#1b1c1e, #e7e8ea);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 14px;
+  line-height: 20px;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+/* 端末の許可のダイアログ（アプリのダイアログとは別。端末が出す） */
+.dv-perm-scrim { position: absolute; inset: 0; z-index: 48; background: rgba(0, 0, 0, 0.55); }
+.dv-perm {
+  position: absolute;
+  left: 50%; top: 50%;
+  z-index: 49;
+  width: calc(100% - 48px);
+  padding: 24px 24px 20px;
+  border-radius: 28px;
+  background: light-dark(#eef2ef, #2a2d2b);
+  color: light-dark(#1b1c1e, #e7e8ea);
+  text-align: center;
+  translate: -50% -50%;
+  font-size: 14px;
+}
+.dv-perm__icon { display: block; width: 24px; height: 24px; margin: 0 auto 16px; color: light-dark(#2f5d48, #9fd3b6); }
+.dv-perm__title { margin: 0 0 20px; font-size: 20px; line-height: 28px; font-weight: 400; }
+.dv-perm__title b { font-weight: 600; }
+.dv-perm__choices { display: flex; flex-direction: column; gap: 4px; }
+.dv-perm__choice {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 24px;
+  background: light-dark(#d5e7dc, #3a4a41);
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dv-perm__choice:first-child { border-radius: 24px 24px 6px 6px; }
+.dv-perm__choice:last-child { border-radius: 6px 6px 24px 24px; }
+.dv-perm__choice:only-child { border-radius: 24px; }
+.dv-perm__choice:active { filter: brightness(0.92); }
+
+/* ========== 8. ホーム画面・壁紙 ========== */
+/* 壁紙（緑の大きな曲面を重ねた抽象画） */
+.dv-wallpaper {
+  background:
+    radial-gradient(120% 70% at 110% 75%, #a9c4b4 0 38%, transparent 38.5%),
+    radial-gradient(90% 60% at 95% 70%, #c9dccf 0 40%, transparent 40.5%),
+    radial-gradient(140% 90% at -30% 10%, transparent 0 46%, #6f9a83 46.5% 52%, transparent 52.5%),
+    linear-gradient(160deg, #0d1f17 0%, #1f4a36 34%, #8fb8a0 55%, #d8e7dd 70%, #9fbcab 100%);
+}
+.dv-home {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 24px calc(var(--ds-safe-bottom) + 24px);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.dv-home[hidden] { display: none; }
+.dv-home__clock { font-size: 64px; line-height: 1; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.dv-home__date { margin-top: 8px; font-size: 15px; }
+.dv-home__dock { margin-top: auto; display: flex; gap: 28px; justify-content: center; }
+.dv-home__app { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 12px; cursor: pointer; text-shadow: inherit; }
+.dv-home__app-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: var(--ds-color-btn-primary-bg, #2563eb); color: #fff; font-size: 22px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); text-shadow: none; }
+.dv-home__app:active .dv-home__app-icon { transform: scale(0.94); }
+.dv-home__hint { margin-top: 16px; font-size: 12px; opacity: 0.85; }
+
+/* ========== 9. デモの操作盤 ========== */
+.dv-controls {
+  width: 340px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--ds-color-border-container, #e4e4e7);
+  border-radius: var(--ds-radius-container, 16px);
+  background: var(--ds-color-bg-container, #fff);
+  color: var(--ds-color-text-body, #111);
+  box-shadow: var(--ds-shadow-raised, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+.dv-controls__title { margin: 0; font-size: 17px; line-height: 24px; font-weight: 700; }
+.dv-controls__group { display: flex; flex-direction: column; gap: 6px; }
+.dv-controls__label { font-size: 12px; line-height: 16px; font-weight: 700; color: var(--ds-color-text-secondary, #52525b); }
+.dv-controls__note { margin: 0; font-size: 12px; line-height: 18px; color: var(--ds-color-text-description, #63636c); }
+
+/* ========== 10. 実機で開いたとき ==========
+ * 画面の幅が狭い（実機・スマートフォンのブラウザ）ときは、端末の枠・時刻の帯・下の帯・キーボードを出さず、
+ * アプリを画面いっぱいに出す。端の大きさは、実機の値（env(safe-area-inset-*)）に戻す。
+ * <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"> を付けること。 */
+@media (max-width: 540px) {
+  .dv-stage { display: block; padding: 0; min-height: 0; background: none; }
+  .dv-phone { width: 100%; height: 100vh; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; transform: none; margin: 0; }
+  .dv-phone::before, .dv-phone::after, .dv-camera, .dv-statusbar, .dv-navbar, .dv-keyboard, .dv-back-arrow, .dv-controls { display: none !important; }
+  .dv-phone__glass { padding: 0; border-radius: 0; background: none; box-shadow: none; }
+  .dv-screen {
+    width: 100%; height: 100%;
+    border-radius: 0;
+    --ds-safe-top: env(safe-area-inset-top, 0px);
+    --ds-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --ds-safe-left: env(safe-area-inset-left, 0px);
+    --ds-safe-right: env(safe-area-inset-right, 0px);
+  }
+  .dv-phone[data-nav="buttons"] .dv-screen { --ds-safe-bottom: env(safe-area-inset-bottom, 0px); }
+  .dv-viewport { inset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-viewport, .dv-keyboard, .dv-statusbar { transition: none; }
+}

@@ -1,0 +1,1460 @@
+/*
+ * 汎用デザインシステム（スマートフォン版）— コンポーネント
+ * tokens.css を先に読み込むこと。クラス名はすべて ds- で始まる（端末の部品は device.css の dv-）。
+ * 一覧と使用例は index.html を参照。
+ *
+ * PC 版と同じ考え方（意味トークンだけを使う、見た目の違いはトークンで吸収する）で、次を変えている。
+ *   ・ホバーは使わない。押している間（:active）の重ね（--ds-color-pressed）で、押したことを伝える
+ *   ・押せる範囲は 48px 以上。見た目が小さい部品（札・小さなボタン）は ::after で押せる範囲を広げる
+ *   ・重なる部品（シート・ダイアログ・スナックバー）は、画面（.ds-app）の中に position: absolute で置く。
+ *     <dialog> の最前面（top layer）を使わないのは、ブラウザで端末の枠の中に表示するとき、枠の外まで覆ってしまうため
+ */
+
+/* ========== 0. 土台 ========== */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body.ds-body {
+  margin: 0;
+  background: var(--ds-color-bg-page);
+  color: var(--ds-color-text-body);
+  font-family: var(--ds-font-family-base);
+  font-size: var(--ds-font-size-body-m);
+  line-height: var(--ds-line-height-body-m);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* キーボード（外付け・読み上げ機能）で操作したときだけ見えるフォーカス枠。
+ * :where() で詳細度を :focus-visible だけ（0,1,0）に下げ、部品側の outline: none
+ * （外枠で囲む入力欄の中の input、JS でフォーカスを移すシートなど）が勝つようにする */
+:where(.ds-body) :focus-visible {
+  outline: var(--ds-border-width-focus) solid var(--ds-color-border-focus);
+  outline-offset: 2px;
+}
+
+.ds-icon {
+  width: var(--ds-size-icon);
+  height: var(--ds-size-icon);
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--ds-icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -4px;
+}
+.ds-icon--l { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); }
+
+.ds-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* 押している間の重ね。押せる部品の ::before に敷く（部品ごとに position: relative を持つ） */
+.ds-btn::before, .ds-cell:is(a, button, label)::before, .ds-tabbar__item::before, .ds-tabs__tab::before,
+.ds-action::before, .ds-card--pressable::before, .ds-menu__item::before, .ds-chip::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: var(--ds-color-pressed);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+.ds-btn:active:not(:disabled)::before, .ds-cell:is(a, button, label):active::before, .ds-tabbar__item:active::before,
+.ds-tabs__tab:active::before, .ds-action:active::before, .ds-card--pressable:active::before,
+.ds-menu__item:active::before, .ds-chip:active::before { opacity: 1; transition-duration: 0ms; }
+
+/* ========== 1. 文字 ========== */
+.ds-h1, .ds-h2, .ds-h3, .ds-h4 {
+  margin: 0; font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-body);
+  display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--ds-space-xs);
+}
+.ds-h1 { font-size: var(--ds-font-size-heading-xl); line-height: var(--ds-line-height-heading-xl); letter-spacing: var(--ds-letter-spacing-heading-xl); }
+.ds-h2 { font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); letter-spacing: var(--ds-letter-spacing-heading-l); }
+.ds-h3 { font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); letter-spacing: var(--ds-letter-spacing-heading-m); }
+.ds-h4 { font-size: var(--ds-font-size-heading-s); line-height: var(--ds-line-height-heading-s); }
+.ds-counter { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); }
+.ds-p { margin: 0; }
+.ds-text-secondary { color: var(--ds-color-text-secondary); }
+.ds-text-small {
+  font-size: var(--ds-font-size-body-s);
+  line-height: var(--ds-line-height-body-s);
+  letter-spacing: var(--ds-letter-spacing-body-s);
+  color: var(--ds-color-text-description);
+}
+.ds-mono { font-family: var(--ds-font-family-mono); }
+.ds-value-large {
+  font-size: var(--ds-font-size-display-l);
+  line-height: var(--ds-line-height-display-l);
+  color: var(--ds-color-text-accent);
+  font-weight: var(--ds-font-weight-normal);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== 2. リンク ========== */
+.ds-link {
+  color: var(--ds-color-text-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+.ds-link:active { color: var(--ds-color-text-link-hover); }
+
+/* ========== 3. ボタン ========== */
+.ds-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-xs);
+  min-height: var(--ds-size-control-height);
+  padding: 0 var(--ds-space-l);
+  border: var(--ds-border-width-button) solid var(--ds-color-btn-normal-border);
+  border-radius: var(--ds-radius-button);
+  background: var(--ds-color-btn-normal-bg);
+  color: var(--ds-color-btn-normal-text);
+  font: inherit;
+  font-weight: var(--ds-font-weight-bold);
+  letter-spacing: var(--ds-letter-spacing-button);
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;  /* 2 回たたいて拡大する動きを止め、押した反応を速くする */
+}
+
+/* 主ボタン: 1 画面に 1 つまで */
+.ds-btn--primary { background: var(--ds-color-btn-primary-bg); border-color: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+/* 取り消せない操作（削除など）の主ボタン。ダイアログやシートの中で、確定する 1 つにだけ使う */
+.ds-btn--danger { background: var(--ds-color-btn-danger-bg); border-color: var(--ds-color-btn-danger-bg); color: var(--ds-neutral-0); }
+/* 枠のないボタン（キャンセル・ダイアログの選択肢） */
+.ds-btn--link { border-color: transparent; background: transparent; color: var(--ds-color-btn-link-text); padding: 0 var(--ds-space-s); }
+/* 幅いっぱいのボタン（画面の下の操作帯・シートの確定） */
+.ds-btn--block { display: flex; width: 100%; }
+/* 小さなボタン（見た目 36px。押せる範囲は 48px に広げる） */
+.ds-btn--s { min-height: var(--ds-size-control-height-s); padding: 0 var(--ds-space-s); font-size: var(--ds-font-size-body-s); }
+.ds-btn--s::after { content: ""; position: absolute; inset: calc((var(--ds-size-control-height-s) - var(--ds-size-touch)) / 2) 0; }
+
+/* アイコンだけのボタン（48px の丸。aria-label を必ず付ける） */
+.ds-btn--icon {
+  width: var(--ds-size-touch); min-width: var(--ds-size-touch); height: var(--ds-size-touch);
+  padding: 0;
+  border-color: transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+.ds-btn--icon .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); }
+
+.ds-btn:disabled, .ds-btn[aria-disabled="true"] {
+  background: var(--ds-color-bg-disabled);
+  border-color: var(--ds-color-bg-disabled);
+  color: var(--ds-color-text-disabled);
+  cursor: default;
+}
+.ds-btn--icon:disabled, .ds-btn--link:disabled { background: transparent; border-color: transparent; }
+
+.ds-btn-group { display: flex; gap: var(--ds-space-xs); align-items: center; }
+.ds-btn-group > .ds-btn { flex: 1; }
+.ds-btn-stack { display: flex; flex-direction: column; gap: var(--ds-space-xs); }
+
+/* ========== 4. アプリの骨組み ==========
+ * <div class="ds-app">                       … アプリ全体。重なる部品（シート・ダイアログ・スナックバー）の基準
+ *   <div class="ds-app__stack">              … 画面を重ねる場所（進む・戻るで入れ替わる）
+ *     <section class="ds-screen">            … 1 つの画面
+ *       <header class="ds-appbar">…</header> … 上の帯（戻る・題名・操作）
+ *       <main class="ds-content">…</main>    … 縦に流れる中身
+ *       <div class="ds-bottombar">…</div>    … 下の操作帯（任意）
+ *   <nav class="ds-tabbar">…</nav>           … 下のタブ（任意）
+ * PC 版の .ds-app（上部ナビとサイドナビの格子）とは別の作り。 */
+.ds-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ds-color-bg-page);
+  color: var(--ds-color-text-body);
+  isolation: isolate;
+}
+/* 端末の枠の外（実機・ブラウザで直接開いたとき）は、画面の高さいっぱいにする */
+body > .ds-app { height: 100vh; height: 100dvh; }
+
+.ds-app__stack { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+
+.ds-screen {
+  /* 下のタブが無いときだけ、下の操作の帯（ナビゲーションバー）の分を空ける */
+  --ds-screen-safe-bottom: var(--ds-safe-bottom);
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--ds-color-bg-page);
+}
+.ds-screen[hidden] { display: none; }
+.ds-app:has(> .ds-tabbar:not([hidden])) .ds-screen { --ds-screen-safe-bottom: 0px; }
+
+/* アプリバー */
+.ds-appbar {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ds-space-xxs);
+  min-height: calc(var(--ds-size-appbar-height) + var(--ds-safe-top));
+  padding: var(--ds-safe-top) calc(var(--ds-space-xxs) + var(--ds-safe-right)) 0 calc(var(--ds-space-xxs) + var(--ds-safe-left));
+  background: var(--ds-color-bg-appbar);
+  color: var(--ds-color-appbar-text);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+/* 中身が下に潜ったら線を出す（components.js が .is-scrolled を付ける） */
+.ds-appbar.is-scrolled { border-bottom-color: var(--ds-color-appbar-border); }
+.ds-appbar__row { display: flex; align-items: center; column-gap: var(--ds-space-xxs); flex: 1 1 100%; height: var(--ds-size-appbar-height); min-width: 0; }
+.ds-appbar__title {
+  flex: 1; min-width: 0;
+  margin: 0;
+  padding: 0 var(--ds-space-s);
+  font-size: var(--ds-font-size-heading-l);
+  line-height: var(--ds-line-height-heading-l);
+  letter-spacing: var(--ds-letter-spacing-heading-l);
+  font-weight: var(--ds-font-weight-bold);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ds-appbar__btn + .ds-appbar__title, .ds-btn + .ds-appbar__title { padding-left: var(--ds-space-xxs); }
+.ds-appbar__sub { display: block; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-appbar-text-secondary); overflow: hidden; text-overflow: ellipsis; }
+.ds-appbar__actions { display: flex; align-items: center; flex: none; }
+/* 大きな題名: 開いた直後は題名を大きく見せ、中身を上へ送ると小さな題名に畳む（components.js が .is-collapsed を付ける） */
+.ds-appbar--large .ds-appbar__title { opacity: 0; transition: opacity var(--ds-motion-duration-fast) var(--ds-motion-ease-standard); }
+.ds-appbar--large.is-collapsed .ds-appbar__title { opacity: 1; }
+.ds-appbar__large {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 0 var(--ds-space-screen) var(--ds-space-s);
+  font-size: var(--ds-font-size-heading-xl);
+  line-height: var(--ds-line-height-heading-xl);
+  letter-spacing: var(--ds-letter-spacing-heading-xl);
+  font-weight: var(--ds-font-weight-bold);
+  max-height: var(--ds-size-appbar-large-title);
+  overflow: hidden;
+  transition: max-height var(--ds-motion-duration-base) var(--ds-motion-ease-standard), opacity var(--ds-motion-duration-fast) var(--ds-motion-ease-standard), padding var(--ds-motion-duration-base) var(--ds-motion-ease-standard);
+}
+.ds-appbar--large.is-collapsed .ds-appbar__large { max-height: 0; padding-bottom: 0; opacity: 0; }
+/* アプリバーの下に置く検索欄・絞り込みの札 */
+.ds-appbar__extra { flex: 1 1 100%; padding: 0 calc(var(--ds-space-screen) - var(--ds-space-xxs)) var(--ds-space-xs); }
+
+/* 中身（縦に流れる） */
+.ds-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(var(--ds-space-xl) + var(--ds-screen-safe-bottom));
+  padding-left: var(--ds-safe-left);
+  padding-right: var(--ds-safe-right);
+}
+.ds-content > * { max-width: var(--ds-size-content-max); margin-inline: auto; }
+/* 中身の余白のまとまり */
+.ds-pad { padding: var(--ds-space-m) var(--ds-space-screen); }
+.ds-stack { display: flex; flex-direction: column; gap: var(--ds-stack-gap, var(--ds-space-m)); }
+.ds-row { display: flex; align-items: center; gap: var(--ds-space-xs); flex-wrap: wrap; }
+
+/* 下の操作帯（その画面の主な操作を、親指の届く下に置く） */
+.ds-bottombar {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  gap: var(--ds-space-xs);
+  padding: var(--ds-space-s) calc(var(--ds-space-screen) + var(--ds-safe-right)) calc(var(--ds-space-s) + var(--ds-screen-safe-bottom)) calc(var(--ds-space-screen) + var(--ds-safe-left));
+  background: var(--ds-color-bg-container);
+  border-top: 1px solid var(--ds-color-border-divider);
+}
+.ds-bottombar > .ds-btn { flex: 1; }
+
+/* 下のタブ（3〜5 個。アプリの最上位の行き先だけを置く） */
+.ds-tabbar {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  display: flex;
+  padding: 0 var(--ds-safe-right) var(--ds-safe-bottom) var(--ds-safe-left);
+  background: var(--ds-color-bg-tabbar);
+  border-top: 1px solid var(--ds-color-border-divider);
+}
+.ds-tabbar[hidden] { display: none; }
+.ds-tabbar__item {
+  position: relative;
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--ds-space-xxs);
+  height: var(--ds-size-tabbar-height);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ds-color-tabbar-text);
+  font: inherit;
+  font-size: var(--ds-font-size-caption);
+  line-height: var(--ds-line-height-caption);
+  font-weight: var(--ds-font-weight-bold);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+.ds-tabbar__item::before { inset: 6px 8px; border-radius: 16px; }
+.ds-tabbar__icon {
+  position: relative;
+  display: grid; place-items: center;
+  width: 56px; height: 30px;
+  border-radius: 15px;
+  transition: background-color var(--ds-motion-duration-base) var(--ds-motion-ease-standard);
+}
+.ds-tabbar__icon .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); }
+.ds-tabbar__item[aria-current="page"] { color: var(--ds-color-tabbar-current-text); }
+.ds-tabbar__item[aria-current="page"] .ds-tabbar__icon { background: var(--ds-color-tabbar-current-bg); }
+/* 未読の数（アイコンの右上） */
+.ds-count {
+  display: inline-grid; place-items: center;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--ds-color-count-bg);
+  color: var(--ds-neutral-0);
+  font-size: var(--ds-font-size-caption);
+  line-height: 1;
+  font-weight: var(--ds-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.ds-tabbar__icon .ds-count, .ds-btn--icon .ds-count { position: absolute; top: -4px; left: calc(50% + 4px); box-shadow: 0 0 0 2px var(--ds-color-bg-tabbar); }
+.ds-btn--icon .ds-count { top: 6px; left: auto; right: 4px; box-shadow: 0 0 0 2px var(--ds-color-bg-appbar); }
+/* 数の無い印（新しいものがある） */
+.ds-count--dot { min-width: 8px; width: 8px; height: 8px; padding: 0; }
+
+/* 浮かぶ操作ボタン（FAB）。その画面で最もよく行う「作る」操作を 1 つだけ置く */
+.ds-fab {
+  position: absolute;
+  right: calc(var(--ds-space-m) + var(--ds-safe-right));
+  bottom: calc(var(--ds-space-m) + var(--ds-screen-safe-bottom));
+  z-index: 3;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ds-space-xs);
+  min-width: var(--ds-size-fab); height: var(--ds-size-fab);
+  padding: 0 var(--ds-space-m);
+  border: 0;
+  border-radius: var(--ds-radius-fab);
+  background: var(--ds-color-btn-primary-bg);
+  color: var(--ds-color-btn-primary-text);
+  box-shadow: var(--ds-shadow-fab);
+  font: inherit;
+  font-weight: var(--ds-font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-fab .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); }
+.ds-fab--extended { padding: 0 var(--ds-space-l) 0 var(--ds-space-m); }
+/* 中身を下へ送っている間は、文字を畳んでアイコンだけにする（components.js が .is-compact を付ける） */
+.ds-fab--extended .ds-fab__label { overflow: hidden; white-space: nowrap; max-width: 12em; transition: max-width var(--ds-motion-duration-base) var(--ds-motion-ease-standard), opacity var(--ds-motion-duration-fast); }
+.ds-fab--extended.is-compact { padding: 0; width: var(--ds-size-fab); gap: 0; }
+.ds-fab--extended.is-compact .ds-fab__label { max-width: 0; opacity: 0; }
+
+/* ========== 5. リスト（行の一覧） ==========
+ * 行（.ds-cell）は、先頭（アイコン・顔）・本体（題名・説明・札）・末尾（値・山形・トグル）の 3 つの場所を持つ。
+ * 押せる行は <a> か <button>、選ぶ行は <label>（中に input）で作る。 */
+.ds-list { list-style: none; margin: 0; padding: 0; background: var(--ds-color-bg-container); }
+.ds-list > li { position: relative; }
+/* まとまったリスト（角丸の面。設定・詳細の画面） */
+.ds-list--inset {
+  margin: 0 var(--ds-space-screen);
+  border: var(--ds-border-width-container) solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-container);
+  overflow: hidden;
+}
+.ds-list__header {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ds-space-xs);
+  margin: 0;
+  padding: var(--ds-space-l) var(--ds-space-screen) var(--ds-space-xs);
+  font-size: var(--ds-font-size-body-s);
+  line-height: var(--ds-line-height-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  color: var(--ds-color-text-secondary);
+}
+.ds-list__footer { margin: 0; padding: var(--ds-space-xs) var(--ds-space-screen) 0; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+
+.ds-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-m);
+  width: 100%;
+  min-height: var(--ds-size-cell-height);
+  margin: 0;
+  padding: var(--ds-space-xs) var(--ds-space-screen);
+  border: 0;
+  background: var(--ds-color-bg-container);
+  color: var(--ds-color-text-body);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  touch-action: pan-y;  /* 縦の送りはそのまま。横のスワイプは .ds-swipe が受け取る */
+}
+.ds-cell:is(a, button, label) { cursor: pointer; user-select: none; -webkit-user-drag: none; }
+/* 行の区切り線（題名の左端から）。先頭の行には引かない */
+.ds-cell::after {
+  content: "";
+  position: absolute; top: 0; right: 0;
+  left: var(--ds-cell-divider-start, var(--ds-space-screen));
+  height: 1px;
+  background: var(--ds-color-border-subtle);
+}
+.ds-cell:has(> .ds-cell__lead) { --ds-cell-divider-start: calc(var(--ds-space-screen) + 40px + var(--ds-space-m)); }
+.ds-list > li:first-child > .ds-cell::after, .ds-list > li:first-child > .ds-swipe .ds-cell::after,
+.ds-list > .ds-cell:first-child::after { display: none; }
+.ds-cell--2line { min-height: var(--ds-size-cell-height-2line); }
+.ds-cell[aria-current="true"], .ds-cell.is-selected { background: var(--ds-color-bg-selected); }
+
+.ds-cell__lead {
+  flex: none;
+  display: grid; place-items: center;
+  width: 40px; height: 40px;
+  color: var(--ds-color-text-secondary);
+}
+.ds-cell__lead .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); }
+/* 先頭を角丸の面にする（種類の印・アプリの印） */
+.ds-cell__lead--tile { border-radius: 12px; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); }
+.ds-cell__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--ds-space-xxxs); padding: var(--ds-space-xxs) 0; }
+.ds-cell__title { color: var(--ds-color-text-body); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--ds-cell-title-lines, 2); line-clamp: var(--ds-cell-title-lines, 2); overflow-wrap: anywhere; }
+.ds-cell__sub { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+.ds-cell__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-xxs) var(--ds-space-s); margin-top: var(--ds-space-xxs); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-cell__trail { flex: none; display: flex; align-items: center; gap: var(--ds-space-xs); color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-body-s); }
+.ds-cell__chevron { color: var(--ds-color-text-description); margin-right: calc(var(--ds-space-xxs) * -1); }
+/* 未読の印（題名の前の点） */
+.ds-cell__unread { width: 8px; height: 8px; border-radius: 50%; background: var(--ds-color-border-selected); flex: none; }
+/* 取り消せない操作の行（削除・退会） */
+.ds-cell--danger, .ds-cell--danger .ds-cell__lead { color: var(--ds-color-error); }
+
+/* 顔（人・組織の頭文字） */
+.ds-avatar {
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--ds-color-avatar-bg);
+  color: var(--ds-color-avatar-text);
+  font-weight: var(--ds-font-weight-bold);
+  font-size: var(--ds-font-size-body-m);
+  flex: none;
+}
+
+/* ========== 6. スワイプできる行 ==========
+ * 行を横に払うと、後ろの操作が見える。半分の手前で離すと戻り、越えて離すと操作する（components.js）。
+ * スワイプは近道にとどめる。同じ操作を、行を開いた先かメニューにも必ず置く（払う動きができない人・知らない人がいるため）。 */
+.ds-swipe { position: relative; overflow: hidden; background: var(--ds-color-bg-container); }
+.ds-swipe > .ds-cell { z-index: 1; will-change: transform; }
+.ds-swipe__action {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; gap: var(--ds-space-xs);
+  padding: 0 var(--ds-space-xl);
+  color: var(--ds-neutral-0);
+  font-weight: var(--ds-font-weight-bold);
+  background: var(--ds-swipe-bg, var(--ds-color-fill-neutral));
+  visibility: hidden;
+}
+.ds-swipe__action--start { justify-content: flex-start; }  /* 右へ払うと見える（行の左側） */
+.ds-swipe__action--end { justify-content: flex-end; }      /* 左へ払うと見える（行の右側） */
+.ds-swipe[data-swipe-dir="start"] .ds-swipe__action--start, .ds-swipe[data-swipe-dir="end"] .ds-swipe__action--end { visibility: visible; }
+.ds-swipe__action .ds-icon { transition: transform var(--ds-motion-duration-fast) var(--ds-motion-ease-spring); }
+/* 離すと操作する所まで来た */
+.ds-swipe.is-armed .ds-swipe__action .ds-icon { transform: scale(1.25); }
+.ds-swipe__action--success { --ds-swipe-bg: var(--ds-color-fill-success); }
+.ds-swipe__action--danger { --ds-swipe-bg: var(--ds-color-fill-error); }
+.ds-swipe__action--info { --ds-swipe-bg: var(--ds-color-fill-info); }
+
+/* ========== 7. カード ========== */
+.ds-card {
+  position: relative;
+  display: block;
+  padding: var(--ds-space-m);
+  border: var(--ds-border-width-container) solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-container);
+  background: var(--ds-color-bg-container);
+  color: inherit;
+  text-decoration: none;
+}
+.ds-card--pressable { cursor: pointer; user-select: none; }
+.ds-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ds-space-s); margin-bottom: var(--ds-space-xs); }
+.ds-card__title { margin: 0; font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); font-weight: var(--ds-font-weight-bold); }
+.ds-card__footer { display: flex; gap: var(--ds-space-xs); margin-top: var(--ds-space-m); }
+/* 横に送るカードの列（最初の 1 枚半を見せて、横に続くことを伝える） */
+.ds-carousel {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 78%;
+  gap: var(--ds-space-s);
+  overflow-x: auto;
+  padding: 0 var(--ds-space-screen) var(--ds-space-xxs);
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--ds-space-screen);
+  scrollbar-width: none;
+}
+.ds-carousel::-webkit-scrollbar { display: none; }
+.ds-carousel > * { scroll-snap-align: start; }
+
+/* キーと値（縦に積む。幅が狭いので、名前の下に値を置く） */
+.ds-kv { display: grid; gap: var(--ds-space-s); margin: 0; }
+.ds-kv > div { display: flex; flex-direction: column; gap: var(--ds-space-xxxs); min-width: 0; }
+.ds-kv dt { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-kv dd { margin: 0; overflow-wrap: anywhere; }
+.ds-kv--2col { grid-template-columns: 1fr 1fr; }
+
+.ds-divider { height: 1px; border: 0; margin: 0; background: var(--ds-color-border-divider); }
+
+/* ========== 8. 入力 ========== */
+.ds-field { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-field__label { font-weight: var(--ds-font-weight-bold); }
+.ds-field__label .ds-optional { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); }
+.ds-field__description, .ds-field__constraint { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-field__error { display: flex; gap: var(--ds-space-xxs); align-items: center; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-error); }
+.ds-field__error .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+
+.ds-input, .ds-textarea, .ds-select {
+  width: 100%;
+  min-height: var(--ds-size-control-height);
+  padding: 11px var(--ds-space-s);
+  border: var(--ds-border-width-input) solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  color: var(--ds-color-text-body);
+  font: inherit;
+  font-size: var(--ds-font-size-input);
+  line-height: 24px;
+}
+.ds-textarea { min-height: 96px; resize: none; field-sizing: content; max-height: 40vh; }
+.ds-input::placeholder, .ds-textarea::placeholder { color: var(--ds-color-text-description); font-style: var(--ds-font-style-placeholder); }
+.ds-input:focus, .ds-textarea:focus, .ds-select:focus { outline: none; border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-input:disabled, .ds-textarea:disabled, .ds-select:disabled { background: var(--ds-color-bg-disabled); border-color: var(--ds-color-bg-disabled); color: var(--ds-color-text-disabled); }
+.ds-input[aria-invalid="true"], .ds-textarea[aria-invalid="true"], .ds-select[aria-invalid="true"] { border-color: var(--ds-color-error); box-shadow: inset 4px 0 0 var(--ds-color-error); }
+.ds-select {
+  appearance: none;
+  padding-inline-end: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%238c8c94' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+}
+
+/* 検索欄（丸い面。左に虫眼鏡、入力中は右に消すボタン） */
+.ds-search { position: relative; display: flex; align-items: center; gap: var(--ds-space-xxs); }
+.ds-search__field { position: relative; flex: 1; min-width: 0; }
+.ds-search__field > .ds-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ds-color-text-secondary); pointer-events: none; }
+.ds-search .ds-input {
+  min-height: 44px;
+  padding: 9px 44px 9px 44px;
+  border-color: transparent;
+  border-radius: 22px;
+  background: var(--ds-color-bg-subtle);
+}
+.ds-search .ds-input::-webkit-search-cancel-button { display: none; }
+.ds-search__clear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; color: var(--ds-color-text-secondary); }
+.ds-search__clear .ds-icon { width: 18px; height: 18px; }
+.ds-search:not(:has(.ds-input:placeholder-shown)) .ds-search__clear { display: inline-flex; }
+.ds-search:has(.ds-input:placeholder-shown) .ds-search__clear { display: none; }
+
+/* ラジオ・チェック（1 行 48px を押せる範囲にする） */
+.ds-choice { display: flex; align-items: center; gap: var(--ds-space-s); min-height: var(--ds-size-touch); cursor: pointer; user-select: none; }
+.ds-choice__text { display: flex; flex-direction: column; min-width: 0; }
+.ds-choice input[type="radio"], .ds-choice input[type="checkbox"],
+.ds-cell input[type="radio"], .ds-cell input[type="checkbox"]:not([role="switch"]) {
+  appearance: none; flex: none;
+  width: var(--ds-size-choice); height: var(--ds-size-choice); margin: 0;
+  border: var(--ds-border-width-choice) solid var(--ds-color-border-input);
+  background: var(--ds-color-bg-input);
+  cursor: pointer;
+}
+.ds-choice input[type="radio"], .ds-cell input[type="radio"] { border-radius: 50%; }
+.ds-choice input[type="radio"]:checked, .ds-cell input[type="radio"]:checked { border: var(--ds-border-width-choice-checked) solid var(--ds-color-border-selected); }
+.ds-choice input[type="checkbox"], .ds-cell input[type="checkbox"]:not([role="switch"]) { border-radius: var(--ds-radius-checkbox); }
+.ds-choice input[type="checkbox"]:checked, .ds-cell input[type="checkbox"]:not([role="switch"]):checked {
+  border-color: var(--ds-color-border-selected);
+  background: var(--ds-color-border-selected) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.5l2.5 2.5L11 4' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+.ds-choice input:disabled { border-color: var(--ds-color-text-disabled); background-color: var(--ds-color-bg-disabled); cursor: default; }
+.ds-choice input:disabled + .ds-choice__text { color: var(--ds-color-text-disabled); }
+
+/* トグル（スイッチ）。<input type="checkbox" role="switch"> */
+.ds-toggle { display: inline-flex; align-items: center; gap: var(--ds-space-s); cursor: pointer; min-height: var(--ds-size-touch); }
+.ds-toggle input {
+  appearance: none; margin: 0; flex: none;
+  width: var(--ds-size-toggle-width); height: var(--ds-size-toggle-height);
+  border-radius: calc(var(--ds-size-toggle-height) / 2);
+  background: var(--ds-color-toggle-off);
+  position: relative; cursor: pointer;
+  transition: background-color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard);
+}
+.ds-toggle input::after {
+  content: ""; position: absolute; top: 4px; left: 4px;
+  width: calc(var(--ds-size-toggle-height) - 8px); height: calc(var(--ds-size-toggle-height) - 8px);
+  border-radius: 50%; background: var(--ds-neutral-0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform var(--ds-motion-duration-base) var(--ds-motion-ease-spring);
+}
+.ds-toggle input:checked { background: var(--ds-color-border-selected); }
+.ds-toggle input:checked::after { transform: translateX(calc(var(--ds-size-toggle-width) - var(--ds-size-toggle-height))); }
+.ds-toggle input:disabled { opacity: 0.45; cursor: default; }
+
+/* 数の増減（− 数 ＋） */
+.ds-number { display: inline-flex; align-items: center; border: var(--ds-border-width-input) solid var(--ds-color-border-input); border-radius: var(--ds-radius-input); background: var(--ds-color-bg-input); }
+.ds-number .ds-btn--icon { border-radius: var(--ds-radius-input); }
+.ds-number__value { min-width: 3ch; text-align: center; font-size: var(--ds-font-size-input); font-variant-numeric: tabular-nums; border: 0; background: none; color: inherit; font-family: inherit; width: 4ch; padding: 0; -moz-appearance: textfield; appearance: textfield; }
+.ds-number__value::-webkit-inner-spin-button, .ds-number__value::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.ds-number__value:focus { outline: none; }
+/* 中の数字欄にフォーカスがあるとき、外枠で示す（中の欄には枠を出さない） */
+.ds-number:has(.ds-number__value:focus) { border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+
+/* 切り替えボタン（2〜4 個の表示の切り替え） */
+.ds-segmented {
+  display: flex;
+  padding: 3px;
+  border-radius: calc(var(--ds-radius-button) + 3px);
+  background: var(--ds-color-segment-bg);
+}
+.ds-segmented > button {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 var(--ds-space-xs);
+  border: 0;
+  border-radius: var(--ds-radius-button);
+  background: transparent;
+  color: var(--ds-color-text-secondary);
+  font: inherit;
+  font-weight: var(--ds-font-weight-bold);
+  font-size: var(--ds-font-size-body-s);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background-color var(--ds-motion-duration-fast) var(--ds-motion-ease-standard), color var(--ds-motion-duration-fast);
+}
+.ds-segmented > button[aria-pressed="true"] { background: var(--ds-color-segment-active); color: var(--ds-color-text-body); box-shadow: var(--ds-shadow-raised); }
+
+/* 絞り込みの札（横に送る列。押すと選ぶ・外す） */
+.ds-chips {
+  display: flex; gap: var(--ds-space-xs);
+  overflow-x: auto;
+  padding: var(--ds-space-xxs) var(--ds-space-screen);
+  scrollbar-width: none;
+  scroll-padding: 0 var(--ds-space-screen);
+}
+.ds-chips::-webkit-scrollbar { display: none; }
+.ds-chips--wrap { flex-wrap: wrap; overflow: visible; }
+.ds-chip {
+  position: relative;
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: var(--ds-size-control-height-s);
+  padding: 0 var(--ds-space-s);
+  border: 1px solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-chip);
+  background: var(--ds-color-bg-container);
+  color: var(--ds-color-text-body);
+  font: inherit;
+  font-size: var(--ds-font-size-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-chip::after { content: ""; position: absolute; inset: -6px 0; }  /* 押せる範囲を 48px にする */
+.ds-chip .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-chip__check { display: none; }
+.ds-chip[aria-pressed="true"] { border-color: var(--ds-color-chip-border); background: var(--ds-color-bg-selected); color: var(--ds-color-chip-text); }
+.ds-chip[aria-pressed="true"] .ds-chip__check { display: inline; }
+.ds-chip__count { font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); font-variant-numeric: tabular-nums; }
+.ds-chip[aria-pressed="true"] .ds-chip__count { color: inherit; }
+
+/* ========== 9. お知らせ ========== */
+/* アラート（中身の中に置く枠付きのお知らせ） */
+.ds-alert {
+  display: flex; gap: var(--ds-space-s);
+  padding: var(--ds-space-s) var(--ds-space-m);
+  border: 1px solid var(--ds-alert-color, var(--ds-color-info));
+  border-left-width: var(--ds-border-width-alert-accent);
+  border-radius: var(--ds-radius-alert);
+  background: var(--ds-alert-bg, var(--ds-color-info-bg));
+}
+.ds-alert > .ds-icon { color: var(--ds-alert-color, var(--ds-color-info)); margin-top: 1px; }
+.ds-alert__body { flex: 1; min-width: 0; }
+.ds-alert__title { font-weight: var(--ds-font-weight-bold); }
+.ds-alert__actions { display: flex; gap: var(--ds-space-xs); margin-top: var(--ds-space-xs); margin-left: calc(var(--ds-space-s) * -1); }
+.ds-alert--success { --ds-alert-color: var(--ds-color-success); --ds-alert-bg: var(--ds-color-success-bg); }
+.ds-alert--warning { --ds-alert-color: var(--ds-color-warning-border); --ds-alert-bg: var(--ds-color-warning-bg); }
+.ds-alert--warning > .ds-icon { color: var(--ds-color-warning); }
+.ds-alert--error { --ds-alert-color: var(--ds-color-error); --ds-alert-bg: var(--ds-color-error-bg); }
+
+/* バナー（画面の上に残るお知らせ。オフライン・権限が無いなど、直すまで消えないもの） */
+.ds-banner {
+  display: flex; gap: var(--ds-space-s); align-items: flex-start;
+  padding: var(--ds-space-s) var(--ds-space-screen);
+  background: var(--ds-alert-bg, var(--ds-color-info-bg));
+  border-bottom: 1px solid var(--ds-color-border-divider);
+}
+.ds-banner > .ds-icon { color: var(--ds-alert-color, var(--ds-color-info)); margin-top: 1px; }
+.ds-banner__body { flex: 1; min-width: 0; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); }
+.ds-banner--warning { --ds-alert-color: var(--ds-color-warning); --ds-alert-bg: var(--ds-color-warning-bg); }
+.ds-banner--error { --ds-alert-color: var(--ds-color-error); --ds-alert-bg: var(--ds-color-error-bg); }
+
+/* スナックバー（操作の結果を下に短く出す。「元に戻す」を 1 つ置ける）。ds.snackbar() で出す */
+.ds-snackbar-region {
+  position: absolute; left: 0; right: 0;
+  bottom: var(--ds-snackbar-offset, 0px);
+  z-index: 30;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 var(--ds-space-xs) var(--ds-space-xs);
+  pointer-events: none;
+}
+.ds-snackbar {
+  display: flex; align-items: center; gap: var(--ds-space-xxs);
+  width: 100%; max-width: 560px;
+  min-height: 48px;
+  padding: var(--ds-space-xxs) var(--ds-space-xxs) var(--ds-space-xxs) var(--ds-space-m);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-snackbar-bg);
+  color: var(--ds-color-snackbar-text);
+  box-shadow: var(--ds-shadow-dropdown);
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+.ds-snackbar__text { flex: 1; min-width: 0; padding: var(--ds-space-xs) 0; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); }
+.ds-snackbar .ds-btn--link { color: var(--ds-color-snackbar-action); min-height: 40px; }
+.ds-snackbar .ds-btn--icon { color: var(--ds-color-snackbar-text); width: 40px; min-width: 40px; height: 40px; }
+
+/* ========== 10. 重なる部品（シート・ダイアログ・メニュー） ==========
+ * どれも .ds-app の中に置き、hidden で隠しておく。開閉は components.js（data-open / data-close / ds.open()）。
+ * 開いている間、後ろの画面は inert になり、押せない・読み上げない。 */
+.ds-scrim {
+  position: absolute; inset: 0;
+  z-index: 20;
+  background: var(--ds-color-overlay);
+  touch-action: none;
+}
+
+/* シート（下から出る面。選ぶ・入力する・詳しく見る） */
+.ds-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  z-index: 21;
+  display: flex; flex-direction: column;
+  max-height: calc(100% - var(--ds-safe-top) - var(--ds-space-xl));
+  padding-bottom: var(--ds-safe-bottom);
+  border-radius: var(--ds-radius-sheet) var(--ds-radius-sheet) 0 0;
+  background: var(--ds-color-bg-sheet);
+  box-shadow: var(--ds-shadow-sheet);
+  outline: none;
+}
+.ds-sheet[hidden] { display: none; }
+.ds-sheet--full { height: calc(100% - var(--ds-safe-top) - var(--ds-space-xs)); }
+/* つまみ（下へ引くと閉じる。押すと閉じるボタンとしても働く） */
+.ds-sheet__handle {
+  flex: none;
+  display: grid; place-items: center;
+  width: 100%; height: 28px;
+  padding: 0; border: 0; background: none;
+  cursor: grab;
+  touch-action: none;
+}
+.ds-sheet__handle::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--ds-color-sheet-handle); }
+.ds-sheet__header { flex: none; display: flex; align-items: center; gap: var(--ds-space-xs); padding: 0 var(--ds-space-xxs) var(--ds-space-xs) var(--ds-space-screen); touch-action: none; }
+.ds-sheet__title { flex: 1; min-width: 0; margin: 0; font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); font-weight: var(--ds-font-weight-bold); }
+.ds-sheet__header:not(:has(.ds-btn)) { padding-right: var(--ds-space-screen); min-height: 40px; }
+.ds-sheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--ds-space-screen) var(--ds-space-m); }
+.ds-sheet__body--flush { padding: 0 0 var(--ds-space-xs); }
+.ds-sheet__footer { flex: none; display: flex; gap: var(--ds-space-xs); padding: var(--ds-space-s) var(--ds-space-screen); border-top: 1px solid var(--ds-color-border-divider); }
+.ds-sheet__footer > .ds-btn { flex: 1; }
+.ds-sheet.is-dragging { transition: none; }
+
+/* 操作の一覧（シートの中に並べる。アクションシート） */
+.ds-actions { list-style: none; margin: 0; padding: 0 0 var(--ds-space-xs); }
+.ds-action {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-m);
+  width: 100%; min-height: 52px;
+  padding: 0 var(--ds-space-screen);
+  border: 0; background: none;
+  color: var(--ds-color-text-body);
+  font: inherit; text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-action > .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); color: var(--ds-color-text-secondary); }
+.ds-action--danger, .ds-action--danger > .ds-icon { color: var(--ds-color-error); }
+.ds-action[aria-checked="true"]::after { content: "✓"; margin-left: auto; color: var(--ds-color-text-accent); font-weight: var(--ds-font-weight-bold); }
+
+/* ダイアログ（中央。確かめる・取り消せない操作の前だけに使う） */
+.ds-dialog {
+  position: absolute; left: 50%; top: 50%;
+  z-index: 21;
+  width: min(var(--ds-size-dialog-width), calc(100% - 2 * var(--ds-space-xl)));
+  max-height: calc(100% - var(--ds-safe-top) - var(--ds-safe-bottom) - 2 * var(--ds-space-xl));
+  overflow-y: auto;
+  padding: var(--ds-space-xl) var(--ds-space-xl) var(--ds-space-s);
+  border-radius: var(--ds-radius-dialog);
+  background: var(--ds-color-bg-raised);
+  box-shadow: var(--ds-shadow-dialog);
+  translate: -50% -50%;
+  outline: none;
+}
+.ds-dialog[hidden] { display: none; }
+.ds-dialog__icon { display: block; margin: 0 auto var(--ds-space-s); width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); color: var(--ds-color-text-secondary); }
+.ds-dialog__title { margin: 0 0 var(--ds-space-s); font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); font-weight: var(--ds-font-weight-bold); }
+.ds-dialog__icon + .ds-dialog__title { text-align: center; }
+.ds-dialog__body { color: var(--ds-color-text-secondary); }
+.ds-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--ds-space-xxs); margin: var(--ds-space-l) calc(var(--ds-space-s) * -1) 0 0; }
+.ds-dialog__actions .ds-btn--danger, .ds-dialog__actions .ds-btn--primary { padding: 0 var(--ds-space-m); }
+
+/* メニュー（アプリバーの ⋮ から開く。details で作る） */
+.ds-menu { position: relative; }
+.ds-menu > summary { list-style: none; }
+.ds-menu > summary::-webkit-details-marker { display: none; }
+.ds-menu__list {
+  position: absolute; top: calc(100% - 4px); right: var(--ds-space-xxs);
+  z-index: 25;
+  min-width: 200px; max-width: 280px;
+  margin: 0; padding: var(--ds-space-xs) 0;
+  list-style: none;
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-raised);
+  border: 1px solid var(--ds-color-border-container);
+  box-shadow: var(--ds-shadow-dropdown);
+  color: var(--ds-color-text-body);
+  transform-origin: top right;
+}
+.ds-menu__item {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  width: 100%; min-height: var(--ds-size-touch);
+  padding: 0 var(--ds-space-m);
+  border: 0; background: none;
+  color: inherit; font: inherit; text-align: left; text-decoration: none;
+  cursor: pointer;
+}
+.ds-menu__item > .ds-icon { color: var(--ds-color-text-secondary); }
+.ds-menu__item--danger, .ds-menu__item--danger > .ds-icon { color: var(--ds-color-error); }
+
+/* ========== 11. タブ（画面の上。同じ画面の中の表示を切り替える） ========== */
+.ds-tabs {
+  position: relative;
+  display: flex;
+  overflow-x: auto;
+  padding: 0 var(--ds-space-xxs);
+  background: var(--ds-color-bg-appbar);
+  border-bottom: 1px solid var(--ds-color-border-divider);
+  scrollbar-width: none;
+}
+.ds-tabs::-webkit-scrollbar { display: none; }
+.ds-tabs--fill .ds-tabs__tab { flex: 1; }
+.ds-tabs__tab {
+  position: relative;
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--ds-size-touch);
+  padding: 0 var(--ds-space-m);
+  border: 0; background: none;
+  color: var(--ds-color-appbar-text-secondary);
+  font: inherit; font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-tabs__tab::before { border-radius: 0; }
+.ds-tabs__tab[aria-selected="true"] { color: var(--ds-color-appbar-text); }
+/* 選んだタブの下線（components.js が隣へ滑らせる） */
+.ds-tabs__tab::after {
+  content: ""; position: absolute; left: var(--ds-space-m); right: var(--ds-space-m); bottom: 0;
+  height: 3px; border-radius: 3px 3px 0 0;
+  background: var(--ds-tabs-indicator, currentColor);
+  transform: scaleX(0);
+  transition: transform var(--ds-motion-duration-base) var(--ds-motion-ease-spring);
+}
+.ds-tabs__tab[aria-selected="true"]::after { transform: scaleX(1); }
+.ds-tab-panel[hidden] { display: none; }
+
+/* ========== 12. 状態 ========== */
+.ds-badge {
+  display: inline-block;
+  padding: 0 var(--ds-space-xs);
+  border-radius: var(--ds-radius-badge);
+  background: var(--ds-color-badge-bg);
+  color: var(--ds-color-badge-text);
+  font-size: var(--ds-font-size-body-s);
+  line-height: 22px;
+  white-space: nowrap;
+}
+.ds-badge--blue { background: var(--ds-primary-600); color: var(--ds-neutral-0); }
+.ds-badge--red { background: var(--ds-error-600); color: var(--ds-neutral-0); }
+.ds-badge--green { background: var(--ds-success-600); color: var(--ds-neutral-0); }
+
+.ds-severity { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ds-severity::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--ds-sev, var(--ds-color-severity-info)); flex: none; }
+.ds-severity--critical { --ds-sev: var(--ds-color-severity-critical); }
+.ds-severity--high { --ds-sev: var(--ds-color-severity-high); }
+.ds-severity--medium { --ds-sev: var(--ds-color-severity-medium); }
+.ds-severity--low { --ds-sev: var(--ds-color-severity-low); }
+.ds-severity--info { --ds-sev: var(--ds-color-severity-info); }
+
+.ds-status { display: inline-flex; align-items: center; gap: var(--ds-space-xxs); white-space: nowrap; }
+.ds-status .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-status--success { color: var(--ds-color-success); }
+.ds-status--error { color: var(--ds-color-error); }
+.ds-status--warning { color: var(--ds-color-warning); }
+.ds-status--info { color: var(--ds-color-info); }
+.ds-status--pending { color: var(--ds-color-text-description); }
+
+.ds-verdict {
+  display: inline-flex; align-items: center; gap: var(--ds-space-xxs);
+  padding: 0 var(--ds-space-xs);
+  border: 1px solid currentColor;
+  border-radius: var(--ds-radius-badge);
+  font-size: var(--ds-font-size-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  line-height: 20px;
+  white-space: nowrap;
+}
+.ds-verdict .ds-icon { width: 14px; height: 14px; vertical-align: 0; }
+.ds-verdict--tp { color: var(--ds-color-verdict-true-positive); background: var(--ds-color-error-bg); }
+.ds-verdict--fp { color: var(--ds-color-verdict-false-positive); background: var(--ds-color-success-bg); }
+.ds-verdict--pending { color: var(--ds-color-verdict-pending); background: var(--ds-color-bg-subtle); border-style: dashed; }
+
+/* 進み具合（線） */
+.ds-progress { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-progress__header { display: flex; justify-content: space-between; gap: var(--ds-space-xs); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-progress__track { position: relative; height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); overflow: hidden; }
+.ds-progress__bar { height: 100%; border-radius: inherit; background: var(--ds-color-border-selected); width: var(--ds-progress, 0%); transition: width var(--ds-motion-duration-slower) var(--ds-motion-ease-standard); }
+/* 終わりが分からない読み込み（画面の上の細い線） */
+.ds-progress--indeterminate .ds-progress__bar { width: 40%; animation: ds-indeterminate 1.4s var(--ds-motion-ease-standard) infinite; }
+@keyframes ds-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+
+.ds-spinner {
+  display: inline-block;
+  width: 24px; height: 24px;
+  border: 3px solid var(--ds-color-spinner-track);
+  border-top-color: var(--ds-color-border-selected);
+  border-radius: 50%;
+  animation: ds-spin 0.8s linear infinite;
+  flex: none;
+}
+.ds-spinner--s { width: 16px; height: 16px; border-width: 2px; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+
+.ds-skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--ds-color-skeleton-a) 0%, var(--ds-color-skeleton-b) 50%, var(--ds-color-skeleton-a) 100%) 0 0 / 200% 100%;
+  animation: ds-skeleton 1.4s ease-in-out infinite;
+}
+.ds-skeleton--circle { width: 40px; height: 40px; border-radius: 50%; flex: none; }
+@keyframes ds-skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* 空の状態（何も無い理由と、次にできること） */
+.ds-empty { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-xs); padding: var(--ds-space-xxxl) var(--ds-space-xl); text-align: center; }
+.ds-empty__icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: var(--ds-space-xs); border-radius: 50%; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-secondary); }
+.ds-empty__icon .ds-icon { width: 28px; height: 28px; }
+.ds-empty__title { margin: 0; font-size: var(--ds-font-size-heading-m); line-height: var(--ds-line-height-heading-m); font-weight: var(--ds-font-weight-bold); }
+.ds-empty__body { margin: 0 0 var(--ds-space-xs); color: var(--ds-color-text-secondary); max-width: 28em; }
+
+/* 引いて更新（中身の上に出る印。components.js が高さと回転を付ける） */
+.ds-ptr {
+  display: grid; place-items: center;
+  height: 0;
+  overflow: hidden;
+  color: var(--ds-color-text-secondary);
+}
+.ds-ptr__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--ds-color-bg-raised); box-shadow: var(--ds-shadow-raised); }
+.ds-ptr__icon .ds-icon { transform: rotate(var(--ds-ptr-turn, 0deg)); }
+.ds-ptr.is-refreshing .ds-ptr__icon .ds-icon { animation: ds-spin 0.8s linear infinite; }
+
+/* ========== 13. 調べる・判定する画面の部品（PC 版と同じ意味を、狭い幅に合わせたもの） ========== */
+/* コード表示（横に送れる。注目してほしい行を黄色で示す） */
+.ds-code {
+  margin: 0;
+  overflow-x: auto;
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-code-bg);
+  font-family: var(--ds-font-family-mono);
+  font-size: 12px;
+  line-height: 20px;
+  padding: var(--ds-space-xs) 0;
+}
+.ds-code__line { display: flex; min-width: max-content; padding-right: var(--ds-space-m); white-space: pre; }
+.ds-code__num { flex: none; width: 3.5em; padding-right: var(--ds-space-s); text-align: right; color: var(--ds-color-code-line-number); user-select: none; }
+.ds-code__line--hit { background: var(--ds-color-code-highlight-bg); box-shadow: inset 3px 0 0 var(--ds-color-code-highlight-border); }
+.ds-code__line--hit .ds-code__num { color: var(--ds-color-code-highlight-text); font-weight: var(--ds-font-weight-bold); }
+.ds-code .k { color: var(--ds-color-code-keyword); }
+.ds-code .s { color: var(--ds-color-code-string); }
+.ds-code .c { color: var(--ds-color-code-comment); }
+.ds-code .f { color: var(--ds-color-code-function); }
+
+/* 手順（縦。済んだ・今・これから） */
+.ds-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ds-steps > li { position: relative; display: flex; gap: var(--ds-space-s); padding-bottom: var(--ds-space-m); }
+.ds-steps > li:not(:last-child)::before { content: ""; position: absolute; left: 11px; top: 26px; bottom: 2px; width: 2px; background: var(--ds-color-border-divider); }
+.ds-steps__mark { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ds-color-border-input); background: var(--ds-color-bg-container); font-size: var(--ds-font-size-caption); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.ds-steps__mark .ds-icon { width: 14px; height: 14px; vertical-align: 0; stroke-width: 2.4; }
+.ds-steps__text { padding-top: 1px; min-width: 0; }
+.ds-steps > .is-done .ds-steps__mark { border-color: var(--ds-color-step-done); background: var(--ds-color-step-done); color: var(--ds-neutral-0); }
+.ds-steps > .is-done:not(:last-child)::before { background: var(--ds-color-step-done); }
+.ds-steps > .is-current .ds-steps__mark { border-color: var(--ds-color-border-selected); color: var(--ds-color-text-accent); }
+.ds-steps > .is-current .ds-steps__text { font-weight: var(--ds-font-weight-bold); }
+
+/* 確認の条件（条件ごとに はい・いいえ・未確認） */
+.ds-criteria { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-space-s); }
+.ds-criteria > li { display: flex; flex-direction: column; gap: var(--ds-space-xs); }
+.ds-criteria .ds-segmented > button[aria-pressed="true"][data-answer="yes"] { color: var(--ds-color-verdict-true-positive); }
+.ds-criteria .ds-segmented > button[aria-pressed="true"][data-answer="no"] { color: var(--ds-color-verdict-false-positive); }
+
+/* =====================================================================
+ * コンソールの見た目で形が変わる部品
+ * :where() で包み、詳しさ（優先度）を上げない。部品の状態の決まりを壊さないため。
+ * ===================================================================== */
+/* 下のタブ: 丸い面ではなく、アクセント色の文字と上の線 */
+:where(:root[data-look="console"]) .ds-tabbar__item[aria-current="page"] .ds-tabbar__icon { background: transparent; }
+:where(:root[data-look="console"]) .ds-tabbar__item[aria-current="page"]::after {
+  content: ""; position: absolute; top: -1px; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px; background: var(--ds-color-tabbar-current-text);
+}
+/* 上のタブは濃いアプリバーに続くので、下線は明るいアクセント */
+:where(:root[data-look="console"]) .ds-tabs { --ds-tabs-indicator: var(--ds-primary-300); border-bottom-color: transparent; }
+/* 切り替えボタン: アクセントの塗り */
+:where(:root[data-look="console"]) .ds-segmented > button[aria-pressed="true"] { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); box-shadow: none; }
+:where(:root[data-look="console"]) .ds-criteria .ds-segmented > button[aria-pressed="true"] { color: var(--ds-color-btn-primary-text); }
+/* 中身のリストは地（灰色）から白い面で浮かせる */
+:where(:root[data-look="console"]) .ds-list:not(.ds-list--inset) { border-block: 1px solid var(--ds-color-border-container); }
+/* アプリバーの中の検索欄は、濃い帯に合わせた面 */
+:where(:root[data-look="console"]) .ds-appbar .ds-search .ds-input { background: light-dark(#2a2848, #1d1c33); color: var(--ds-neutral-100); }
+:where(:root[data-look="console"]) .ds-appbar .ds-search .ds-input::placeholder { color: var(--ds-neutral-400); }
+:where(:root[data-look="console"]) .ds-appbar .ds-search__field > .ds-icon, :where(:root[data-look="console"]) .ds-appbar .ds-search__clear { color: var(--ds-neutral-350); }
+/* アプリバーの中の札 */
+:where(:root[data-look="console"]) .ds-appbar .ds-chip { background: transparent; border-color: #4a4a8c; color: var(--ds-neutral-100); }
+:where(:root[data-look="console"]) .ds-appbar .ds-chip[aria-pressed="true"] { background: var(--ds-primary-600); border-color: var(--ds-primary-600); color: var(--ds-neutral-0); }
+:where(:root[data-look="console"]) .ds-appbar .ds-chip__count { color: var(--ds-neutral-350); }
+:where(:root[data-look="console"]) .ds-appbar .ds-chip[aria-pressed="true"] .ds-chip__count { color: inherit; }
+
+/* =====================================================================
+ * 動き（状態が変わるときに、形がつながって見えるようにする）
+ * 長さと速さの変わり方はトークンを使う。動きを減らす設定では、トークンが 0 になる。
+ * ===================================================================== */
+/* 押したときの手応え（少し縮む） */
+.ds-btn:active:not(:disabled), .ds-fab:active, .ds-chip:active, .ds-card--pressable:active {
+  transform: scale(0.97);
+  transition: transform var(--ds-motion-duration-instant) var(--ds-motion-ease-standard);
+}
+.ds-btn, .ds-fab, .ds-chip, .ds-card--pressable { transition: transform var(--ds-motion-duration-base) var(--ds-motion-ease-spring); }
+/* チェックの印は弾む */
+.ds-choice input:checked, .ds-cell input[type="checkbox"]:checked, .ds-cell input[type="radio"]:checked { animation: ds-pop var(--ds-motion-duration-base) var(--ds-motion-ease-bounce); }
+@keyframes ds-pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+/* 中身が順に浮かび上がる（画面を開いたとき。.ds-stagger の子） */
+.ds-stagger > * { animation: ds-rise var(--ds-motion-duration-slow) var(--ds-motion-ease-enter) backwards; }
+.ds-stagger > :nth-child(2) { animation-delay: calc(var(--ds-motion-stagger) * 1); }
+.ds-stagger > :nth-child(3) { animation-delay: calc(var(--ds-motion-stagger) * 2); }
+.ds-stagger > :nth-child(4) { animation-delay: calc(var(--ds-motion-stagger) * 3); }
+.ds-stagger > :nth-child(5) { animation-delay: calc(var(--ds-motion-stagger) * 4); }
+.ds-stagger > :nth-child(n+6) { animation-delay: calc(var(--ds-motion-stagger) * 5); }
+@keyframes ds-rise { from { opacity: 0; translate: 0 var(--ds-motion-rise); } }
+/* 動きの間、中身がはみ出さないように切り取る */
+.is-motion-clip { overflow: hidden !important; }
+/* 見た目・明るさの切り替えは、画面全体がなめらかに変わる */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--ds-motion-duration-slow); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-spinner, .ds-ptr.is-refreshing .ds-ptr__icon .ds-icon { animation-duration: 2.4s; }  /* 止めると読み込み中か分からないので、遅くする */
+  .ds-skeleton, .ds-progress--indeterminate .ds-progress__bar { animation: none; }
+}
+
+/* =====================================================================
+ * 14. 入力（追加）
+ * ===================================================================== */
+/* スライダー（範囲の中から 1 つの値を選ぶ。--ds-fill は components.js が値に合わせて付ける） */
+.ds-slider { display: flex; flex-direction: column; gap: var(--ds-space-xxs); }
+.ds-slider__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ds-space-xs); }
+.ds-slider__value { font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-slider input[type="range"] {
+  --ds-fill: 50%;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: var(--ds-size-touch);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.ds-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--ds-color-border-selected) var(--ds-fill), var(--ds-color-bg-muted) var(--ds-fill));
+}
+.ds-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px; margin-top: -10px;
+  border-radius: 50%;
+  border: 2px solid var(--ds-color-border-selected);
+  background: var(--ds-neutral-0);
+  box-shadow: var(--ds-shadow-raised);
+  transition: transform var(--ds-motion-duration-fast) var(--ds-motion-ease-spring);
+}
+.ds-slider input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); }
+.ds-slider input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); }
+.ds-slider input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--ds-color-border-selected); }
+.ds-slider input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ds-color-border-selected); background: var(--ds-neutral-0); }
+.ds-slider input[type="range"]:focus-visible { outline: none; }
+.ds-slider input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--ds-color-focus-ring); }
+.ds-slider__ticks { display: flex; justify-content: space-between; font-size: var(--ds-font-size-caption); line-height: var(--ds-line-height-caption); color: var(--ds-color-text-description); margin-top: -6px; }
+
+/* 日付の選択（カレンダー）。components.js が data-month の月を描き、押した日に aria-pressed を付ける */
+.ds-calendar { user-select: none; }
+.ds-calendar__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--ds-space-xxs); }
+.ds-calendar__month { margin: 0; font-size: var(--ds-font-size-heading-s); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-calendar__grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+.ds-calendar__dow { display: grid; place-items: center; height: 28px; font-size: var(--ds-font-size-caption); color: var(--ds-color-text-secondary); }
+.ds-calendar__day {
+  position: relative;
+  justify-self: center;
+  width: 44px; height: 44px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: none;
+  color: var(--ds-color-text-body);
+  font: inherit; font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ds-calendar__day:active { background: var(--ds-color-pressed); }
+.ds-calendar__day[data-today] { box-shadow: inset 0 0 0 1.5px var(--ds-color-border-selected); font-weight: var(--ds-font-weight-bold); }
+.ds-calendar__day[aria-pressed="true"] { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); font-weight: var(--ds-font-weight-bold); box-shadow: none; }
+.ds-calendar__day:disabled { color: var(--ds-color-text-disabled); cursor: default; }
+/* 予定などの印（日付の下の点） */
+.ds-calendar__day[data-mark]::after { content: ""; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+/* ホイール（時刻・数を、上下に回して選ぶ）。真ん中の帯に止まった項目が選ばれる */
+.ds-wheel {
+  position: relative;
+  display: flex;
+  gap: var(--ds-space-xxs);
+  height: 220px;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+}
+.ds-wheel::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; margin-top: -22px; border-radius: var(--ds-radius-input); background: var(--ds-color-bg-subtle); pointer-events: none; }
+.ds-wheel__col { position: relative; flex: 1; overflow-y: auto; scroll-snap-type: y mandatory; padding: 88px 0; scrollbar-width: none; overscroll-behavior: contain; outline: none; }
+.ds-wheel__col::-webkit-scrollbar { display: none; }
+.ds-wheel__col:focus-visible { outline: var(--ds-border-width-focus) solid var(--ds-color-border-focus); outline-offset: calc(-1 * var(--ds-border-width-focus)); border-radius: var(--ds-radius-input); }
+.ds-wheel__sep { position: relative; align-self: center; font-size: 20px; font-weight: var(--ds-font-weight-bold); }
+.ds-wheel__item { height: 44px; line-height: 44px; text-align: center; scroll-snap-align: center; font-size: 20px; color: var(--ds-color-text-secondary); font-variant-numeric: tabular-nums; cursor: pointer; transition: color var(--ds-motion-duration-fast); }
+.ds-wheel__item.is-selected { color: var(--ds-color-text-body); font-weight: var(--ds-font-weight-bold); }
+
+/* 認証コードの入力（1 文字ずつの枠。入れると次の枠へ進み、貼り付けると全部に入る） */
+.ds-otp { display: flex; gap: var(--ds-space-xs); justify-content: center; }
+.ds-otp input {
+  width: 46px; height: 56px;
+  padding: 0;
+  border: 1.5px solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  color: var(--ds-color-text-body);
+  font-family: var(--ds-font-family-mono);
+  font-size: 24px;
+  text-align: center;
+  caret-color: var(--ds-color-border-focus);
+}
+.ds-otp input:focus { outline: none; border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-otp[aria-invalid="true"] input { border-color: var(--ds-color-error); }
+.ds-otp.is-shake { animation: ds-shake var(--ds-motion-duration-slow) var(--ds-motion-ease-standard); }
+@keyframes ds-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+/* 札の入力（宛先・ラベルなど、複数の短い値。Enter か読点で札になる） */
+.ds-tag-input {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  min-height: var(--ds-size-control-height);
+  padding: 6px 8px;
+  border: var(--ds-border-width-input) solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-color-bg-input);
+  cursor: text;
+}
+.ds-tag-input:focus-within { border-color: var(--ds-color-border-focus); box-shadow: 0 0 0 3px var(--ds-color-focus-ring); }
+.ds-tag-input input { flex: 1; min-width: 6em; height: 34px; border: 0; padding: 0 4px; background: none; color: var(--ds-color-text-body); font: inherit; font-size: var(--ds-font-size-input); outline: none; }
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 32px;
+  padding: 0 2px 0 10px;
+  border-radius: var(--ds-radius-chip);
+  background: var(--ds-color-bg-selected);
+  color: var(--ds-color-chip-text);
+  font-size: var(--ds-font-size-body-s);
+  font-weight: var(--ds-font-weight-bold);
+  white-space: nowrap;
+}
+.ds-tag__remove { position: relative; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+.ds-tag__remove::after { content: ""; position: absolute; inset: -8px -4px; }
+.ds-tag__remove .ds-icon { width: 14px; height: 14px; vertical-align: 0; }
+
+/* 添付（写真・ファイルの小さなタイル。送信中は下に進み具合） */
+.ds-attach { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: var(--ds-space-xs); }
+.ds-attach__item, .ds-attach__add {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 6px;
+  border: 1px solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-input);
+  background: var(--ds-attach-thumb, var(--ds-color-bg-subtle)) center / cover;
+  overflow: hidden;
+  font-size: var(--ds-font-size-caption);
+  line-height: var(--ds-line-height-caption);
+}
+.ds-attach__icon { position: absolute; top: 38%; left: 50%; translate: -50% -50%; color: var(--ds-color-text-secondary); }
+.ds-attach__icon.ds-icon { width: 28px; height: 28px; }
+.ds-attach__name { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ds-color-text-secondary); }
+.ds-attach__item--photo .ds-attach__name { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.ds-attach__remove {
+  position: absolute; top: 4px; right: 4px;
+  display: grid; place-items: center;
+  width: 26px; height: 26px; padding: 0;
+  border: 0; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55); color: #fff;
+  cursor: pointer;
+}
+.ds-attach__remove::after { content: ""; position: absolute; inset: -10px; }
+.ds-attach__remove .ds-icon { width: 14px; height: 14px; vertical-align: 0; }
+.ds-attach__progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--ds-color-bg-muted); }
+.ds-attach__progress::before { content: ""; display: block; height: 100%; width: var(--ds-progress, 0%); background: var(--ds-color-border-selected); transition: width var(--ds-motion-duration-slow); }
+.ds-attach__add { align-items: center; justify-content: center; gap: 4px; border: 1.5px dashed var(--ds-color-border-input); background: none; color: var(--ds-color-text-secondary); font: inherit; font-size: var(--ds-font-size-caption); cursor: pointer; }
+.ds-attach__add .ds-icon { width: 24px; height: 24px; }
+
+/* 画面の下に固定する入力欄（コメント・相談。.ds-screen の最後に置く） */
+.ds-composer {
+  position: relative; z-index: 2;
+  flex: none;
+  display: flex; align-items: flex-end; gap: var(--ds-space-xxs);
+  padding: var(--ds-space-xs) calc(var(--ds-space-xs) + var(--ds-safe-right)) calc(var(--ds-space-xs) + var(--ds-screen-safe-bottom, 0px)) calc(var(--ds-space-xxs) + var(--ds-safe-left));
+  background: var(--ds-color-bg-container);
+  border-top: 1px solid var(--ds-color-border-divider);
+}
+.ds-composer__field { flex: 1; min-width: 0; display: flex; align-items: flex-end; border-radius: 24px; background: var(--ds-color-bg-subtle); padding: 0 var(--ds-space-xxs) 0 var(--ds-space-m); }
+.ds-composer__field:focus-within { box-shadow: 0 0 0 2px var(--ds-color-border-focus); }
+.ds-composer textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 120px; padding: 12px 0; border: 0; background: none; color: var(--ds-color-text-body); font: inherit; font-size: var(--ds-font-size-input); line-height: 24px; resize: none; outline: none; field-sizing: content; }
+.ds-composer__send { background: var(--ds-color-btn-primary-bg); color: var(--ds-color-btn-primary-text); }
+.ds-composer__send:disabled { background: transparent; color: var(--ds-color-text-disabled); }
+
+/* =====================================================================
+ * 15. 表示（追加）
+ * ===================================================================== */
+/* 数値のタイル（件数・割合を 2 列で。増減は矢印と文字で示し、色だけに頼らない） */
+.ds-stats { display: grid; grid-template-columns: repeat(var(--ds-cols, 2), minmax(0, 1fr)); gap: var(--ds-space-xs); }
+.ds-stat {
+  position: relative;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--ds-space-s) 14px;
+  border: var(--ds-border-width-container) solid var(--ds-color-border-container);
+  border-radius: var(--ds-radius-container);
+  background: var(--ds-color-bg-container);
+  color: inherit; text-decoration: none;
+}
+.ds-stat__label { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-stat__value { font-size: 26px; line-height: 32px; font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.ds-stat__unit { margin-left: 2px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-normal); color: var(--ds-color-text-secondary); }
+.ds-stat__delta { display: inline-flex; align-items: center; gap: 2px; font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-secondary); }
+.ds-stat__delta--good { color: var(--ds-color-success); }
+.ds-stat__delta--bad { color: var(--ds-color-error); }
+
+/* 円の進み具合（--ds-ring に 0〜100） */
+.ds-ring {
+  --ds-ring-size: 56px;
+  --ds-ring-width: 6px;
+  position: relative;
+  display: inline-grid; place-items: center;
+  width: var(--ds-ring-size); height: var(--ds-ring-size);
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(var(--ds-ring-color, var(--ds-color-border-selected)) calc(var(--ds-ring, 0) * 1%), var(--ds-color-bg-muted) 0);
+}
+.ds-ring::before { content: ""; position: absolute; inset: var(--ds-ring-width); border-radius: 50%; background: var(--ds-ring-bg, var(--ds-color-bg-container)); }
+.ds-ring__value { position: relative; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; }
+.ds-ring--l { --ds-ring-size: 96px; --ds-ring-width: 9px; }
+.ds-ring--l .ds-ring__value { font-size: var(--ds-font-size-heading-m); }
+.ds-ring--success { --ds-ring-color: var(--ds-color-success); }
+
+/* 時系列（誰が・いつ・何をしたかの履歴） */
+.ds-timeline { list-style: none; margin: 0; padding: 0; }
+.ds-timeline > li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: var(--ds-space-s); padding-bottom: var(--ds-space-m); }
+.ds-timeline > li:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 36px; bottom: 4px; width: 2px; border-radius: 1px; background: var(--ds-color-border-divider); }
+.ds-timeline__mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-secondary); }
+.ds-timeline__mark .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-timeline__mark--success { background: var(--ds-color-success-bg); color: var(--ds-color-success); }
+.ds-timeline__mark--error { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+.ds-timeline__mark--accent { background: var(--ds-color-bg-selected); color: var(--ds-color-text-accent); }
+.ds-timeline__title { padding-top: 5px; }
+.ds-timeline__meta { font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); color: var(--ds-color-text-description); }
+.ds-timeline__body { margin-top: 6px; padding: 10px 12px; border-radius: var(--ds-radius-input); background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-body-s); line-height: var(--ds-line-height-body-s); }
+
+/* 会話（相談・コメントのやり取り） */
+.ds-thread { display: flex; flex-direction: column; gap: var(--ds-space-xs); }
+.ds-thread__day { align-self: center; margin: var(--ds-space-xs) 0; padding: 2px 10px; border-radius: 999px; background: var(--ds-color-bg-subtle); font-size: var(--ds-font-size-caption); line-height: 18px; color: var(--ds-color-text-secondary); }
+.ds-message { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 82%; align-self: flex-start; }
+.ds-message__author { padding: 0 6px; font-size: var(--ds-font-size-caption); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.ds-message__bubble { padding: 9px 14px; border-radius: 18px 18px 18px 6px; background: var(--ds-color-message-other-bg); color: var(--ds-color-text-body); overflow-wrap: anywhere; }
+.ds-message__meta { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; font-size: var(--ds-font-size-caption); line-height: var(--ds-line-height-caption); color: var(--ds-color-text-description); }
+.ds-message__meta .ds-icon { width: 12px; height: 12px; vertical-align: 0; }
+.ds-message--mine { align-self: flex-end; align-items: flex-end; }
+.ds-message--mine .ds-message__bubble { border-radius: 18px 18px 6px 18px; background: var(--ds-color-message-mine-bg); color: var(--ds-color-message-mine-text); }
+.ds-message--failed .ds-message__meta { color: var(--ds-color-error); }
+.ds-message--failed .ds-message__bubble { opacity: 0.7; }
+
+/* 顔の大きさ・顔の重なり（担当者・参加者を 3〜4 人まで見せ、残りは数） */
+.ds-avatar--s { width: 32px; height: 32px; font-size: var(--ds-font-size-body-s); }
+.ds-avatar--l { width: 56px; height: 56px; font-size: var(--ds-font-size-heading-m); }
+.ds-avatar-group { display: inline-flex; align-items: center; }
+.ds-avatar-group > .ds-avatar { width: 32px; height: 32px; font-size: var(--ds-font-size-body-s); box-shadow: 0 0 0 2px var(--ds-color-bg-container); }
+.ds-avatar-group > .ds-avatar + .ds-avatar { margin-left: -8px; }
+.ds-avatar--more { background: var(--ds-color-bg-muted); color: var(--ds-color-text-secondary); font-size: var(--ds-font-size-caption); }
+
+/* 開閉できるまとまり（details。詳細の画面で、読む人が限られる情報を畳む） */
+.ds-expandable { border-bottom: 1px solid var(--ds-color-border-divider); }
+.ds-expandable > summary {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  min-height: 52px;
+  padding: var(--ds-space-xs) var(--ds-space-screen);
+  list-style: none;
+  font-weight: var(--ds-font-weight-bold);
+  cursor: pointer;
+  user-select: none;
+}
+.ds-expandable > summary::-webkit-details-marker { display: none; }
+.ds-expandable > summary:active { background: var(--ds-color-pressed); }
+.ds-expandable__summary-text { flex: 1; min-width: 0; }
+.ds-expandable__summary-text .ds-text-small { display: block; font-weight: var(--ds-font-weight-normal); }
+.ds-expandable__chevron { color: var(--ds-color-text-description); transition: transform var(--ds-motion-duration-base) var(--ds-motion-ease-standard); }
+.ds-expandable[open]:not(.is-closing) > summary .ds-expandable__chevron { transform: rotate(180deg); }
+.ds-expandable__body { padding: 0 var(--ds-space-screen) var(--ds-space-m); }
+
+/* 続きを読む（長い説明を 3 行で切り、押すと全文。切れていなければボタンを出さない） */
+.ds-more__text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--ds-more-lines, 3); line-clamp: var(--ds-more-lines, 3); overflow: hidden; }
+.ds-more.is-open .ds-more__text { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+.ds-more__toggle { min-height: 40px; padding: 0; border: 0; background: none; color: var(--ds-color-text-link); font: inherit; font-weight: var(--ds-font-weight-bold); cursor: pointer; }
+.ds-more:not(.is-clamped):not(.is-open) .ds-more__toggle { display: none; }
+
+/* ページの印と、横に送るページ（初めて使う人への案内・写真の送り） */
+.ds-pager { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.ds-pager::-webkit-scrollbar { display: none; }
+.ds-pager > * { scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; }
+.ds-dots { display: flex; justify-content: center; gap: 6px; }
+.ds-dots > span { width: 6px; height: 6px; border-radius: 3px; background: var(--ds-color-bg-muted); transition: width var(--ds-motion-duration-base) var(--ds-motion-ease-spring), background-color var(--ds-motion-duration-fast); }
+.ds-dots > span[aria-current="true"] { width: 20px; background: var(--ds-color-border-selected); }
+.ds-onboard { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-xl) var(--ds-space-xl) var(--ds-space-m); text-align: center; }
+.ds-onboard__art { display: grid; place-items: center; width: 120px; height: 120px; margin-bottom: var(--ds-space-xs); border-radius: 36px; background: var(--ds-color-bg-selected); color: var(--ds-color-text-accent); }
+.ds-onboard__art .ds-icon { width: 52px; height: 52px; stroke-width: 1.2; }
+.ds-onboard__title { margin: 0; font-size: var(--ds-font-size-heading-l); line-height: var(--ds-line-height-heading-l); font-weight: var(--ds-font-weight-bold); }
+.ds-onboard__body { margin: 0; color: var(--ds-color-text-secondary); }
+
+/* 残り時間（期限・試験の時間。1 分を切ると黄、0 で赤。components.js が data-seconds から数える） */
+.ds-timer { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); font-family: var(--ds-font-family-mono); font-weight: var(--ds-font-weight-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ds-timer .ds-icon { width: 16px; height: 16px; vertical-align: 0; }
+.ds-timer--warning { background: var(--ds-color-warning-bg); color: var(--ds-color-warning); }
+.ds-timer--expired { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* 続きの読み込み（一覧の最後。読み込み中・失敗・これで全部） */
+.ds-load-more { display: flex; align-items: center; justify-content: center; gap: var(--ds-space-xs); min-height: 56px; padding: 0 var(--ds-space-screen); font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+/* 失敗の状態（空の状態の、読み込めなかったときの形。やり直すボタンを置く） */
+.ds-empty--error .ds-empty__icon { background: var(--ds-color-error-bg); color: var(--ds-color-error); }
+
+/* =====================================================================
+ * 16. 操作（追加）
+ * ===================================================================== */
+/* 選ぶ状態（行を長押しすると入り、押すたびに選ぶ・外す。アプリバーが「n 件を選択中」に替わる）
+ * <ul class="ds-list" data-selectable> の行に .ds-cell__check を置き、画面に選ぶ状態のアプリバー（hidden）を置く */
+.ds-cell__check {
+  display: none;
+  place-items: center;
+  width: 24px; height: 24px; flex: none;
+  border: 2px solid var(--ds-color-border-input);
+  border-radius: 50%;
+  color: transparent;
+}
+.ds-cell__check .ds-icon { width: 14px; height: 14px; stroke-width: 3; vertical-align: 0; }
+.is-selecting .ds-cell__check { display: grid; animation: ds-pop var(--ds-motion-duration-base) var(--ds-motion-ease-bounce); }
+.is-selecting .ds-cell__chevron, .is-selecting .ds-cell__unread { display: none; }
+.ds-cell[aria-selected="true"] { background: var(--ds-color-bg-selected); }
+.ds-cell[aria-selected="true"] .ds-cell__check { border-color: var(--ds-color-border-selected); background: var(--ds-color-border-selected); color: var(--ds-neutral-0); }
+.is-selecting .ds-swipe__action { display: none; }
+.ds-appbar--selection { background: var(--ds-color-bg-selected); color: var(--ds-color-text-body); --ds-color-appbar-text-secondary: var(--ds-color-text-secondary); }
+.ds-appbar--selection .ds-appbar__title { font-variant-numeric: tabular-nums; }
+
+/* 横から出る引き出し（ナビゲーションドロワー）。行き先が 6 つ以上あるとき、下のタブに入らないものを入れる */
+.ds-drawer {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  z-index: 21;
+  display: flex; flex-direction: column;
+  width: min(320px, 86%);
+  padding: calc(var(--ds-safe-top) + var(--ds-space-xs)) 0 calc(var(--ds-safe-bottom) + var(--ds-space-xs));
+  border-radius: 0 var(--ds-radius-sheet) var(--ds-radius-sheet) 0;
+  background: var(--ds-color-bg-sheet);
+  box-shadow: var(--ds-shadow-dialog);
+  outline: none;
+  overflow-y: auto;
+}
+.ds-drawer[hidden] { display: none; }
+.ds-drawer__header { display: flex; align-items: center; gap: var(--ds-space-s); padding: var(--ds-space-s) var(--ds-space-l) var(--ds-space-m); }
+.ds-drawer__section { margin: var(--ds-space-s) 0 var(--ds-space-xxs); padding: 0 var(--ds-space-l) 0 28px; font-size: var(--ds-font-size-body-s); font-weight: var(--ds-font-weight-bold); color: var(--ds-color-text-secondary); }
+.ds-drawer__item {
+  position: relative;
+  display: flex; align-items: center; gap: var(--ds-space-s);
+  min-height: 52px;
+  margin: 0 var(--ds-space-s);
+  padding: 0 var(--ds-space-m);
+  border: 0; border-radius: 26px;
+  background: none;
+  color: var(--ds-color-text-body);
+  font: inherit; text-align: left; text-decoration: none;
+  cursor: pointer;
+}
+.ds-drawer__item > .ds-icon { width: var(--ds-size-icon-l); height: var(--ds-size-icon-l); color: var(--ds-color-text-secondary); }
+.ds-drawer__item > .ds-count, .ds-drawer__item > .ds-drawer__value { margin-left: auto; }
+.ds-drawer__value { font-size: var(--ds-font-size-body-s); color: var(--ds-color-text-secondary); }
+.ds-drawer__item:active { background: var(--ds-color-pressed); }
+.ds-drawer__item[aria-current="page"] { background: var(--ds-color-tabbar-current-bg); font-weight: var(--ds-font-weight-bold); }
+.ds-drawer__item[aria-current="page"] > .ds-icon { color: var(--ds-color-tabbar-current-text); }
+
+/* 案内の吹き出し（初めて使う人に、画面の部品を順に指して説明する）。ds.coach() で出す */
+.ds-coach-scrim { position: absolute; inset: 0; z-index: 22; }
+.ds-coach-ring {
+  position: absolute; z-index: 23;
+  border-radius: var(--ds-radius-input);
+  box-shadow: 0 0 0 3px var(--ds-color-coach-ring), 0 0 0 9999px var(--ds-color-overlay);
+  pointer-events: none;
+  transition: top var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), left var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), width var(--ds-motion-duration-slow) var(--ds-motion-ease-spring), height var(--ds-motion-duration-slow) var(--ds-motion-ease-spring);
+}
+.ds-coach {
+  position: absolute; z-index: 24;
+  left: var(--ds-space-m); right: var(--ds-space-m);
+  padding: 14px 16px 6px;
+  border-radius: var(--ds-radius-alert);
+  background: var(--ds-color-coach-bg);
+  color: var(--ds-color-coach-text);
+  box-shadow: var(--ds-shadow-dialog);
+  transition: top var(--ds-motion-duration-slow) var(--ds-motion-ease-spring);
+}
+.ds-coach::before { content: ""; position: absolute; left: var(--ds-coach-arrow, 50%); width: 14px; height: 14px; margin-left: -7px; background: inherit; border-radius: 2px; rotate: 45deg; }
+.ds-coach--below::before { top: -6px; }
+.ds-coach--above::before { bottom: -6px; }
+.ds-coach__step { font-size: var(--ds-font-size-caption); color: var(--ds-neutral-400); }
+.ds-coach__text { margin: 2px 0 4px; font-size: var(--ds-font-size-body-s); line-height: 20px; }
+.ds-coach__actions { display: flex; justify-content: space-between; margin: 0 -10px; }
+.ds-coach .ds-btn--link { color: var(--ds-neutral-300); min-height: 40px; }
+.ds-coach .ds-btn--link:last-child { color: var(--ds-primary-300); }
+
+:where(:root[data-look="console"]) .ds-drawer__item[aria-current="page"] { color: var(--ds-color-text-link); }
+
+/* hidden を付けた部品は、部品の display の指定より優先して隠す（display: flex などを持つ部品でも hidden が効くように） */
+.ds-body [hidden] { display: none !important; }

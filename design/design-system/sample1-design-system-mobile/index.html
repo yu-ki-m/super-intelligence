@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>汎用デザインシステム（スマートフォン版）</title>
+<script>
+  /* 保存した画面の明るさと見た目を、描画の前に当てる（違う見た目が一瞬出るのを防ぐ） */
+  try {
+    const t = localStorage.getItem('ds-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    const l = localStorage.getItem('ds-look'); if (l === 'console') document.documentElement.dataset.look = l; else if (l === 'minimal') delete document.documentElement.dataset.look;
+  } catch (_) {}
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="device.css">
+<script src="components.js" defer></script>
+<script src="device.js" defer></script>
+<style>
+  /* 一覧ページだけで使う見た目（パソコンのブラウザで読む説明のページ） */
+  .cat-top { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 12px 24px; background: var(--ds-color-bg-page); border-bottom: 1px solid var(--ds-color-border-divider); }
+  .cat-top h1 { margin: 0; font-size: 18px; line-height: 24px; }
+  .cat-top__tools { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+  .cat-top__tools .ds-segmented > button { flex: none; min-height: 34px; padding: 0 12px; overflow: visible; }
+  .cat-toc { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 24px; border-bottom: 1px solid var(--ds-color-border-divider); }
+  .cat-toc a { font-size: 13px; color: var(--ds-color-text-secondary); text-decoration: none; padding: 4px 10px; border-radius: 999px; background: var(--ds-color-bg-subtle); }
+  .cat-main { max-width: 1180px; margin: 0 auto; padding: 24px 24px 80px; display: flex; flex-direction: column; gap: 56px; }
+  .cat-section { scroll-margin-top: 72px; display: flex; flex-direction: column; gap: 16px; }
+  .cat-section > h2 { margin: 0; font-size: 22px; line-height: 30px; }
+  .cat-lead { margin: 0; max-width: 60em; color: var(--ds-color-text-secondary); }
+  .cat-demo { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .cat-notes { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .cat-notes p { margin: 0; }
+  /* 端末の幅の見本（枠なし） */
+  .cat-screen { flex: none; width: 360px; max-width: 100%; border: 1px solid var(--ds-color-border-container); border-radius: 28px; overflow: hidden; background: var(--ds-color-bg-page); box-shadow: var(--ds-shadow-raised); }
+  .cat-screen, .cat-screen * { scrollbar-width: none; }
+  .cat-screen--app { height: 600px; }
+  .cat-screen--short { height: 420px; }
+  .cat-screen__pad { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .cat-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 19px; }
+  .cat-table th, .cat-table td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--ds-color-border-divider); }
+  .cat-table th { color: var(--ds-color-text-secondary); font-weight: var(--ds-font-weight-bold); background: var(--ds-color-bg-subtle); }
+  .cat-table code, .cat-code { font-family: var(--ds-font-family-mono); font-size: 12px; background: var(--ds-color-bg-subtle); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
+  .cat-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .cat-swatch { border: 1px solid var(--ds-color-border-container); border-radius: 12px; overflow: hidden; background: var(--ds-color-bg-container); }
+  .cat-swatch__chip { height: 44px; border-bottom: 1px solid var(--ds-color-border-subtle); }
+  .cat-swatch__meta { padding: 6px 10px; font-size: 12px; line-height: 16px; }
+  .cat-swatch__meta code { display: block; color: var(--ds-color-text-description); font-family: var(--ds-font-family-mono); overflow-wrap: anywhere; }
+  .cat-touch { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+  .cat-touch__box { display: grid; place-items: center; border: 2px dashed var(--ds-color-border-accent); border-radius: 8px; color: var(--ds-color-text-secondary); font-size: 12px; }
+  .cat-phone-wrap { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+  .cat-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .cat-index__group { padding: 14px 16px; border: 1px solid var(--ds-color-border-container); border-radius: 14px; background: var(--ds-color-bg-container); }
+  .cat-index__group h3 { margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; }
+  .cat-index__group h3 span { font-size: 12px; font-weight: 400; color: var(--ds-color-text-secondary); }
+  .cat-index__group ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .cat-index__group li a { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--ds-color-bg-subtle); color: var(--ds-color-text-body); font-size: 12.5px; line-height: 20px; text-decoration: none; }
+  .cat-index__group li a[data-new]::after { content: "追加"; margin-left: 4px; font-size: 10px; color: var(--ds-color-text-accent); font-weight: 700; }
+  .cat-total { font-size: 14px; color: var(--ds-color-text-secondary); }
+  .cat-total b { font-size: 22px; color: var(--ds-color-text-body); }
+  @media (max-width: 540px) { .cat-main { padding: 16px; } .cat-top, .cat-toc { padding-inline: 16px; } }
+</style>
+</head>
+<body class="ds-body">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ds-i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 7.6v4"/><circle cx="8" cy="4.4" r="1.15" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-success" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5 8.5l2 2 4-4.5"/></symbol>
+  <symbol id="ds-i-warning" viewBox="0 0 16 16"><path d="M8 1.5L15 14.5H1z"/><path d="M8 5.9v3.3"/><circle cx="8" cy="11.8" r="1.05" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-error" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></symbol>
+  <symbol id="ds-i-pending" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke-dasharray="3 2.5"/></symbol>
+  <symbol id="ds-i-close" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></symbol>
+  <symbol id="ds-i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></symbol>
+  <symbol id="ds-i-external" viewBox="0 0 16 16"><path d="M10 2h4v4M14 2L8 8M12 9v5H2V4h5"/></symbol>
+  <symbol id="ds-i-menu" viewBox="0 0 16 16"><path d="M2 3.5h12M2 8h12M2 12.5h12"/></symbol>
+  <symbol id="ds-i-bell" viewBox="0 0 16 16"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14.5h3"/></symbol>
+  <symbol id="ds-i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M6 6a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9v.5"/><circle cx="8" cy="11.9" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="ds-i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></symbol>
+  <symbol id="ds-i-shield" viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 3.8-2.6 6.4-6 7.5-3.4-1.1-6-3.7-6-7.5v-4z"/><path d="M5.5 8l2 2 3-3.5"/></symbol>
+  <symbol id="ds-i-code" viewBox="0 0 16 16"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-package" viewBox="0 0 16 16"><path d="M8 1l6.5 3.5v7L8 15l-6.5-3.5v-7z"/><path d="M1.5 4.5L8 8l6.5-3.5M8 8v7"/></symbol>
+  <symbol id="ds-i-angle-right" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5"/></symbol>
+  <symbol id="ds-i-angle-left" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></symbol>
+  <symbol id="ds-i-caret-down" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+  <symbol id="ds-i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V2H2v9h3"/></symbol>
+  <symbol id="ds-i-check" viewBox="0 0 16 16"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></symbol>
+  <symbol id="ds-i-more" viewBox="0 0 16 16"><path d="M8 3v.5M8 8v.5M8 13v.5" stroke-width="2.5"/></symbol>
+  <symbol id="ds-i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l3 2"/></symbol>
+  <symbol id="ds-i-lock" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="8" rx="1"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="ds-i-bulb" viewBox="0 0 16 16"><path d="M6 12.5h4M6.5 15h3M5.5 10.5C4.3 9.6 3.5 8.3 3.5 6.5a4.5 4.5 0 0 1 9 0c0 1.8-.8 3.1-2 4z"/></symbol>
+  <symbol id="ds-i-terminal" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6l2.5 2L4 10M8 10.5h4"/></symbol>
+  <symbol id="ds-i-file" viewBox="0 0 16 16"><path d="M9 1H3v14h10V5z"/><path d="M9 1v4h4"/></symbol>
+  <symbol id="ds-i-list" viewBox="0 0 16 16"><path d="M5 3.5h9M5 8h9M5 12.5h9M2 3.5h.5M2 8h.5M2 12.5h.5"/></symbol>
+  <symbol id="ds-i-tree" viewBox="0 0 16 16"><path d="M3 2v11h5M3 7h5"/><rect x="9" y="5" width="5" height="4" rx="1"/><rect x="9" y="11" width="5" height="4" rx="1"/></symbol>
+  <symbol id="ds-i-trophy" viewBox="0 0 16 16"><path d="M4.5 2h7v4a3.5 3.5 0 0 1-7 0zM4.5 3.5H2v1a2.5 2.5 0 0 0 2.5 2.5M11.5 3.5H14v1A2.5 2.5 0 0 1 11.5 7M8 9.5V12M5 14.5h6M6 12h4"/></symbol>
+  <symbol id="ds-i-inbox" viewBox="0 0 16 16"><path d="M1.5 9l2-6.5h9l2 6.5v4.5h-13z"/><path d="M1.5 9h4l1 2h3l1-2h4"/></symbol>
+  <symbol id="ds-i-filter" viewBox="0 0 16 16"><path d="M1.5 2.5h13l-5 6v5l-3 1.5v-6.5z"/></symbol>
+  <symbol id="ds-i-refresh" viewBox="0 0 16 16"><path d="M13.5 8A5.5 5.5 0 1 1 11.8 4M14 1.5v3.5h-3.5"/></symbol>
+  <symbol id="ds-i-folder" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 2h6.5v8h-13z"/></symbol>
+  <symbol id="ds-i-paperclip" viewBox="0 0 16 16"><path d="M13.5 7.5l-5.8 5.8a3.5 3.5 0 0 1-5-5L8.5 2.5a2.3 2.3 0 0 1 3.3 3.3L6 11.6a1.2 1.2 0 0 1-1.7-1.7L9.5 4.7"/></symbol>
+  <symbol id="ds-i-medal" viewBox="0 0 16 16"><circle cx="8" cy="10" r="4.5"/><path d="M5 6.5L3 1.5h3.5L8 5M11 6.5l2-5H9.5L8 5M8 8.2l.6 1.2 1.3.2-1 .9.3 1.3L8 11.2l-1.2.6.3-1.3-1-.9 1.3-.2z"/></symbol>
+  <symbol id="ds-i-user" viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></symbol>
+  <symbol id="ds-i-target" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1"/></symbol>
+  <symbol id="ds-i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"/></symbol>
+  <symbol id="ds-i-moon" viewBox="0 0 16 16"><path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z"/></symbol>
+  <symbol id="ds-i-theme" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13A6.5 6.5 0 0 0 8 1.5z" fill="currentColor"/></symbol>
+  <symbol id="ds-i-scale" viewBox="0 0 16 16"><path d="M8 1.5v13M4.5 14.5h7M2.5 4.5h11M2.5 4.5L.5 9a2 2 0 0 0 4 0zM13.5 4.5l-2 4.5a2 2 0 0 0 4 0z"/></symbol>
+  <symbol id="ds-i-sidebar" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/><path d="M4 6.5L3 8l1 1.5"/></symbol>
+  <symbol id="ds-i-arrow-left" viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></symbol>
+  <symbol id="ds-i-arrow-right" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="ds-i-arrow-up" viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></symbol>
+  <symbol id="ds-i-compose" viewBox="0 0 16 16"><path d="M7 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9"/><path d="M12 1.5l2.5 2.5L8 10.5H5.5V8z"/></symbol>
+  <symbol id="ds-i-plus" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11"/></symbol>
+  <symbol id="ds-i-monitor" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></symbol>
+  <symbol id="ds-i-cloud" viewBox="0 0 16 16"><path d="M4.5 13a3 3 0 0 1-.4-6A4.5 4.5 0 0 1 12.8 7a3 3 0 0 1-.3 6z"/></symbol>
+  <symbol id="ds-i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.8 2.8 0 0 1 4 4L11 8.5M9 11.5l-1.2 1.2a2.8 2.8 0 0 1-4-4L5 7.5"/></symbol>
+  <symbol id="ds-i-globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c2 2 2 11 0 13M8 1.5c-2 2-2 11 0 13"/></symbol>
+  <symbol id="ds-i-panel-right" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></symbol>
+  <symbol id="ds-i-panel-bottom" viewBox="0 0 16 16"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M1.5 10h13"/></symbol>
+  <symbol id="ds-i-maximize" viewBox="0 0 16 16"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></symbol>
+  <symbol id="ds-i-branch" viewBox="0 0 16 16"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-4 2.5-7.5 4.5"/></symbol>
+  <symbol id="ds-i-bars" viewBox="0 0 16 16"><path d="M3 13.5V8M8 13.5V3M13 13.5V6"/></symbol>
+  <symbol id="ds-i-sliders" viewBox="0 0 16 16"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7"/><circle cx="10.5" cy="4.5" r="1.5"/><circle cx="5.5" cy="11.5" r="1.5"/></symbol>
+  <symbol id="ds-i-chat" viewBox="0 0 16 16"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></symbol>
+  <symbol id="ds-i-sparkle" viewBox="0 0 16 16"><path d="M8 1.5l1.6 4.9L14.5 8l-4.9 1.6L8 14.5l-1.6-4.9L1.5 8l4.9-1.6z"/></symbol>
+  <symbol id="ds-i-paperclip-2" viewBox="0 0 16 16"><path d="M10.5 5L5.8 9.7a1.2 1.2 0 0 0 1.7 1.7l5-5a2.6 2.6 0 0 0-3.7-3.7L3.7 7.8a4 4 0 0 0 5.7 5.7L13 9.9"/></symbol>
+  <symbol id="ds-i-home" viewBox="0 0 16 16"><path d="M2 7.5L8 2.5l6 5"/><path d="M3.5 6.5V14H7v-3.5h2V14h3.5V6.5"/></symbol>
+  <symbol id="ds-i-trash" viewBox="0 0 16 16"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.5 6.5v4.5M9.5 6.5v4.5"/></symbol>
+  <symbol id="ds-i-share" viewBox="0 0 16 16"><circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/></symbol>
+  <symbol id="ds-i-edit" viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8h-3v-3z"/><path d="M9 4l3 3"/></symbol>
+  <symbol id="ds-i-undo" viewBox="0 0 16 16"><path d="M5 3.5L2 6.5l3 3"/><path d="M2 6.5h7a3.5 3.5 0 0 1 0 7H6"/></symbol>
+  <symbol id="ds-i-star" viewBox="0 0 16 16"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></symbol>
+  <symbol id="ds-i-mic" viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></symbol>
+  <symbol id="ds-i-backspace" viewBox="0 0 16 16"><path d="M5.5 3H14v10H5.5L1.5 8z"/><path d="M7.5 6l4 4M11.5 6l-4 4"/></symbol>
+  <symbol id="ds-i-shift" viewBox="0 0 16 16"><path d="M8 2L2.5 8h3v5.5h5V8h3z"/></symbol>
+  <symbol id="ds-i-enter" viewBox="0 0 16 16"><path d="M13.5 3v5.5h-10"/><path d="M6 6L3.5 8.5 6 11"/></symbol>
+  <symbol id="ds-i-minus" viewBox="0 0 16 16"><path d="M3 8h10"/></symbol>
+  <symbol id="ds-i-swipe" viewBox="0 0 16 16"><path d="M2 5h9M8.5 2.5L11 5 8.5 7.5"/><path d="M14 11H5M7.5 8.5L5 11l2.5 2.5"/></symbol>
+  <symbol id="ds-i-send" viewBox="0 0 16 16"><path d="M14.5 1.5L7 9M14.5 1.5L10 14.5 7 9 1.5 6z"/></symbol>
+  <symbol id="ds-i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></symbol>
+  <symbol id="ds-i-image" viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M14.5 11l-4-4-6 6.5"/></symbol>
+  <symbol id="dv-i-nav-back" viewBox="0 0 16 16"><path d="M11.5 2.5v11L3 8z"/></symbol>
+  <symbol id="dv-i-nav-home" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/></symbol>
+  <symbol id="dv-i-nav-recents" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1.5"/></symbol>
+  <symbol id="dv-i-wifi" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M8 13.8L.4 5.3A11 11 0 0 1 8 2.2a11 11 0 0 1 7.6 3.1z"/></symbol>
+  <symbol id="dv-i-signal" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M14.5 1.5v13h-13z"/></symbol>
+</svg>
+
+<header class="cat-top">
+  <h1>汎用デザインシステム（スマートフォン版）</h1>
+  <div class="cat-top__tools">
+    <div class="ds-segmented" role="group" aria-label="見た目">
+      <button type="button" data-look-choice="minimal">ミニマル</button>
+      <button type="button" data-look-choice="console">コンソール</button>
+    </div>
+    <div class="ds-segmented" role="group" aria-label="画面の明るさ">
+      <button type="button" data-theme-choice="auto">自動</button>
+      <button type="button" data-theme-choice="light">明るい</button>
+      <button type="button" data-theme-choice="dark">暗い</button>
+    </div>
+  </div>
+</header>
+<nav class="cat-toc" aria-label="目次">
+  <a href="#index">部品の索引</a><a href="#about">PC 版との違い</a><a href="#device">端末（デモ用）</a><a href="#color">色</a><a href="#size">文字と大きさ</a><a href="#layout">骨組み</a>
+  <a href="#appbar">アプリバー・タブ</a><a href="#list">リスト・行</a><a href="#button">ボタン</a><a href="#form">入力</a><a href="#notice">お知らせ</a>
+  <a href="#overlay">シート・ダイアログ</a><a href="#nav-more">選ぶ・引き出し・案内</a><a href="#input-more">日付・時刻・コード</a><a href="#thread">会話・下の入力欄</a><a href="#display-more">数値・履歴・開閉</a><a href="#onboard">初めての案内</a><a href="#state">状態</a><a href="#triage">判定の画面の部品</a><a href="#motion">動き</a><a href="#map">PC 版との対応</a>
+</nav>
+
+<main class="cat-main">
+
+  <!-- ===================================================== -->
+  <section id="index" class="cat-section">
+    <h2>部品の索引</h2>
+    <p class="cat-lead">このデザインシステムの部品を、使い道で分けて並べたものです。名前を押すと、その部品の見本へ移ります。「追加」の印は、スマートフォン版で初めに作ったあとに足した部品です。<span class="cat-total">アプリの部品 <b id="cat-count-app"></b> 種 ・ 端末の部品 <b id="cat-count-device"></b> 種</span></p>
+    <div class="cat-index" id="cat-index">
+      <div class="cat-index__group" data-kind="app"><h3>骨組み <span></span></h3><ul>
+        <li><a href="#layout">アプリ全体（.ds-app）</a></li><li><a href="#layout">画面（.ds-screen）</a></li><li><a href="#appbar">アプリバー</a></li><li><a href="#appbar">大きな題名のアプリバー</a></li><li><a href="#layout">下の操作帯</a></li><li><a href="#layout">下のタブ</a></li><li><a href="#layout">浮かぶボタン</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>行き来・操作 <span></span></h3><ul>
+        <li><a href="#appbar">上のタブ</a></li><li><a href="#appbar">⋮ のメニュー</a></li><li><a href="#layout">画面の進む・戻る</a></li><li><a href="#nav-more" data-new>横から出る引き出し</a></li><li><a href="#nav-more" data-new>選ぶ状態のアプリバー</a></li><li><a href="#nav-more" data-new>案内の吹き出し</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>一覧 <span></span></h3><ul>
+        <li><a href="#list">リスト</a></li><li><a href="#list">まとまったリスト</a></li><li><a href="#list">行</a></li><li><a href="#list">払える行</a></li><li><a href="#list">顔</a></li><li><a href="#display-more" data-new>顔の重なり</a></li><li><a href="#display-more" data-new>続きの読み込み</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>まとまり <span></span></h3><ul>
+        <li><a href="#triage">カード</a></li><li><a href="#triage">横に送るカード</a></li><li><a href="#triage">キーと値</a></li><li><a href="#display-more" data-new>数値のタイル</a></li><li><a href="#display-more" data-new>開閉できるまとまり</a></li><li><a href="#display-more" data-new>続きを読む</a></li><li><a href="#onboard" data-new>横に送るページ・ページの印</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>ボタン <span></span></h3><ul>
+        <li><a href="#button">主ボタン</a></li><li><a href="#button">通常のボタン</a></li><li><a href="#button">取り消せない操作のボタン</a></li><li><a href="#button">枠のないボタン</a></li><li><a href="#button">小さなボタン</a></li><li><a href="#button">アイコンだけのボタン</a></li><li><a href="#button">幅いっぱいのボタン</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>入力 <span></span></h3><ul>
+        <li><a href="#form">入力欄</a></li><li><a href="#form">文章欄</a></li><li><a href="#form">セレクト</a></li><li><a href="#form">検索欄</a></li><li><a href="#form">ラジオ</a></li><li><a href="#form">チェック</a></li><li><a href="#form">トグル</a></li><li><a href="#form">数の増減</a></li><li><a href="#form">切り替えボタン</a></li><li><a href="#form">絞り込みの札</a></li>
+        <li><a href="#input-more" data-new>スライダー</a></li><li><a href="#input-more" data-new>日付（カレンダー）</a></li><li><a href="#input-more" data-new>時刻（ホイール）</a></li><li><a href="#input-more" data-new>認証コード</a></li><li><a href="#input-more" data-new>札の入力</a></li><li><a href="#input-more" data-new>添付</a></li><li><a href="#thread" data-new>下の入力欄</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>お知らせ・重なる部品 <span></span></h3><ul>
+        <li><a href="#notice">アラート</a></li><li><a href="#notice">バナー</a></li><li><a href="#notice">スナックバー</a></li><li><a href="#overlay">シート</a></li><li><a href="#overlay">画面いっぱいのシート</a></li><li><a href="#overlay">操作の一覧</a></li><li><a href="#overlay">確かめるダイアログ</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>状態 <span></span></h3><ul>
+        <li><a href="#state">バッジ</a></li><li><a href="#state">未読の数</a></li><li><a href="#state">深刻度</a></li><li><a href="#state">判定</a></li><li><a href="#state">ステータス</a></li><li><a href="#state">進み具合</a></li><li><a href="#state">終わりの分からない読み込み</a></li><li><a href="#display-more" data-new>円の進み具合</a></li><li><a href="#state">回る印</a></li><li><a href="#state">形だけの読み込み</a></li><li><a href="#state">空の状態</a></li><li><a href="#display-more" data-new>失敗の状態</a></li><li><a href="#state">引いて更新</a></li><li><a href="#display-more" data-new>残り時間</a></li></ul></div>
+      <div class="cat-index__group" data-kind="app"><h3>会話・履歴・判定 <span></span></h3><ul>
+        <li><a href="#thread" data-new>会話</a></li><li><a href="#display-more" data-new>時系列（履歴）</a></li><li><a href="#triage">コード表示</a></li><li><a href="#overlay">手順</a></li><li><a href="#triage">確認の条件</a></li></ul></div>
+      <div class="cat-index__group" data-kind="device"><h3>端末（デモ用） <span></span></h3><ul>
+        <li><a href="#device">端末の枠</a></li><li><a href="#device">時刻の帯</a></li><li><a href="#device">カメラの穴</a></li><li><a href="#device">ジェスチャーの帯</a></li><li><a href="#device">3 つのボタン</a></li><li><a href="#device">戻るジェスチャー</a></li><li><a href="#device">画面のキーボード</a></li><li><a href="#device">通知</a></li><li><a href="#device">端末のお知らせ</a></li><li><a href="#device">許可のダイアログ</a></li><li><a href="#device">ホーム画面</a></li><li><a href="#device">デモの操作盤</a></li></ul></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="about" class="cat-section">
+    <h2>PC 版との違い</h2>
+    <p class="cat-lead">このデザインシステムは、PC 版（<span class="cat-code">../sample-design-system/</span>）と同じトークンの名前と色を使い、スマートフォンで指で操作する画面のための部品に組み直したものです。見た目（ミニマル・コンソール）と画面の明るさの切り替えも、PC 版と同じ仕組みで動きます。違いは、画面が狭いこと、ホバーが無いこと、指で押すこと、端末の帯（時刻の帯・下の操作の帯）とキーボードが画面の一部を占めること、の 4 つから来ています。</p>
+    <table class="cat-table">
+      <thead><tr><th style="width:22%">違い</th><th style="width:39%">理由</th><th>このデザインシステムでの決まり</th></tr></thead>
+      <tbody>
+        <tr><td>押せる範囲を 48px 以上にする</td><td>指はマウスの矢印より太く、小さな的は押し間違える。Android の指針は 48dp、iOS は 44pt を最小としている</td><td>ボタン・入力欄・行・タブの高さを 48px 以上にする（<code>--ds-size-touch</code>）。見た目が小さい札や小さなボタンは、<code>::after</code> で押せる範囲だけを広げる</td></tr>
+        <tr><td>ホバーを使わない</td><td>指の端末には「重ねる」操作が無い。ホバーでだけ見える説明や操作は、指では見つけられない</td><td>押している間の重ね（<code>--ds-color-pressed</code>）で押したことを伝える。ツールチップは使わず、説明は常に見せるか、? のボタンからシートで開く</td></tr>
+        <tr><td>主な操作を画面の下に置く</td><td>片手で持つと、親指は画面の下半分に届きやすく、上の端には届きにくい</td><td>行き先は下のタブ（<code>.ds-tabbar</code>）、その画面の主な操作は下の操作帯（<code>.ds-bottombar</code>）か浮かぶボタン（<code>.ds-fab</code>）に置く。上のアプリバーには、戻る・検索・その他の操作だけを置く</td></tr>
+        <tr><td>1 画面に 1 つのことだけを見せる</td><td>幅が 360px ほどしかなく、PC 版のように一覧・詳細・根拠を横に並べられない</td><td>一覧から詳細へ「進む」（<code>ds.push</code>）。詳細は縦に積み、選ぶ・入力するは下から出るシート（<code>.ds-sheet</code>）で行う</td></tr>
+        <tr><td>端末の帯とキーボードを避ける</td><td>時刻の帯・カメラの穴・下の操作の帯・キーボードは、アプリの描く面に重なる</td><td>アプリは端まで描き、中身は <code>--ds-safe-top</code> / <code>--ds-safe-bottom</code> の分だけ避ける。キーボードが出ると表示面が縮むので、入力欄は縦に送れる場所に置く</td></tr>
+        <tr><td>入力欄の文字を 16px にする</td><td>16px より小さいと、iOS の Safari が入力欄を選んだときに画面を拡大し、元に戻らない</td><td><code>--ds-font-size-input: 16px</code>。本文は 15px（PC 版は 14px）</td></tr>
+      </tbody>
+    </table>
+    <table class="cat-table">
+      <thead><tr><th style="width:24%">ファイル</th><th>中身</th></tr></thead>
+      <tbody>
+        <tr><td><code>tokens.css</code></td><td>デザイントークン。色は PC 版と同じ値。大きさ・文字・角丸・端（safe area）をスマートフォン用にしたもの</td></tr>
+        <tr><td><code>components.css</code> / <code>components.js</code></td><td>アプリの部品（<code>ds-</code>）と、その動き（シート・画面の進む戻る・スワイプ・引いて更新など）</td></tr>
+        <tr><td><code>device.css</code> / <code>device.js</code></td><td>デモ用の端末の部品（<code>dv-</code>）。端末の枠・時刻の帯・下の操作の帯・キーボード・通知・許可のダイアログ・ホーム画面。実機で開くと表示しない</td></tr>
+        <tr><td><code>icons.svg</code> / <code>sync-icons.py</code></td><td>PC 版の 60 個に 16 個を足したアイコンと、HTML への埋め込みを揃える処理</td></tr>
+        <tr><td><code>例_スマホ画面.html</code></td><td>端末の枠に入れた画面の例。PC 版の画面例と同じ「脆弱性の検出結果の仕分け」を、スマートフォンの作りにしたもの</td></tr>
+        <tr><td><code>例_タブレット画面_縦.html</code></td><td>縦のタブレット（<code>data-device="tablet"</code>）の画面の例。巡回しながら設備を点検する 1 列の画面</td></tr>
+        <tr><td><code>例_タブレット画面_横.html</code></td><td>横のタブレット（<code>data-orientation="landscape"</code>）の画面の例。一覧と詳細を左右に並べる、店頭受け取りのカウンターの画面</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="device" class="cat-section">
+    <h2>端末（デモ用の枠）</h2>
+    <p class="cat-lead">スマートフォン向けの画面を、パソコンのブラウザで「端末に入った姿」で見せるための部品です。想定する端末は、画面の真ん中上に丸いカメラの穴がある、側面の平らな Android 端末（画面 360 × 780）です。時刻の帯・カメラの穴・下の操作の帯は、アプリの描く面に重なります。そのため、アプリの部品が端を正しく避けているかを、ここで確かめられます。</p>
+    <div class="cat-phone-wrap">
+      <div class="dv-phone" id="demo-phone" data-app-name="見本" data-app-icon="見" data-battery="64">
+        <div class="dv-phone__glass"><div class="dv-screen"><div class="dv-viewport">
+          <div class="ds-app" id="device-app">
+            <div class="ds-app__stack">
+              <section class="ds-screen" id="dev-s1" aria-labelledby="dev-t1">
+                <header class="ds-appbar ds-appbar--large">
+                  <div class="ds-appbar__row"><p class="ds-appbar__title" aria-hidden="true">端末の見本</p><div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="検索"><svg class="ds-icon"><use href="#ds-i-search"/></svg></button></div></div>
+                  <h1 class="ds-appbar__large" id="dev-t1">端末の見本</h1>
+                </header>
+                <main class="ds-content">
+                  <div class="ds-pad ds-stack">
+                    <div class="ds-field"><label class="ds-field__label" for="dev-input">入力欄を選ぶと、キーボードが出る</label><input class="ds-input" id="dev-input" placeholder="ここを押す"></div>
+                    <div class="ds-field"><label class="ds-field__label" for="dev-num">数の入力欄は、数字の並び</label><input class="ds-input" id="dev-num" inputmode="numeric" placeholder="0"></div>
+                  </div>
+                  <ul class="ds-list ds-list--inset">
+                    <li><a class="ds-cell" href="#" data-push="dev-s2"><span class="ds-cell__lead ds-cell__lead--tile"><svg class="ds-icon"><use href="#ds-i-arrow-right"/></svg></span><span class="ds-cell__body"><span class="ds-cell__title">次の画面へ進む</span></span><svg class="ds-icon ds-cell__chevron"><use href="#ds-i-angle-right"/></svg></a></li>
+                    <li><button type="button" class="ds-cell" id="dev-perm"><span class="ds-cell__lead ds-cell__lead--tile"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></span><span class="ds-cell__body"><span class="ds-cell__title">通知の許可を求める</span></span></button></li>
+                  </ul>
+                </main>
+              </section>
+              <section class="ds-screen" id="dev-s2" data-tabbar="hidden" aria-labelledby="dev-t2" hidden>
+                <header class="ds-appbar"><div class="ds-appbar__row"><button type="button" class="ds-btn ds-btn--icon" data-pop aria-label="戻る"><svg class="ds-icon"><use href="#ds-i-arrow-left"/></svg></button><h1 class="ds-appbar__title" id="dev-t2">進んだ先</h1></div></header>
+                <main class="ds-content"><div class="ds-pad ds-stack"><p class="ds-p">画面の左右の端から内へ払うか、下の帯の「戻る」で、前の画面に戻ります。最上位の画面でさらに戻ると、ホーム画面へ移ります。</p></div></main>
+                <div class="ds-bottombar"><button type="button" class="ds-btn ds-btn--primary" data-pop>戻る</button></div>
+              </section>
+            </div>
+            <nav class="ds-tabbar" aria-label="行き先">
+              <button type="button" class="ds-tabbar__item" aria-current="page"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-home"/></svg></span>ホーム</button>
+              <button type="button" class="ds-tabbar__item"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-bell"/></svg><span class="ds-count">3</span></span>お知らせ</button>
+              <button type="button" class="ds-tabbar__item"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-user"/></svg></span>自分</button>
+            </nav>
+          </div>
+        </div></div></div>
+      </div>
+      <div class="cat-notes">
+        <div class="dv-controls" style="width:auto">
+          <div class="dv-controls__group"><span class="dv-controls__label">枠の色（data-frame）</span>
+            <div class="ds-segmented" role="group" aria-label="端末の色"><button type="button" data-dv-frame="mint" aria-pressed="true">ミント</button><button type="button" data-dv-frame="silver" aria-pressed="false">シルバー</button><button type="button" data-dv-frame="graphite" aria-pressed="false">グラファイト</button></div></div>
+          <div class="dv-controls__group"><span class="dv-controls__label">下の操作の帯（data-nav）</span>
+            <div class="ds-segmented" role="group" aria-label="下の操作の帯"><button type="button" data-dv-nav="gesture" aria-pressed="true">ジェスチャー</button><button type="button" data-dv-nav="buttons" aria-pressed="false">3 つのボタン</button></div></div>
+          <div class="dv-controls__group"><span class="dv-controls__label">端末の出来事</span>
+            <div class="ds-btn-group" style="flex-wrap:wrap">
+              <button type="button" class="ds-btn ds-btn--s" id="dev-notify">通知</button>
+              <button type="button" class="ds-btn ds-btn--s" id="dev-toast">端末のお知らせ</button>
+              <button type="button" class="ds-btn ds-btn--s" id="dev-home">ホーム画面</button>
+            </div></div>
+        </div>
+        <table class="cat-table">
+          <thead><tr><th style="width:34%">部品</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td><code>.dv-stage</code></td><td>端末を置く台。ブラウザの高さに収まるよう、中の端末を縮める（<code>data-dv-scale="1"</code> の端末は縮めない）</td></tr>
+            <tr><td><code>.dv-phone</code></td><td>本体。<code>data-frame="mint | silver | graphite"</code>、<code>data-nav="gesture | buttons"</code>、<code>data-battery</code>、<code>data-time</code>、<code>data-app-name</code>（ホーム画面と通知に出す名前）</td></tr>
+            <tr><td><code>.dv-screen</code> &gt; <code>.dv-viewport</code></td><td>表示面と、アプリを入れる所。<code>.ds-app</code> を直接置くか、<code>&lt;iframe class="dv-viewport"&gt;</code> で別のページを入れる</td></tr>
+            <tr><td>時刻の帯・カメラの穴・下の帯</td><td><code>device.js</code> が作る。時刻の帯の文字色は <code>--ds-color-statusbar-fg</code>（アプリバーの地に合わせる）</td></tr>
+            <tr><td>戻る・ホーム</td><td>3 つのボタンか、ジェスチャー（左右の端から内へ払うと戻る、下のつまみを上へ払うとホーム）。戻るはアプリの <code>ds.back()</code> を呼ぶ</td></tr>
+            <tr><td>キーボード</td><td>入力欄を選ぶと下から出て、表示面が縮む。<code>inputmode="numeric"</code> などでは数字の並び。<code>data-dv-keyboard="off"</code> で出さない</td></tr>
+            <tr><td><code>dv.notify()</code> / <code>dv.toast()</code> / <code>dv.permission()</code></td><td>画面の上の通知、端末の短いお知らせ、端末の許可のダイアログ。どれも端末が出すもので、アプリの部品ではない</td></tr>
+            <tr><td>実機で開いたとき</td><td>画面の幅が 540px 以下なら、枠・帯・キーボードを出さず、アプリを画面いっぱいに出す。端は <code>env(safe-area-inset-*)</code> に戻る</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="color" class="cat-section">
+    <h2>色</h2>
+    <p class="cat-lead">PC 版と同じ意味トークンを使います。スマートフォン版で足したのは、アプリバー・下のタブ・シート・スナックバー・押している間の重ね・塗りの状態色です。どれも <span class="cat-code">light-dark()</span> で明るい画面と暗い画面の両方の値を持ち、見た目の切り替えにも合わせて変わります。</p>
+    <div class="cat-swatches" id="swatches"></div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="size" class="cat-section">
+    <h2>文字と大きさ</h2>
+    <div class="cat-demo">
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th>トークン</th><th>値</th><th>使う所</th></tr></thead>
+          <tbody>
+            <tr><td><code>--ds-font-size-heading-xl</code></td><td>28 / 34px</td><td>大きな題名（画面を開いた直後の画面名）</td></tr>
+            <tr><td><code>--ds-font-size-heading-l</code></td><td>20 / 26px</td><td>アプリバーの題名・ダイアログの題名</td></tr>
+            <tr><td><code>--ds-font-size-heading-m</code></td><td>17 / 24px</td><td>シート・カードの題名</td></tr>
+            <tr><td><code>--ds-font-size-body-m</code></td><td>15 / 22px</td><td>本文・行の題名</td></tr>
+            <tr><td><code>--ds-font-size-body-s</code></td><td>13 / 18px</td><td>補足・行の説明・リストの見出し</td></tr>
+            <tr><td><code>--ds-font-size-caption</code></td><td>11 / 14px</td><td>下のタブの名前・数のバッジだけ</td></tr>
+            <tr><td><code>--ds-font-size-input</code></td><td>16px</td><td>入力欄（iOS の Safari が拡大しない大きさ）</td></tr>
+            <tr><td><code>--ds-size-touch</code></td><td>48px</td><td>押せる範囲の最小</td></tr>
+            <tr><td><code>--ds-size-appbar-height</code></td><td>56px（＋時刻の帯）</td><td>アプリバー</td></tr>
+            <tr><td><code>--ds-size-tabbar-height</code></td><td>64px（＋下の帯）</td><td>下のタブ</td></tr>
+            <tr><td><code>--ds-size-cell-height</code> / <code>-2line</code></td><td>56 / 72px</td><td>1 段の行 / 題名と説明の 2 段の行</td></tr>
+            <tr><td><code>--ds-space-screen</code></td><td>16px</td><td>画面の左右の余白</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <p class="ds-h1">大きな題名</p>
+        <p class="ds-h2">アプリバーの題名</p>
+        <p class="ds-h3">シートの題名</p>
+        <p class="ds-p">本文は 15px。画面に近づけて読むので、PC 版より 1px 大きくしています。</p>
+        <p class="ds-p ds-text-small">補足は 13px。これより小さい文字は、下のタブの名前と数のバッジだけに使います。</p>
+        <div class="cat-touch">
+          <div class="cat-touch__box" style="width:48px;height:48px">48</div>
+          <div class="cat-touch__box" style="width:44px;height:44px">44</div>
+          <button type="button" class="ds-chip" aria-pressed="false">札（見た目 36）</button>
+        </div>
+        <p class="ds-p ds-text-small">点線は押せる範囲。札は見た目が 36px でも、押せる範囲は 48px あります。</p>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="layout" class="cat-section">
+    <h2>骨組み</h2>
+    <p class="cat-lead">アプリ全体を <span class="cat-code">.ds-app</span> で包み、その中に画面（<span class="cat-code">.ds-screen</span>）を重ね、下に下のタブを置きます。PC 版の <span class="cat-code">.ds-app</span>（上部ナビとサイドナビの格子）とは別の作りです。重なる部品（シート・ダイアログ・スナックバー）は <span class="cat-code">.ds-app</span> を基準に表示するので、端末の枠の中でも外に出ません。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="layout-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen" id="lay-s1" aria-labelledby="lay-t1">
+              <header class="ds-appbar ds-appbar--large">
+                <div class="ds-appbar__row"><p class="ds-appbar__title" aria-hidden="true">受信箱</p><div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="検索"><svg class="ds-icon"><use href="#ds-i-search"/></svg></button></div></div>
+                <h3 class="ds-appbar__large" id="lay-t1">受信箱</h3>
+              </header>
+              <main class="ds-content" id="lay-content"></main>
+              <button type="button" class="ds-fab ds-fab--extended" id="lay-fab"><svg class="ds-icon"><use href="#ds-i-compose"/></svg><span class="ds-fab__label">依頼を書く</span></button>
+            </section>
+            <section class="ds-screen" id="lay-s2" data-tabbar="hidden" aria-labelledby="lay-t2" hidden>
+              <header class="ds-appbar"><div class="ds-appbar__row"><button type="button" class="ds-btn ds-btn--icon" data-pop aria-label="戻る"><svg class="ds-icon"><use href="#ds-i-arrow-left"/></svg></button><h3 class="ds-appbar__title" id="lay-t2">依頼の詳細<span class="ds-appbar__sub">決済チームから</span></h3></div></header>
+              <main class="ds-content"><div class="ds-pad ds-stack"><p class="ds-p">進んだ先の画面では下のタブを隠し（<span class="cat-code">data-tabbar="hidden"</span>）、この画面の主な操作を下の操作帯に置きます。</p></div></main>
+              <div class="ds-bottombar"><button type="button" class="ds-btn">あとで</button><button type="button" class="ds-btn ds-btn--primary">引き受ける</button></div>
+            </section>
+          </div>
+          <nav class="ds-tabbar" aria-label="行き先">
+            <button type="button" class="ds-tabbar__item" aria-current="page"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-inbox"/></svg><span class="ds-count">12</span></span>受信箱</button>
+            <button type="button" class="ds-tabbar__item"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-search"/></svg></span>探す</button>
+            <button type="button" class="ds-tabbar__item"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-bell"/></svg><span class="ds-count ds-count--dot" aria-label="新しいお知らせ"></span></span>お知らせ</button>
+            <button type="button" class="ds-tabbar__item"><span class="ds-tabbar__icon"><svg class="ds-icon"><use href="#ds-i-user"/></svg></span>自分</button>
+          </nav>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <pre class="ds-code" style="font-size:12px"><span class="ds-code__line">&lt;div class="ds-app"&gt;</span><span class="ds-code__line">  &lt;div class="ds-app__stack"&gt;</span><span class="ds-code__line">    &lt;section class="ds-screen"&gt;</span><span class="ds-code__line">      &lt;header class="ds-appbar"&gt;…&lt;/header&gt;</span><span class="ds-code__line">      &lt;main class="ds-content"&gt;…&lt;/main&gt;</span><span class="ds-code__line">      &lt;div class="ds-bottombar"&gt;…&lt;/div&gt;  &lt;!-- 任意 --&gt;</span><span class="ds-code__line">    &lt;/section&gt;</span><span class="ds-code__line">  &lt;/div&gt;</span><span class="ds-code__line">  &lt;nav class="ds-tabbar"&gt;…&lt;/nav&gt;     &lt;!-- 任意 --&gt;</span><span class="ds-code__line">  &lt;div class="ds-sheet" hidden&gt;…&lt;/div&gt; &lt;!-- 重なる部品 --&gt;</span><span class="ds-code__line">&lt;/div&gt;</span></pre>
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">部品</th><th>決まり</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-tabbar</code>（下のタブ）</td><td>アプリの最上位の行き先を 3〜5 個。押すと <code>aria-current="page"</code>、<code>data-screen</code> の画面を出す。今いるタブをもう一度押すと、最上位へ戻り、さらに押すと先頭へ送る</td></tr>
+            <tr><td><code>ds.push(画面)</code> / <code>data-push</code></td><td>画面へ進む（右から重なる）。<code>ds.pop()</code> / <code>data-pop</code> で戻る</td></tr>
+            <tr><td><code>.ds-fab</code>（浮かぶボタン）</td><td>その画面で最もよく行う「作る」操作を 1 つだけ。<code>--extended</code> は文字付きで、中身を下へ送ると畳む</td></tr>
+            <tr><td><code>.ds-bottombar</code>（下の操作帯）</td><td>詳細の画面の主な操作（確定・判定など）を親指の届く所に。主ボタンは 1 つまで</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="appbar" class="cat-section">
+    <h2>アプリバー・タブ</h2>
+    <p class="cat-lead">アプリバーは画面の上の帯です。左に戻る、真ん中に題名、右に 2 つまでの操作を置き、それより多い操作は ⋮ のメニューに入れます。大きな題名（<span class="cat-code">--large</span>）は、最上位の画面で今どこにいるかをはっきり見せ、中身を上へ送ると小さな題名に畳みます。上のタブは、同じ画面の中で表示を切り替えるときに使い、行き先の切り替えには下のタブを使います。</p>
+    <div class="cat-demo">
+      <div class="cat-screen">
+        <header class="ds-appbar" style="--ds-safe-top:0px">
+          <div class="ds-appbar__row">
+            <button type="button" class="ds-btn ds-btn--icon" aria-label="戻る"><svg class="ds-icon"><use href="#ds-i-arrow-left"/></svg></button>
+            <p class="ds-appbar__title">CVE-2021-23337<span class="ds-appbar__sub">lodash@4.17.20</span></p>
+            <div class="ds-appbar__actions">
+              <button type="button" class="ds-btn ds-btn--icon" aria-label="共有"><svg class="ds-icon"><use href="#ds-i-share"/></svg></button>
+              <details class="ds-menu">
+                <summary class="ds-btn ds-btn--icon" aria-label="その他の操作"><svg class="ds-icon"><use href="#ds-i-more"/></svg></summary>
+                <div class="ds-menu__list" role="menu">
+                  <button type="button" class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-link"/></svg>リンクをコピー</button>
+                  <button type="button" class="ds-menu__item" role="menuitem"><svg class="ds-icon"><use href="#ds-i-edit"/></svg>担当を変える</button>
+                  <button type="button" class="ds-menu__item ds-menu__item--danger" role="menuitem"><svg class="ds-icon"><use href="#ds-i-trash"/></svg>削除</button>
+                </div>
+              </details>
+            </div>
+          </div>
+        </header>
+        <div class="ds-tabs ds-tabs--fill" role="tablist">
+          <button type="button" class="ds-tabs__tab" role="tab" aria-selected="true">概要</button>
+          <button type="button" class="ds-tabs__tab" role="tab" aria-selected="false">根拠 <span class="ds-counter">(3)</span></button>
+          <button type="button" class="ds-tabs__tab" role="tab" aria-selected="false">履歴</button>
+        </div>
+        <div style="height:24px"></div>
+        <header class="ds-appbar ds-appbar--large" style="--ds-safe-top:0px">
+          <div class="ds-appbar__row"><p class="ds-appbar__title" aria-hidden="true">未判定</p><div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="検索"><svg class="ds-icon"><use href="#ds-i-search"/></svg></button></div></div>
+          <p class="ds-appbar__large">未判定</p>
+          <div class="ds-appbar__extra">
+            <div class="ds-chips" data-single style="padding-inline:0">
+              <button type="button" class="ds-chip" aria-pressed="true">すべて <span class="ds-chip__count">24</span></button>
+              <button type="button" class="ds-chip" aria-pressed="false">重大 <span class="ds-chip__count">2</span></button>
+              <button type="button" class="ds-chip" aria-pressed="false">高 <span class="ds-chip__count">9</span></button>
+              <button type="button" class="ds-chip" aria-pressed="false">中 <span class="ds-chip__count">13</span></button>
+            </div>
+          </div>
+        </header>
+        <div style="height:24px"></div>
+        <header class="ds-appbar" style="--ds-safe-top:0px">
+          <div class="ds-appbar__extra" style="padding-top:8px">
+            <div class="ds-search"><div class="ds-search__field"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" placeholder="番号・パッケージ名で探す" aria-label="検索"><button type="button" class="ds-btn ds-btn--icon ds-search__clear" aria-label="入力を消す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></div></div>
+          </div>
+        </header>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-appbar</code> &gt; <code>__row</code></td><td>戻る（<code>.ds-btn--icon</code>）・<code>__title</code>（<code>__sub</code> で 2 段目）・<code>__actions</code>。時刻の帯の分（<code>--ds-safe-top</code>）だけ上を空ける</td></tr>
+            <tr><td><code>.ds-appbar--large</code> ＋ <code>__large</code></td><td>大きな題名。<code>__large</code> を <code>h1</code> にし、小さな題名は <code>aria-hidden="true"</code>。中身を 40px 送ると畳む</td></tr>
+            <tr><td><code>.ds-appbar__extra</code></td><td>アプリバーの下に続ける検索欄・絞り込みの札</td></tr>
+            <tr><td><code>.is-scrolled</code></td><td>中身が下に潜ると付き、ミニマルでは下に線を出す（<code>components.js</code>）</td></tr>
+            <tr><td><code>.ds-menu</code>（details）</td><td>⋮ から開く操作の一覧。項目は 48px。取り消せない操作は <code>__item--danger</code> にし、押したら確かめるダイアログを出す</td></tr>
+            <tr><td><code>.ds-tabs</code>（<code>--fill</code>）</td><td>同じ画面の中の表示の切り替え。押すと <code>aria-selected</code>、<code>aria-controls</code> の中身を出す。4 つを超えたら横に送る</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="list" class="cat-section">
+    <h2>リスト・行</h2>
+    <p class="cat-lead">PC 版の表の代わりに、行（<span class="cat-code">.ds-cell</span>）を縦に並べます。幅が狭いので列を並べず、1 行の中に「先頭（アイコン・顔）・本体（題名・説明・札）・末尾（値・山形・トグル）」の 3 つの場所を持たせます。押せる行は <span class="cat-code">&lt;a&gt;</span> か <span class="cat-code">&lt;button&gt;</span>、選ぶ行は <span class="cat-code">&lt;label&gt;</span> で作り、行全体を押せる範囲にします。</p>
+    <div class="cat-demo">
+      <div class="cat-screen" style="padding-bottom:16px; background: var(--ds-color-bg-page)" id="list-screen">
+        <h3 class="ds-list__header">払える行（右: 対応不要 / 左: 対応が必要）</h3>
+        <ul class="ds-list" id="swipe-demo">
+          <li><div class="ds-swipe">
+            <div class="ds-swipe__action ds-swipe__action--start ds-swipe__action--success" data-action="fp"><svg class="ds-icon"><use href="#ds-i-success"/></svg>対応不要</div>
+            <div class="ds-swipe__action ds-swipe__action--end ds-swipe__action--danger" data-action="tp">対応が必要<svg class="ds-icon"><use href="#ds-i-warning"/></svg></div>
+            <a class="ds-cell ds-cell--2line" href="#"><span class="ds-cell__unread" aria-label="未読"></span><span class="ds-cell__body"><span class="ds-cell__title ds-mono">CVE-2021-23337</span><span class="ds-cell__sub">lodash@4.17.20 ・ _.template に渡す値から、命令を差し込める</span><span class="ds-cell__meta"><span class="ds-severity ds-severity--high">高</span><span>api</span><span>40 分前</span></span></span><svg class="ds-icon ds-cell__chevron"><use href="#ds-i-angle-right"/></svg></a>
+          </div></li>
+          <li><div class="ds-swipe">
+            <div class="ds-swipe__action ds-swipe__action--start ds-swipe__action--success" data-action="fp"><svg class="ds-icon"><use href="#ds-i-success"/></svg>対応不要</div>
+            <div class="ds-swipe__action ds-swipe__action--end ds-swipe__action--danger" data-action="tp">対応が必要<svg class="ds-icon"><use href="#ds-i-warning"/></svg></div>
+            <a class="ds-cell ds-cell--2line" href="#"><span class="ds-cell__body"><span class="ds-cell__title ds-mono">CVE-2024-4068</span><span class="ds-cell__sub">braces@3.0.2 ・ 閉じない括弧の入力で、メモリーを使い切る</span><span class="ds-cell__meta"><span class="ds-severity ds-severity--high">高</span><span>web</span><span>3 時間前</span><span class="ds-verdict ds-verdict--fp"><svg class="ds-icon"><use href="#ds-i-success"/></svg>対応不要</span></span></span><svg class="ds-icon ds-cell__chevron"><use href="#ds-i-angle-right"/></svg></a>
+          </div></li>
+        </ul>
+        <h3 class="ds-list__header">まとまったリスト（--inset）</h3>
+        <ul class="ds-list ds-list--inset">
+          <li><a class="ds-cell" href="#"><span class="ds-cell__lead ds-cell__lead--tile"><svg class="ds-icon"><use href="#ds-i-bell"/></svg></span><span class="ds-cell__body"><span class="ds-cell__title">お知らせ</span></span><span class="ds-cell__trail">重大と高<svg class="ds-icon ds-cell__chevron"><use href="#ds-i-angle-right"/></svg></span></a></li>
+          <li><label class="ds-cell"><span class="ds-cell__lead ds-cell__lead--tile"><svg class="ds-icon"><use href="#ds-i-clock"/></svg></span><span class="ds-cell__body"><span class="ds-cell__title">毎朝のまとめ</span></span><span class="ds-toggle"><input type="checkbox" role="switch" checked></span></label></li>
+          <li><div class="ds-cell ds-cell--2line"><span class="ds-avatar" aria-hidden="true">佐</span><span class="ds-cell__body"><span class="ds-cell__title">佐藤 さん</span><span class="ds-cell__sub">決済チーム ・ 仕分けの担当</span></span></div></li>
+          <li><label class="ds-cell"><span class="ds-cell__body"><span class="ds-cell__title">本番に入っているものだけ</span></span><input type="checkbox" checked></label></li>
+          <li><button type="button" class="ds-cell ds-cell--danger"><span class="ds-cell__lead"><svg class="ds-icon"><use href="#ds-i-trash"/></svg></span><span class="ds-cell__body"><span class="ds-cell__title">この端末の記録を消す</span></span></button></li>
+        </ul>
+        <p class="ds-list__footer">リストの下の補足。設定の意味や、変えたときに何が起きるかを書く。</p>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-list</code>（<code>--inset</code>）</td><td>行を並べる。<code>--inset</code> は角丸の面にまとめる（設定・詳細の中の小さな一覧）</td></tr>
+            <tr><td><code>.ds-list__header</code> / <code>__footer</code></td><td>まとまりの見出しと補足</td></tr>
+            <tr><td><code>.ds-cell</code>（<code>--2line</code> <code>--danger</code>）</td><td>1 行。高さ 56px（2 段は 72px）。区切り線は題名の左端から引く</td></tr>
+            <tr><td><code>__lead</code>（<code>--tile</code>）・<code>.ds-avatar</code></td><td>先頭のアイコン・顔。40px</td></tr>
+            <tr><td><code>__body</code> &gt; <code>__title</code> <code>__sub</code> <code>__meta</code></td><td>題名（2 行まで）・説明（2 行まで）・札の並び</td></tr>
+            <tr><td><code>__trail</code>・<code>__chevron</code>・<code>__unread</code></td><td>末尾の値、進めることを示す山形、未読の点</td></tr>
+            <tr><td><code>.ds-swipe</code> ＋ <code>__action--start / --end</code></td><td>行を払うと後ろの操作が見え、4 割を越えて離すと <code>ds-swipe</code> イベント（<code>detail.side</code>・<code>detail.action</code>）。<code>preventDefault()</code> で行を戻さない。<b>同じ操作を、行を開いた先にも必ず置く</b>（払う動きができない人・知らない人がいるため）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="button" class="cat-section">
+    <h2>ボタン</h2>
+    <div class="cat-demo">
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <div class="ds-btn-stack">
+          <button type="button" class="ds-btn ds-btn--primary ds-btn--block">主ボタン（1 画面に 1 つ）</button>
+          <button type="button" class="ds-btn ds-btn--block">通常のボタン</button>
+          <button type="button" class="ds-btn ds-btn--danger ds-btn--block">削除する（取り消せない操作）</button>
+          <button type="button" class="ds-btn ds-btn--block" disabled>押せないボタン</button>
+        </div>
+        <div class="ds-btn-group"><button type="button" class="ds-btn">あとで</button><button type="button" class="ds-btn ds-btn--primary">引き受ける</button></div>
+        <div class="ds-row">
+          <button type="button" class="ds-btn ds-btn--link">キャンセル</button>
+          <button type="button" class="ds-btn ds-btn--s"><svg class="ds-icon"><use href="#ds-i-copy"/></svg>小さなボタン</button>
+          <button type="button" class="ds-btn ds-btn--icon" aria-label="共有"><svg class="ds-icon"><use href="#ds-i-share"/></svg></button>
+          <button type="button" class="ds-btn ds-btn--icon" aria-label="お知らせ（3 件）"><svg class="ds-icon"><use href="#ds-i-bell"/></svg><span class="ds-count">3</span></button>
+        </div>
+      </div></div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-btn</code></td><td>高さ 48px。押している間は少し縮み、重ねの色が乗る</td></tr>
+            <tr><td><code>--primary</code></td><td>その画面で次にしてほしい操作。1 画面に 1 つまで</td></tr>
+            <tr><td><code>--danger</code></td><td>取り消せない操作の確定。ダイアログ・シートの中で 1 つだけ</td></tr>
+            <tr><td><code>--block</code>・<code>.ds-btn-group</code>・<code>.ds-btn-stack</code></td><td>幅いっぱい・横に等分・縦に積む</td></tr>
+            <tr><td><code>--link</code></td><td>枠の無いボタン（キャンセル・ダイアログの選択肢）</td></tr>
+            <tr><td><code>--s</code></td><td>見た目 36px の小さなボタン。押せる範囲は 48px</td></tr>
+            <tr><td><code>--icon</code> ＋ <code>.ds-count</code></td><td>48px の丸。<code>aria-label</code> を必ず付ける。数は右上に</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="form" class="cat-section">
+    <h2>入力</h2>
+    <p class="cat-lead">入力欄の文字は 16px です。端末のキーボードが画面の下半分を覆うので、入力欄は縦に送れる中身（<span class="cat-code">.ds-content</span> かシートの本文）に置き、確定のボタンを入力欄の近くに置きます。種類に合った <span class="cat-code">type</span> と <span class="cat-code">inputmode</span>（数字・メール・電話）を付けると、端末が合ったキーボードを出します。</p>
+    <div class="cat-demo">
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <div class="ds-field"><label class="ds-field__label" for="f1">担当チーム</label><input class="ds-input" id="f1" value="決済チーム"></div>
+        <div class="ds-field"><label class="ds-field__label" for="f2">期限</label><span class="ds-field__description">対応を終える日</span><input class="ds-input" id="f2" aria-invalid="true" value="2026/13/01" aria-describedby="f2e"><span class="ds-field__error" id="f2e"><svg class="ds-icon"><use href="#ds-i-error"/></svg>日付の形が正しくありません（例: 2026/11/30）</span></div>
+        <div class="ds-field"><label class="ds-field__label" for="f3">深刻度</label><select class="ds-select" id="f3"><option>重大</option><option selected>高</option><option>中</option></select></div>
+        <div class="ds-field"><label class="ds-field__label" for="f4">メモ <span class="ds-optional">（任意）</span></label><textarea class="ds-textarea" id="f4" placeholder="あとで見る人に残すこと"></textarea></div>
+        <div class="ds-search"><div class="ds-search__field"><svg class="ds-icon"><use href="#ds-i-search"/></svg><input class="ds-input" type="search" placeholder="探す" aria-label="探す" value="lodash"><button type="button" class="ds-btn ds-btn--icon ds-search__clear" aria-label="入力を消す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></div></div>
+        <div role="radiogroup" aria-label="理由">
+          <label class="ds-choice"><input type="radio" name="r" checked><span class="ds-choice__text">指摘の関数を呼んでいない</span></label>
+          <label class="ds-choice"><input type="radio" name="r"><span class="ds-choice__text">開発のときだけ使う<span class="ds-text-small">本番の依存に入っていない</span></span></label>
+          <label class="ds-choice"><input type="checkbox" checked><span class="ds-choice__text">同じパッケージの検出にも当てはめる</span></label>
+        </div>
+        <label class="ds-toggle"><input type="checkbox" role="switch" checked>新しい検出を知らせる</label>
+        <div class="ds-row"><span>件数</span><div class="ds-number"><button type="button" class="ds-btn ds-btn--icon" data-step="-1" aria-label="減らす"><svg class="ds-icon"><use href="#ds-i-minus"/></svg></button><input class="ds-number__value" type="number" inputmode="numeric" value="3" min="0" max="20" aria-label="件数"><button type="button" class="ds-btn ds-btn--icon" data-step="1" aria-label="増やす"><svg class="ds-icon"><use href="#ds-i-plus"/></svg></button></div></div>
+        <div class="ds-segmented" role="group" aria-label="期間"><button type="button" aria-pressed="false">今日</button><button type="button" aria-pressed="true">今週</button><button type="button" aria-pressed="false">今月</button></div>
+        <div class="ds-chips ds-chips--wrap" style="padding:0"><button type="button" class="ds-chip" aria-pressed="true"><svg class="ds-icon ds-chip__check"><use href="#ds-i-check"/></svg>api</button><button type="button" class="ds-chip" aria-pressed="false"><svg class="ds-icon ds-chip__check"><use href="#ds-i-check"/></svg>web</button><button type="button" class="ds-chip" aria-pressed="false"><svg class="ds-icon ds-chip__check"><use href="#ds-i-check"/></svg>batch</button></div>
+      </div></div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-field</code> ＋ <code>__label</code> <code>__description</code> <code>__error</code></td><td>名前・説明・誤りを入力欄の上下に。誤りは <code>aria-invalid="true"</code> と、直し方を書いた文</td></tr>
+            <tr><td><code>.ds-input</code> / <code>.ds-textarea</code> / <code>.ds-select</code></td><td>高さ 48px、文字 16px。文章欄は中身に合わせて伸びる（画面の 4 割まで）</td></tr>
+            <tr><td><code>.ds-search</code></td><td>丸い検索欄。入力があるときだけ消すボタンを出す</td></tr>
+            <tr><td><code>.ds-choice</code></td><td>ラジオ・チェック。1 行の高さ 48px を押せる範囲にする</td></tr>
+            <tr><td><code>.ds-toggle</code></td><td>すぐ効く切り替え（<code>role="switch"</code>）。保存のボタンが要る設定には使わない</td></tr>
+            <tr><td><code>.ds-number</code></td><td>小さな数の増減。<code>data-step</code> で増やす量</td></tr>
+            <tr><td><code>.ds-segmented</code></td><td>2〜4 個の表示の切り替え</td></tr>
+            <tr><td><code>.ds-chips</code>（<code>data-single</code> <code>--wrap</code>）・<code>.ds-chip</code></td><td>絞り込みの札。横に送る列。<code>data-single</code> で 1 つだけ選ぶ。選ぶと <code>ds-change</code> イベント</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="notice" class="cat-section">
+    <h2>お知らせ</h2>
+    <p class="cat-lead">お知らせは、残る時間で使い分けます。操作の結果は下に短く出すスナックバー、直すまで消えない状態（オフライン・権限が無い）は画面の上のバナー、中身の一部についての注意は本文の中のアラートです。端末が出す通知・お知らせ（<span class="cat-code">dv.notify</span>・<span class="cat-code">dv.toast</span>）は、アプリの部品ではありません。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--short">
+        <div class="ds-app" id="notice-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen">
+              <div class="ds-banner ds-banner--warning"><svg class="ds-icon"><use href="#ds-i-warning"/></svg><div class="ds-banner__body">オフラインです。判定はこの端末に残し、つながったら送ります。</div></div>
+              <main class="ds-content"><div class="ds-pad ds-stack">
+                <div class="ds-alert"><svg class="ds-icon"><use href="#ds-i-info"/></svg><div class="ds-alert__body"><div class="ds-alert__title">判定の理由</div>一覧で払って判定したため、理由がありません。</div></div>
+                <div class="ds-alert ds-alert--error"><svg class="ds-icon"><use href="#ds-i-error"/></svg><div class="ds-alert__body"><div class="ds-alert__title">送れませんでした</div>3 件の判定が、まだサーバーに届いていません。<div class="ds-alert__actions"><button type="button" class="ds-btn ds-btn--link">もう一度送る</button></div></div></div>
+                <button type="button" class="ds-btn" id="snack-demo">スナックバーを出す</button>
+              </div></main>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:30%">部品</th><th style="width:30%">残る時間</th><th>使う場面</th></tr></thead>
+          <tbody>
+            <tr><td><code>ds.snackbar()</code></td><td>5 秒（触れている間は消えない）</td><td>操作の結果。「元に戻す」を 1 つ置ける。下のタブ・下の操作帯・浮かぶボタンの上に出る。確かめるダイアログの代わりに、取り消しで間違いを直せるようにする</td></tr>
+            <tr><td><code>.ds-banner</code>（<code>--warning</code> <code>--error</code>）</td><td>直るまで</td><td>オフライン・権限が無い・古い版など、画面全体にかかわる状態</td></tr>
+            <tr><td><code>.ds-alert</code>（<code>--success</code> <code>--warning</code> <code>--error</code>）</td><td>中身と同じ</td><td>中身の一部についての注意・誤り。直すためのボタンを <code>__actions</code> に</td></tr>
+          </tbody>
+        </table>
+        <p class="ds-text-small"><span class="cat-code">ds.snackbar({ message, action, onAction, duration, within })</span> — <span class="cat-code">within</span> は表示する <span class="cat-code">.ds-app</span>（の中の要素）。省くと、ページの最初の <span class="cat-code">.ds-app</span>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="overlay" class="cat-section">
+    <h2>シート・ダイアログ</h2>
+    <p class="cat-lead">選ぶ・入力する・詳しく見るは、下から出るシートで行います。指が画面の下にあるので、上に出る PC 版のモーダルより手が届きやすく、つまみを下へ引けば閉じられます。中央のダイアログは、取り消せない操作の前に確かめるときだけに使います。どれも <span class="cat-code">.ds-app</span> の中に <span class="cat-code">hidden</span> で置き、<span class="cat-code">data-open="id"</span> で開き、中の <span class="cat-code">data-close="値"</span> で閉じます。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="overlay-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen">
+              <header class="ds-appbar" style="--ds-safe-top:0px"><div class="ds-appbar__row"><h3 class="ds-appbar__title">重なる部品</h3></div></header>
+              <main class="ds-content"><div class="ds-pad ds-btn-stack">
+                <button type="button" class="ds-btn" data-open="ov-sheet">シート（入力して確定）</button>
+                <button type="button" class="ds-btn" data-open="ov-actions">操作の一覧（アクションシート）</button>
+                <button type="button" class="ds-btn" data-open="ov-full">画面いっぱいのシート</button>
+                <button type="button" class="ds-btn" id="ov-confirm">確かめるダイアログ（取り消せない操作）</button>
+              </div></main>
+            </section>
+          </div>
+          <div class="ds-sheet" id="ov-sheet" aria-labelledby="ov-sheet-t" hidden>
+            <button type="button" class="ds-sheet__handle" data-close aria-label="閉じる"></button>
+            <div class="ds-sheet__header"><h4 class="ds-sheet__title" id="ov-sheet-t">「対応不要」にする理由</h4></div>
+            <div class="ds-sheet__body">
+              <label class="ds-choice"><input type="radio" name="ov" checked><span class="ds-choice__text">指摘の関数を呼んでいない</span></label>
+              <label class="ds-choice"><input type="radio" name="ov"><span class="ds-choice__text">開発のときだけ使う</span></label>
+              <label class="ds-choice"><input type="radio" name="ov"><span class="ds-choice__text">外から入る値が届かない</span></label>
+            </div>
+            <div class="ds-sheet__footer"><button type="button" class="ds-btn ds-btn--primary" data-close="ok">確定する</button></div>
+          </div>
+          <div class="ds-sheet" id="ov-actions" aria-labelledby="ov-actions-t" hidden>
+            <button type="button" class="ds-sheet__handle" data-close aria-label="閉じる"></button>
+            <div class="ds-sheet__header"><h4 class="ds-sheet__title" id="ov-actions-t">CVE-2021-23337</h4></div>
+            <div class="ds-sheet__body ds-sheet__body--flush">
+              <ul class="ds-actions" role="menu">
+                <li><button type="button" class="ds-action" role="menuitem" data-close="share"><svg class="ds-icon"><use href="#ds-i-share"/></svg>共有</button></li>
+                <li><button type="button" class="ds-action" role="menuitem" data-close="copy"><svg class="ds-icon"><use href="#ds-i-link"/></svg>リンクをコピー</button></li>
+                <li><button type="button" class="ds-action" role="menuitem" data-close="star"><svg class="ds-icon"><use href="#ds-i-star"/></svg>あとで見る</button></li>
+                <li><button type="button" class="ds-action ds-action--danger" role="menuitem" data-close="delete"><svg class="ds-icon"><use href="#ds-i-trash"/></svg>削除</button></li>
+              </ul>
+            </div>
+          </div>
+          <div class="ds-sheet ds-sheet--full" id="ov-full" aria-labelledby="ov-full-t" hidden>
+            <button type="button" class="ds-sheet__handle" data-close aria-label="閉じる"></button>
+            <div class="ds-sheet__header"><h4 class="ds-sheet__title" id="ov-full-t">判定の手引き</h4><button type="button" class="ds-btn ds-btn--icon" data-close aria-label="閉じる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></div>
+            <div class="ds-sheet__body ds-stack">
+              <p class="ds-p">画面いっぱいのシートは、長い説明や、ほかの画面へ移らずに済ませたい作業に使います。PC 版の右のヘルプパネルに当たります。</p>
+              <ol class="ds-steps">
+                <li class="is-done"><span class="ds-steps__mark"><svg class="ds-icon"><use href="#ds-i-check"/></svg></span><span class="ds-steps__text">インストールされているか</span></li>
+                <li class="is-done"><span class="ds-steps__mark"><svg class="ds-icon"><use href="#ds-i-check"/></svg></span><span class="ds-steps__text">入っている版が対象か</span></li>
+                <li class="is-current"><span class="ds-steps__mark">3</span><span class="ds-steps__text">指摘の関数を呼んでいるか</span></li>
+                <li><span class="ds-steps__mark">4</span><span class="ds-steps__text">外から入る値が届くか</span></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">部品</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-sheet</code></td><td><code>__handle</code>（つまみ。下へ引くか押すと閉じる）・<code>__header</code>・<code>__body</code>（送れる）・<code>__footer</code>（確定のボタン）。3 割を越えて引くか、速く払うと閉じる</td></tr>
+            <tr><td><code>.ds-sheet--full</code></td><td>画面いっぱい。長い説明、検索、ほかの画面へ移らずに済ませたい作業</td></tr>
+            <tr><td><code>.ds-actions</code> ＋ <code>.ds-action</code>（<code>--danger</code>）</td><td>操作の一覧。項目は 52px。<code>aria-checked="true"</code> で今の選択に印</td></tr>
+            <tr><td><code>.ds-dialog</code> / <code>ds.confirm()</code></td><td>中央の確かめるダイアログ。<code>tone: 'danger'</code> では「キャンセル」に焦点を置き、うっかり確定しないようにする</td></tr>
+            <tr><td>開閉</td><td><code>ds.open(要素)</code> / <code>ds.close(要素, 値)</code>。閉じると要素に <code>ds-close</code> イベント（<code>detail.value</code>）。開いている間、後ろは <code>inert</code>。戻る（端末・Esc）で閉じる</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="nav-more" class="cat-section">
+    <h2>選ぶ状態・引き出し・案内の吹き出し</h2>
+    <p class="cat-lead">一覧の行を長押しすると「選ぶ状態」に入り、アプリバーが「n 件を選択中」とまとめて行う操作に替わります。同じ操作を 1 件ずつくり返さずに済むためです。横から出る引き出しは、行き先が多く下のタブ（5 つまで）に入りきらないときに使います。案内の吹き出しは、初めて使う人に、画面の部品を順に指して説明します。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="navmore-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen" id="navmore-screen">
+              <header class="ds-appbar ds-appbar--selection" style="--ds-safe-top:0px" hidden>
+                <div class="ds-appbar__row">
+                  <button type="button" class="ds-btn ds-btn--icon" data-selection-cancel aria-label="選ぶのをやめる"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button>
+                  <p class="ds-appbar__title" data-selection-count aria-live="polite">0 件を選択中</p>
+                  <div class="ds-appbar__actions">
+                    <button type="button" class="ds-btn ds-btn--icon" data-selection-all aria-label="すべて選ぶ"><svg class="ds-icon"><use href="#ds-i-list"/></svg></button>
+                    <button type="button" class="ds-btn ds-btn--icon" id="navmore-archive" aria-label="選んだものを片付ける"><svg class="ds-icon"><use href="#ds-i-inbox"/></svg></button>
+                    <button type="button" class="ds-btn ds-btn--icon" id="navmore-delete" aria-label="選んだものを削除"><svg class="ds-icon"><use href="#ds-i-trash"/></svg></button>
+                  </div>
+                </div>
+              </header>
+              <header class="ds-appbar" style="--ds-safe-top:0px">
+                <div class="ds-appbar__row">
+                  <button type="button" class="ds-btn ds-btn--icon" data-open="navmore-drawer" aria-label="行き先の一覧を開く" id="navmore-menu"><svg class="ds-icon"><use href="#ds-i-menu"/></svg></button>
+                  <h3 class="ds-appbar__title">依頼</h3>
+                  <div class="ds-appbar__actions"><button type="button" class="ds-btn ds-btn--icon" aria-label="案内を出す" id="navmore-coach"><svg class="ds-icon"><use href="#ds-i-help"/></svg></button></div>
+                </div>
+              </header>
+              <main class="ds-content">
+                <p class="ds-list__header"><span>長押しで選ぶ</span></p>
+                <ul class="ds-list" data-selectable id="navmore-list"></ul>
+              </main>
+            </section>
+          </div>
+          <nav class="ds-drawer" id="navmore-drawer" aria-label="行き先" hidden>
+            <div class="ds-drawer__header"><span class="ds-avatar" aria-hidden="true">佐</span><span><b>佐藤 さん</b><br><span class="ds-text-small">決済チーム</span></span></div>
+            <a class="ds-drawer__item" href="#" aria-current="page" data-close><svg class="ds-icon"><use href="#ds-i-inbox"/></svg>依頼<span class="ds-count">5</span></a>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-star"/></svg>あとで見る<span class="ds-drawer__value">2</span></a>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-success"/></svg>済んだもの</a>
+            <p class="ds-drawer__section">チーム</p>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-shield"/></svg>決済チーム</a>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-cloud"/></svg>基盤チーム</a>
+            <p class="ds-drawer__section">そのほか</p>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-settings"/></svg>設定</a>
+            <a class="ds-drawer__item" href="#" data-close><svg class="ds-icon"><use href="#ds-i-help"/></svg>使い方</a>
+          </nav>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">部品</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>[data-selectable]</code> ＋ <code>.ds-cell__check</code></td><td>リストに <code>data-selectable</code> を付け、行に選ぶ印を置く。行を 0.5 秒長押しすると選ぶ状態に入り、画面に <code>.is-selecting</code>、行に <code>aria-selected</code>。押すたびに選ぶ・外す。0 件になるか、戻る（端末・Esc）で抜ける</td></tr>
+            <tr><td><code>.ds-appbar--selection</code></td><td>選ぶ状態のアプリバー（<code>hidden</code> で置く）。<code>data-selection-count</code> に「n 件を選択中」、<code>data-selection-cancel</code>・<code>data-selection-all</code>。まとめて行う操作を右に置く</td></tr>
+            <tr><td><code>ds.selection</code></td><td><code>enter(画面, 行)</code>・<code>exit(画面)</code>・<code>selected(画面)</code>。変わると <code>ds-selectionchange</code> イベント</td></tr>
+            <tr><td><code>.ds-drawer</code></td><td>横から出る引き出し（<code>__header</code> <code>__section</code> <code>__item</code>）。<code>data-open</code> で開く。後ろを押すか、戻るで閉じる。行き先が 5 つ以下なら下のタブを使う</td></tr>
+            <tr><td><code>ds.coach([{ target, text }], { within })</code></td><td>案内の吹き出し。指した部品のまわりを明るく残し、下か上に吹き出しを出す。「次へ」「スキップ」で進み、<code>'done'</code> か <code>'skip'</code> を返す。初めて開いたときに 1 回だけ出し、いつでも ? から出し直せるようにする</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="input-more" class="cat-section">
+    <h2>日付・時刻・コードの入力</h2>
+    <p class="cat-lead">キーボードで打つより、指で選ぶほうが速く間違えにくい値のための部品です。日付はカレンダー、時刻はホイール、範囲のある数はスライダーで選びます。認証コードは 1 文字ずつの枠に入れ、貼り付けにも対応します。どれも値が変わると <span class="cat-code">ds-change</span> イベントが出ます。</p>
+    <div class="cat-demo">
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <div class="ds-slider">
+          <div class="ds-slider__head"><label class="ds-field__label" for="sl1">知らせる深刻度のしきい値（CVSS）</label><span class="ds-slider__value" data-unit=" 以上"></span></div>
+          <input type="range" id="sl1" min="0" max="10" step="0.5" value="7">
+          <div class="ds-slider__ticks" aria-hidden="true"><span>0</span><span>4</span><span>7</span><span>10</span></div>
+        </div>
+        <div class="ds-field"><span class="ds-field__label">対応の期限</span><div class="ds-calendar" data-month="2026-11" data-today="2026-11-08" data-value="2026-11-20" data-min="2026-11-08" data-marks="2026-11-12,2026-11-25"></div><span class="ds-field__description" id="cal-out">選んだ日: 2026-11-20（点は、ほかの期限がある日）</span></div>
+        <div class="ds-field"><span class="ds-field__label">毎朝のまとめを送る時刻</span>
+          <div class="ds-wheel" aria-label="時刻">
+            <div class="ds-wheel__col" tabindex="0" role="listbox" aria-label="時" data-value="8" id="wh-h"></div>
+            <span class="ds-wheel__sep" aria-hidden="true">:</span>
+            <div class="ds-wheel__col" tabindex="0" role="listbox" aria-label="分" data-value="30" id="wh-m"></div>
+          </div>
+          <span class="ds-field__description" id="wh-out">8:30 に送ります</span></div>
+        <div class="ds-field"><span class="ds-field__label">認証コード（6 桁）</span><span class="ds-field__description">メールで届いたコード。見本では 123456 が正しいコード</span>
+          <div class="ds-otp" id="otp-demo" role="group" aria-label="認証コード">
+            <input inputmode="numeric" autocomplete="one-time-code" aria-label="1 桁目"><input inputmode="numeric" aria-label="2 桁目"><input inputmode="numeric" aria-label="3 桁目"><input inputmode="numeric" aria-label="4 桁目"><input inputmode="numeric" aria-label="5 桁目"><input inputmode="numeric" aria-label="6 桁目">
+          </div></div>
+        <div class="ds-field"><label class="ds-field__label" for="tag-in">知らせる相手</label>
+          <div class="ds-tag-input"><span class="ds-tag"><span>決済チーム</span><button type="button" class="ds-tag__remove" aria-label="決済チーム を外す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></span><input id="tag-in" placeholder="名前を入れて Enter"></div></div>
+        <div class="ds-field"><span class="ds-field__label">添付</span>
+          <div class="ds-attach" id="attach-demo">
+            <div class="ds-attach__item ds-attach__item--photo" style="--ds-attach-thumb: linear-gradient(135deg, #1f4a36, #8fb8a0)"><span class="ds-attach__name">画面.png</span><button type="button" class="ds-attach__remove" aria-label="画面.png を外す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button></div>
+            <div class="ds-attach__item"><svg class="ds-icon ds-attach__icon"><use href="#ds-i-file"/></svg><span class="ds-attach__name">package-lock.json</span><button type="button" class="ds-attach__remove" aria-label="package-lock.json を外す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button><span class="ds-attach__progress" style="--ds-progress: 60%"></span></div>
+            <button type="button" class="ds-attach__add"><svg class="ds-icon"><use href="#ds-i-plus"/></svg>追加</button>
+          </div></div>
+      </div></div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-slider</code></td><td>範囲の中から 1 つの値。<code>__value</code> に今の値（<code>data-unit</code> を後ろに付ける）、<code>__ticks</code> に目盛り。つまみは 26px、押せる高さは 48px</td></tr>
+            <tr><td><code>.ds-calendar</code></td><td><code>data-month</code>・<code>data-value</code>・<code>data-today</code>・<code>data-min</code>・<code>data-max</code>・<code>data-marks</code> を書くと、<code>components.js</code> が月を描く。日は 44px の丸。選べない日は押せない</td></tr>
+            <tr><td><code>.ds-wheel</code> ＋ <code>__col</code> <code>__item</code></td><td>上下に回して選ぶ。真ん中の帯に止まった項目が選ばれる。項目を押すとそこまで回る。↑ ↓ キーでも動く。初めの値は列の <code>data-value</code></td></tr>
+            <tr><td><code>.ds-otp</code></td><td>1 文字ずつの枠。入れると次へ進み、空で ← を押すと前へ戻る。貼り付けると全部に入る。揃うと <code>ds-complete</code>（<code>detail.code</code>）。違ったら <code>ds.otpError(要素)</code> で揺らして空にする</td></tr>
+            <tr><td><code>.ds-tag-input</code> ＋ <code>.ds-tag</code></td><td>宛先・ラベルなど複数の短い値。Enter・カンマ・読点で札になり、空で ← を押すと最後の札を外す</td></tr>
+            <tr><td><code>.ds-attach</code></td><td>写真・ファイルのタイル。写真は <code>__item--photo</code> と <code>--ds-attach-thumb</code>。送信中は <code>__progress</code>。＋ を押すと <code>ds-attach</code> イベント（ファイルを選ぶ処理は画面の側）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="thread" class="cat-section">
+    <h2>会話・下の入力欄</h2>
+    <p class="cat-lead">相談やコメントのやり取りは、自分の発言を右、相手の発言を左に並べます。入力欄は画面の下に固定し、キーボードが出ると一緒に上がります。何か書くまで送るボタンは押せません。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="thread-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen">
+              <header class="ds-appbar" style="--ds-safe-top:0px"><div class="ds-appbar__row"><button type="button" class="ds-btn ds-btn--icon" aria-label="戻る"><svg class="ds-icon"><use href="#ds-i-arrow-left"/></svg></button><h3 class="ds-appbar__title">CVE-2021-23337 の相談<span class="ds-appbar__sub">3 人</span></h3><span class="ds-avatar-group" aria-label="参加者 3 人" style="margin-right:12px"><span class="ds-avatar">佐</span><span class="ds-avatar">田</span><span class="ds-avatar">鈴</span></span></div></header>
+              <main class="ds-content"><div class="ds-pad ds-thread" id="thread-list">
+                <span class="ds-thread__day">今日</span>
+                <div class="ds-message"><span class="ds-message__author">田中</span><div class="ds-message__bubble">search.js の 14 行目、検索語がそのまま template に入っていますね。</div><span class="ds-message__meta">10:02</span></div>
+                <div class="ds-message ds-message--mine"><div class="ds-message__bubble">確認しました。対応が必要にします。lodash を 4.17.21 に上げる PR を作ります。</div><span class="ds-message__meta">10:05 ・ 既読 2</span></div>
+                <div class="ds-message"><span class="ds-message__author">鈴木</span><div class="ds-message__bubble">お願いします。リリースは木曜でよいですか？</div><span class="ds-message__meta">10:07</span></div>
+                <div class="ds-message ds-message--mine ds-message--failed"><div class="ds-message__bubble">はい、木曜で。</div><span class="ds-message__meta"><svg class="ds-icon"><use href="#ds-i-error"/></svg>送れませんでした ・ 押してもう一度送る</span></div>
+              </div></main>
+              <div class="ds-composer">
+                <button type="button" class="ds-btn ds-btn--icon" aria-label="添付"><svg class="ds-icon"><use href="#ds-i-paperclip"/></svg></button>
+                <div class="ds-composer__field"><textarea rows="1" placeholder="メッセージ" aria-label="メッセージ"></textarea></div>
+                <button type="button" class="ds-btn ds-btn--icon ds-composer__send" aria-label="送る" disabled><svg class="ds-icon"><use href="#ds-i-send"/></svg></button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-thread</code> ＋ <code>__day</code></td><td>発言を縦に並べ、日の区切りを真ん中に出す</td></tr>
+            <tr><td><code>.ds-message</code>（<code>--mine</code> <code>--failed</code>）</td><td><code>__author</code>（相手の名前）・<code>__bubble</code>・<code>__meta</code>（時刻・既読・失敗）。送れなかった発言は、理由とやり直し方を文字で書く</td></tr>
+            <tr><td><code>.ds-composer</code></td><td>画面の下に固定する入力欄（<code>.ds-screen</code> の最後）。<code>__field</code> の文章欄は 5 行まで伸びる。送ると <code>ds-send</code>（<code>detail.text</code>）で、欄を空にする</td></tr>
+            <tr><td><code>.ds-avatar-group</code></td><td>参加者の顔を重ねる。4 人を超えたら <code>.ds-avatar--more</code> で「+n」</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="display-more" class="cat-section">
+    <h2>数値・履歴・開閉</h2>
+    <p class="cat-lead">狭い画面で多くの情報を見せるための部品です。数値は 2 列のタイルに要点だけを置き、詳しい履歴や読む人が限られる情報は畳んでおきます。長い説明は 3 行で切り、続きは押した人だけが読みます。</p>
+    <div class="cat-demo">
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <div class="ds-stats">
+          <a class="ds-stat" href="#display-more"><span class="ds-stat__label">未判定</span><span class="ds-stat__value">24<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta ds-stat__delta--bad">▲ 6（昨日より多い）</span></a>
+          <a class="ds-stat" href="#display-more"><span class="ds-stat__label">今週の判定</span><span class="ds-stat__value">58<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta ds-stat__delta--good">▲ 12（先週より多い）</span></a>
+          <div class="ds-stat"><span class="ds-stat__label">期限切れ</span><span class="ds-stat__value">0<span class="ds-stat__unit">件</span></span><span class="ds-stat__delta">変わらず</span></div>
+          <div class="ds-stat" style="flex-direction:row;align-items:center;gap:12px"><span class="ds-ring" style="--ds-ring:71"><span class="ds-ring__value">71%</span></span><span><span class="ds-stat__label">今月の達成</span><br><span class="ds-text-small">目標 80%</span></span></div>
+        </div>
+        <div class="ds-row" style="gap:16px"><span class="ds-ring ds-ring--l ds-ring--success" style="--ds-ring:100"><span class="ds-ring__value">完了</span></span><span class="ds-timer" data-seconds="75" aria-label="残り時間"><svg class="ds-icon"><use href="#ds-i-clock"/></svg><span class="ds-timer__text"></span></span><span class="ds-avatar-group" aria-label="担当 6 人"><span class="ds-avatar">佐</span><span class="ds-avatar">田</span><span class="ds-avatar">鈴</span><span class="ds-avatar ds-avatar--more">+3</span></span></div>
+        <div class="ds-more"><p class="ds-p ds-more__text">lodash の 4.17.20 には、_.template に渡す値から命令を差し込める弱点があります。攻撃する人が細工した値を渡せる場所でこの処理を使っていると、サーバーの上で意図しない処理が動くおそれがあります。4.17.21 以上へ上げると直ります。すぐに上げられない場合は、外から入る値をこの処理に渡していないかを確かめてください。</p><button type="button" class="ds-more__toggle" aria-expanded="false">続きを読む</button></div>
+        <div style="margin-inline:-16px; border-top:1px solid var(--ds-color-border-divider)">
+          <details class="ds-expandable" open>
+            <summary><span class="ds-expandable__summary-text">対応の履歴<span class="ds-text-small">3 件</span></span><svg class="ds-icon ds-expandable__chevron"><use href="#ds-i-caret-down"/></svg></summary>
+            <div class="ds-expandable__body">
+              <ol class="ds-timeline">
+                <li><span class="ds-timeline__mark ds-timeline__mark--error"><svg class="ds-icon"><use href="#ds-i-warning"/></svg></span><div><div class="ds-timeline__title">佐藤さんが「対応が必要」にした</div><div class="ds-timeline__meta">10:05</div><div class="ds-timeline__body">指摘の関数を呼んでいて、外から入る値が届く</div></div></li>
+                <li><span class="ds-timeline__mark ds-timeline__mark--accent"><svg class="ds-icon"><use href="#ds-i-user"/></svg></span><div><div class="ds-timeline__title">佐藤さんに割り当てた</div><div class="ds-timeline__meta">9:40 ・ 自動</div></div></li>
+                <li><span class="ds-timeline__mark"><svg class="ds-icon"><use href="#ds-i-search"/></svg></span><div><div class="ds-timeline__title">api サービスの検査で見つけた</div><div class="ds-timeline__meta">9:40</div></div></li>
+              </ol>
+            </div>
+          </details>
+          <details class="ds-expandable">
+            <summary><span class="ds-expandable__summary-text">影響する版の範囲<span class="ds-text-small">技術の担当者向け</span></span><svg class="ds-icon ds-expandable__chevron"><use href="#ds-i-caret-down"/></svg></summary>
+            <div class="ds-expandable__body"><p class="ds-p ds-text-secondary">4.17.20 以前のすべての版。4.17.21 で直っています。</p></div>
+          </details>
+        </div>
+        <ul class="ds-list" style="margin-inline:-16px"><li><div class="ds-load-more"><span class="ds-spinner ds-spinner--s"></span>続きを読み込んでいます</div></li></ul>
+        <div class="ds-empty ds-empty--error" style="padding-block:8px"><span class="ds-empty__icon"><svg class="ds-icon"><use href="#ds-i-cloud"/></svg></span><p class="ds-empty__title">読み込めませんでした</p><p class="ds-empty__body">つながりが切れているようです。つながったら、もう一度お試しください。</p><button type="button" class="ds-btn">もう一度読み込む</button></div>
+      </div></div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-stats</code> ＋ <code>.ds-stat</code></td><td>数値のタイル（<code>__label</code> <code>__value</code> <code>__unit</code> <code>__delta--good / --bad</code>）。増減は ▲▼ と言葉で書き、色だけに頼らない。押せるタイルは <code>&lt;a&gt;</code> にして、その一覧へ進む</td></tr>
+            <tr><td><code>.ds-ring</code>（<code>--l</code> <code>--success</code>）</td><td>円の進み具合。<code>--ds-ring</code> に 0〜100</td></tr>
+            <tr><td><code>.ds-timer</code></td><td>残り時間。<code>data-seconds</code> から数え、60 秒を切ると黄、0 で赤と <code>ds-expire</code> イベント</td></tr>
+            <tr><td><code>.ds-more</code></td><td>長い説明を 3 行（<code>--ds-more-lines</code>）で切る。切れていなければ「続きを読む」を出さない</td></tr>
+            <tr><td><code>.ds-expandable</code>（details）</td><td>開閉できるまとまり。高さが伸び縮みする。<code>summary</code> に何が入っているかと件数を書き、開かなくても中身の量が分かるようにする</td></tr>
+            <tr><td><code>.ds-timeline</code></td><td>誰が・いつ・何をしたかの履歴。<code>__mark--success / --error / --accent</code> と、理由を <code>__body</code> に</td></tr>
+            <tr><td><code>.ds-load-more</code>・<code>.ds-empty--error</code></td><td>一覧の最後の読み込み・失敗の状態（何が起きたかと、次にできることを書く）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="onboard" class="cat-section">
+    <h2>初めての案内</h2>
+    <p class="cat-lead">初めて開いた人に、アプリで何ができるかを 3 枚ほどで伝えます。横に払うか「次へ」で進み、ページの印で今どこかと残りの枚数が分かります。いつでも飛ばせるようにし、案内を読まなくても使い始められる画面にしておきます。</p>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="onboard-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen">
+              <header class="ds-appbar" style="--ds-safe-top:0px"><div class="ds-appbar__row"><span style="flex:1"></span><button type="button" class="ds-btn ds-btn--link" id="ob-skip">スキップ</button></div></header>
+              <main class="ds-content" style="display:flex;flex-direction:column;padding-bottom:0">
+                <div class="ds-pager" id="ob-pager" data-dots="ob-dots" style="flex:1">
+                  <div class="ds-onboard"><span class="ds-onboard__art"><svg class="ds-icon"><use href="#ds-i-inbox"/></svg></span><p class="ds-onboard__title">検出が届くと知らせます</p><p class="ds-onboard__body">重大・高の検出だけを知らせます。知らせる深刻度は、あとから設定で変えられます。</p></div>
+                  <div class="ds-onboard"><span class="ds-onboard__art"><svg class="ds-icon"><use href="#ds-i-swipe"/></svg></span><p class="ds-onboard__title">払って仕分けます</p><p class="ds-onboard__body">右へ払うと「対応不要」、左へ払うと「対応が必要」。間違えても「元に戻す」で戻せます。</p></div>
+                  <div class="ds-onboard"><span class="ds-onboard__art"><svg class="ds-icon"><use href="#ds-i-chat"/></svg></span><p class="ds-onboard__title">迷ったら相談します</p><p class="ds-onboard__body">検出ごとに相談の場があります。根拠のコードを添えて、チームに聞けます。</p></div>
+                </div>
+              </main>
+              <div class="ds-bottombar" style="flex-direction:column;align-items:stretch;gap:16px;border-top:0">
+                <div class="ds-dots" id="ob-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                <button type="button" class="ds-btn ds-btn--primary" data-pager-next="ob-pager" id="ob-next">次へ</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-pager</code>（<code>data-dots</code>）</td><td>横に送るページ。1 枚ずつ止まる。送ると <code>ds-pagechange</code>（<code>detail.index</code>・<code>detail.last</code>）</td></tr>
+            <tr><td><code>.ds-dots</code></td><td>ページの印。今のページの印が長くなる。読み上げでは「n / m」を文字で伝える</td></tr>
+            <tr><td><code>[data-pager-next]</code></td><td>「次へ」。最後のページで押すと <code>ds-pager-end</code> イベント（画面の側で「はじめる」に替える）</td></tr>
+            <tr><td><code>.ds-onboard</code></td><td>1 枚の案内（<code>__art</code> <code>__title</code> <code>__body</code>）。1 枚に 1 つのことだけを書く</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="state" class="cat-section">
+    <h2>状態</h2>
+    <div class="cat-demo">
+      <div class="cat-screen cat-screen--app">
+        <div class="ds-app" id="state-app">
+          <div class="ds-app__stack">
+            <section class="ds-screen">
+              <header class="ds-appbar" style="--ds-safe-top:0px"><div class="ds-appbar__row"><h3 class="ds-appbar__title">下へ引いて更新</h3></div></header>
+              <div class="ds-progress ds-progress--indeterminate" aria-label="読み込み中"><div class="ds-progress__track" style="border-radius:0;height:3px"><div class="ds-progress__bar"></div></div></div>
+              <main class="ds-content" data-refresh><div class="ds-pad ds-stack">
+                <div class="ds-row"><span class="ds-badge">既定</span><span class="ds-badge ds-badge--blue">新しい</span><span class="ds-badge ds-badge--red">期限切れ</span><span class="ds-badge ds-badge--green">済み</span><span class="ds-count">12</span></div>
+                <div class="ds-row"><span class="ds-severity ds-severity--critical">重大</span><span class="ds-severity ds-severity--high">高</span><span class="ds-severity ds-severity--medium">中</span><span class="ds-severity ds-severity--low">低</span><span class="ds-severity ds-severity--info">情報</span></div>
+                <div class="ds-row"><span class="ds-verdict ds-verdict--tp"><svg class="ds-icon"><use href="#ds-i-warning"/></svg>対応が必要</span><span class="ds-verdict ds-verdict--fp"><svg class="ds-icon"><use href="#ds-i-success"/></svg>対応不要</span><span class="ds-verdict ds-verdict--pending"><svg class="ds-icon"><use href="#ds-i-pending"/></svg>未判定</span></div>
+                <div class="ds-row"><span class="ds-status ds-status--success"><svg class="ds-icon"><use href="#ds-i-success"/></svg>送信済み</span><span class="ds-status ds-status--error"><svg class="ds-icon"><use href="#ds-i-error"/></svg>失敗</span><span class="ds-status ds-status--pending"><span class="ds-spinner ds-spinner--s"></span>送信中</span></div>
+                <div class="ds-progress"><div class="ds-progress__header"><span>今日の仕分け</span><span>8 / 24 件</span></div><div class="ds-progress__track"><div class="ds-progress__bar" style="--ds-progress:33%"></div></div></div>
+                <div class="ds-row" style="flex-wrap:nowrap"><span class="ds-skeleton ds-skeleton--circle"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="ds-skeleton" style="width:70%"></span><span class="ds-skeleton" style="width:45%"></span></span></div>
+                <div class="ds-empty" style="padding-block:16px"><span class="ds-empty__icon"><svg class="ds-icon"><use href="#ds-i-success"/></svg></span><p class="ds-empty__title">すべて仕分けました</p><p class="ds-empty__body">新しい検出が届くと、ここに並びます。</p></div>
+              </div></main>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-badge</code>・<code>.ds-count</code>（<code>--dot</code>）</td><td>種類の札・未読の数（数の無い点）</td></tr>
+            <tr><td><code>.ds-severity</code>・<code>.ds-verdict</code>・<code>.ds-status</code></td><td>PC 版と同じ。色だけで伝えず、必ず文字かアイコンを添える</td></tr>
+            <tr><td><code>.ds-progress</code>（<code>--indeterminate</code>）</td><td>進み具合。終わりが分からない読み込みは、アプリバーの下の細い線</td></tr>
+            <tr><td><code>.ds-spinner</code>・<code>.ds-skeleton</code></td><td>短い待ち・形の分かっている中身の読み込み</td></tr>
+            <tr><td><code>.ds-empty</code></td><td>何も無い理由と、次にできること</td></tr>
+            <tr><td><code>.ds-content[data-refresh]</code></td><td>先頭で下へ引いて離すと <code>ds-refresh</code> イベント。<code>preventDefault()</code> したら、読み終えたときに <code>detail.done()</code> を呼ぶ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="triage" class="cat-section">
+    <h2>判定の画面の部品</h2>
+    <p class="cat-lead">PC 版の「調べる・判定する画面の部品」のうち、狭い幅で使えるものです。コードは横に送れるようにし、確かめる条件は 1 つずつ縦に積みます。根拠は横に並べられないので、詳細の画面の中に順に置きます。</p>
+    <div class="cat-demo">
+      <div class="cat-screen"><div class="cat-screen__pad">
+        <dl class="ds-kv ds-kv--2col">
+          <div><dt>入っている版</dt><dd class="ds-mono">4.17.20</dd></div>
+          <div><dt>直った版</dt><dd class="ds-mono">4.17.21</dd></div>
+          <div><dt>サービス</dt><dd>api</dd></div>
+          <div><dt>見つけた場所</dt><dd class="ds-mono ds-text-small">src/routes/search.js:14</dd></div>
+        </dl>
+        <ol class="ds-criteria">
+          <li><span>指摘の関数を呼んでいる</span><div class="ds-segmented" role="group" aria-label="指摘の関数を呼んでいるか"><button type="button" data-answer="yes" aria-pressed="true">はい</button><button type="button" data-answer="no" aria-pressed="false">いいえ</button><button type="button" data-answer="unknown" aria-pressed="false">未確認</button></div><span class="ds-text-small ds-mono">src/routes/search.js:14</span></li>
+          <li><span>外から入る値が届く</span><div class="ds-segmented" role="group" aria-label="外から入る値が届くか"><button type="button" data-answer="yes" aria-pressed="false">はい</button><button type="button" data-answer="no" aria-pressed="false">いいえ</button><button type="button" data-answer="unknown" aria-pressed="true">未確認</button></div></li>
+        </ol>
+        <pre class="ds-code"><span class="ds-code__line"><span class="ds-code__num">12</span><span class="k">const</span> render = <span class="f">_.template</span>(layout, {</span><span class="ds-code__line"><span class="ds-code__num">13</span>  <span class="c">// 検索語をそのまま差し込んでいる</span></span><span class="ds-code__line ds-code__line--hit"><span class="ds-code__num">14</span>  variable: req.query.<span class="f">v</span>,</span><span class="ds-code__line"><span class="ds-code__num">15</span>});</span></pre>
+        <div class="ds-carousel" style="margin-inline:-16px">
+          <a class="ds-card ds-card--pressable" href="#"><div class="ds-card__header"><p class="ds-card__title">直し方</p><svg class="ds-icon"><use href="#ds-i-bulb"/></svg></div><p class="ds-p ds-text-secondary">lodash を 4.17.21 以上へ上げる</p></a>
+          <a class="ds-card ds-card--pressable" href="#"><div class="ds-card__header"><p class="ds-card__title">似た検出</p><svg class="ds-icon"><use href="#ds-i-list"/></svg></div><p class="ds-p ds-text-secondary">同じパッケージで 2 件</p></a>
+          <a class="ds-card ds-card--pressable" href="#"><div class="ds-card__header"><p class="ds-card__title">履歴</p><svg class="ds-icon"><use href="#ds-i-clock"/></svg></div><p class="ds-p ds-text-secondary">昨日 佐藤さんが開いた</p></a>
+        </div>
+      </div></div>
+      <div class="cat-notes">
+        <table class="cat-table">
+          <thead><tr><th style="width:36%">クラス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td><code>.ds-kv</code>（<code>--2col</code>）</td><td>キーと値。名前の下に値を置く。短い値は 2 列</td></tr>
+            <tr><td><code>.ds-criteria</code></td><td>条件ごとに はい・いいえ・未確認。根拠を下に添える</td></tr>
+            <tr><td><code>.ds-code</code>（<code>__line--hit</code>）</td><td>行番号付きのコード。横に送れる。注目の行は黄色</td></tr>
+            <tr><td><code>.ds-steps</code>（<code>.is-done</code> <code>.is-current</code>）</td><td>縦の手順</td></tr>
+            <tr><td><code>.ds-card</code>（<code>--pressable</code>）・<code>.ds-carousel</code></td><td>カード。横に送る列は、次のカードが少し見えるようにして、続きがあると伝える</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="motion" class="cat-section">
+    <h2>動き</h2>
+    <p class="cat-lead">長さと速さの変わり方は、PC 版と同じトークンを使います。スマートフォン版で足したのは、画面の進む・戻る（<span class="cat-code">--ds-motion-duration-screen</span>: 360ms）だけです。動きを減らす設定の人には、長さがすべて 0 になり、すぐに結果の形になります。</p>
+    <table class="cat-table">
+      <thead><tr><th style="width:26%">動き</th><th style="width:30%">付く部品</th><th>仕組み</th></tr></thead>
+      <tbody>
+        <tr><td>右から重なる・右へ去る</td><td>画面の進む・戻る</td><td>進む先は右から入り、前の画面は少し左へずれて暗くなる。戻ると逆</td></tr>
+        <tr><td>下から上がる・下へ去る</td><td>シート</td><td>指で引いている間は指に付いて動き、離すと閉じるか、ばねで戻る</td></tr>
+        <tr><td>浮かんで現れる</td><td>ダイアログ・メニュー・スナックバー</td><td>少し小さい形から、ばねで元の大きさへ</td></tr>
+        <tr><td>指に付いて動く</td><td>払える行・引いて更新・端末の戻るジェスチャー</td><td>操作する所を越えると、アイコンが大きくなり、端末が短く震える（震える端末だけ）</td></tr>
+        <tr><td>縮んで消え、後ろが詰まる</td><td>行（<code>ds.remove</code>）</td><td>判定した行が一覧から消えるとき</td></tr>
+        <tr><td>押した手応え</td><td>ボタン・札・カード・浮かぶボタン</td><td>押している間だけ少し縮み、重ねの色が乗る</td></tr>
+        <tr><td>畳む</td><td>大きな題名・文字付きの浮かぶボタン</td><td>中身を送る向きに合わせて畳む・開く。行き来しないよう、畳む所と開く所をずらす</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================================================== -->
+  <section id="map" class="cat-section">
+    <h2>PC 版との対応</h2>
+    <p class="cat-lead">同じ製品を PC とスマートフォンの両方で作るとき、PC 版の部品をスマートフォンで何に置き換えるかの表です。置き換える理由は、多くが「横に並べられない」「ホバーが無い」「指で押す」のどれかです。</p>
+    <table class="cat-table">
+      <thead><tr><th style="width:24%">PC 版</th><th style="width:24%">スマートフォン版</th><th>置き換える理由</th></tr></thead>
+      <tbody>
+        <tr><td>上部ナビ・サイドナビ</td><td>下のタブ・アプリバー</td><td>常に開いた左の列を置く幅が無い。行き先は親指の届く下に置く</td></tr>
+        <tr><td>表（<code>.ds-table</code>）</td><td>行の一覧（<code>.ds-cell</code>）</td><td>列を並べる幅が無い。大事な 2〜3 項目を 1 行に積み、残りは詳細の画面へ</td></tr>
+        <tr><td>表の並べ替え・絞り込みの札</td><td>絞り込みの札（横に送る）・⋮ のメニュー</td><td>列の見出しを押す操作が無い</td></tr>
+        <tr><td>分割画面・作業台（一覧と詳細を並べる）</td><td>一覧から詳細へ進む（<code>ds.push</code>）</td><td>並べる幅が無い。戻ったときに一覧の位置を保つ</td></tr>
+        <tr><td>モーダル（<code>.ds-modal</code>）</td><td>シート（選ぶ・入力する）・ダイアログ（確かめる）</td><td>指は画面の下にあるので、下から出すほうが届きやすい</td></tr>
+        <tr><td>右のヘルプパネル</td><td>画面いっぱいのシート</td><td>右に並べる幅が無い</td></tr>
+        <tr><td>トースト（<code>ds.toast</code>）</td><td>スナックバー（<code>ds.snackbar</code>）</td><td>右下ではなく下の中央に出し、下のタブ・操作帯に重ならないようにする</td></tr>
+        <tr><td>フラッシュ（画面の上のお知らせ）</td><td>バナー・スナックバー</td><td>残るものはバナー、結果を伝えるだけならスナックバー</td></tr>
+        <tr><td>ツールチップ・ポップオーバー</td><td>説明を常に見せる・? からシート</td><td>ホバーが無い</td></tr>
+        <tr><td>メニュー（<code>.ds-menu</code>）</td><td>⋮ のメニュー（項目 48px）・操作の一覧のシート</td><td>項目を指で押せる高さにする。項目が多いときはシート</td></tr>
+        <tr><td>コードのタブ・パネルのタブ</td><td>上のタブ（<code>.ds-tabs</code>）</td><td>横に送れるようにする</td></tr>
+        <tr><td>キー表示（<code>.ds-kbd</code>）・T / F の近道</td><td>払える行（<code>.ds-swipe</code>）</td><td>キーボードの近道の代わりの近道。同じ操作を詳細の画面にも置く</td></tr>
+        <tr><td>ターミナル・ファイルの一覧・コードの検索結果</td><td>（持たない）</td><td>スマートフォンで行う作業ではない。必要なら、結果だけを行の一覧で見せる</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+/* components.js と device.js（defer）を読み終えてから動かす */
+document.addEventListener('DOMContentLoaded', () => {
+  /* ===== 色の見本 ===== */
+  const SW = [
+    ['--ds-color-bg-page', '地'], ['--ds-color-bg-container', '面（カード・リスト）'], ['--ds-color-bg-subtle', '弱い面'], ['--ds-color-bg-selected', '選んだ行'],
+    ['--ds-color-bg-appbar', 'アプリバー'], ['--ds-color-bg-tabbar', '下のタブ'], ['--ds-color-tabbar-current-bg', '下のタブの今いる印'], ['--ds-color-bg-sheet', 'シート'],
+    ['--ds-color-snackbar-bg', 'スナックバー'], ['--ds-color-pressed', '押している間の重ね'], ['--ds-color-text-body', '本文'], ['--ds-color-text-secondary', '補足'],
+    ['--ds-color-text-link', 'リンク'], ['--ds-color-btn-primary-bg', '主ボタン'], ['--ds-color-btn-danger-bg', '取り消せない操作'], ['--ds-color-border-divider', '区切り線'],
+    ['--ds-color-fill-success', '塗り: 成功（払う操作）'], ['--ds-color-fill-error', '塗り: 誤り（払う操作）'], ['--ds-color-count-bg', '未読の数'], ['--ds-color-statusbar-fg', '時刻の帯の文字'],
+  ];
+  document.getElementById('swatches').innerHTML = SW.map(([v, name]) =>
+    `<div class="cat-swatch"><div class="cat-swatch__chip" style="background: var(${v})"></div><div class="cat-swatch__meta">${name}<code>${v}</code></div></div>`).join('');
+
+  /* ===== 骨組みの見本の中身 ===== */
+  const rows = [['決済チーム', 'lodash の更新の依頼', '10:24'], ['基盤チーム', 'ws の検出を見てほしい', '9:58'], ['監査', '先月の判定の確認', '昨日'], ['決済チーム', '期限の延長について', '昨日'], ['佐藤 さん', 'メモを残しました', '月曜'], ['基盤チーム', 'json5 の版について', '先週'], ['監査', '手引きの更新', '先週']];
+  document.getElementById('lay-content').innerHTML = '<ul class="ds-list">' + rows.map(([who, what, when], i) =>
+    `<li><a class="ds-cell ds-cell--2line" href="#" data-push="lay-s2"><span class="ds-avatar" aria-hidden="true">${who.charAt(0)}</span><span class="ds-cell__body"><span class="ds-cell__title">${what}</span><span class="ds-cell__sub">${who}</span></span><span class="ds-cell__trail">${when}</span></a></li>`).join('') + '</ul>';
+  document.getElementById('lay-fab').addEventListener('click', () => ds.snackbar({ message: '依頼を書く画面は、この見本では開きません', within: document.getElementById('layout-app') }));
+
+  /* ===== 払える行の見本 ===== */
+  document.getElementById('swipe-demo').addEventListener('ds-swipe', e => {
+    const label = e.detail.action === 'tp' ? '対応が必要' : '対応不要';
+    ds.snackbar({ message: `「${label}」の操作が届きました（見本のため、行は戻します）`, within: document.getElementById('notice-app') });
+  });
+  document.querySelectorAll('#list-screen a.ds-cell, .ds-carousel a').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+
+  /* ===== お知らせ ===== */
+  let n = 0;
+  document.getElementById('snack-demo').addEventListener('click', () => {
+    n++;
+    ds.snackbar({ message: `${n} 件を「対応不要」にしました`, action: '元に戻す', onAction: () => ds.snackbar({ message: '元に戻しました', within: document.getElementById('notice-app') }), within: document.getElementById('notice-app') });
+  });
+
+  /* ===== 重なる部品 ===== */
+  const ov = document.getElementById('overlay-app');
+  document.getElementById('ov-confirm').addEventListener('click', async () => {
+    const ok = await ds.confirm({ title: '判定の記録を消しますか？', message: 'この検出の判定と理由を消します。消したものは戻せません。', ok: '消す', tone: 'danger', icon: 'trash', within: ov });
+    ds.snackbar({ message: ok ? '消しました（見本のため、実際には消していません）' : '消すのをやめました', within: ov });
+  });
+  ov.addEventListener('ds-close', e => {
+    const v = e.detail?.value;
+    if (e.target.id === 'ov-sheet' && v === 'ok') ds.snackbar({ message: '「対応不要」で確定しました', action: '元に戻す', within: ov });
+    if (e.target.id === 'ov-actions' && ['share', 'copy', 'star', 'delete'].includes(v)) ds.snackbar({ message: `「${e.target.querySelector(`[data-close="${v}"]`).textContent.trim()}」を選びました`, within: ov });
+  });
+
+  /* ===== 状態: 引いて更新 ===== */
+  document.querySelector('#state-app .ds-content').addEventListener('ds-refresh', e => {
+    e.preventDefault();
+    setTimeout(() => { e.detail.done(); ds.snackbar({ message: '更新しました', within: document.getElementById('state-app') }); }, 1200);
+  });
+
+
+  /* ===== 部品の索引: 分類ごとの数と合計 ===== */
+  let nApp = 0, nDev = 0;
+  document.querySelectorAll('.cat-index__group').forEach(g => {
+    const n = g.querySelectorAll('li').length;
+    g.querySelector('h3 span').textContent = `${n} 種`;
+    if (g.dataset.kind === 'device') nDev += n; else nApp += n;
+  });
+  document.getElementById('cat-count-app').textContent = nApp;
+  document.getElementById('cat-count-device').textContent = nDev;
+
+  /* ===== 選ぶ状態・引き出し・案内 ===== */
+  const nm = document.getElementById('navmore-app');
+  const reqs = [['決済チーム', 'lodash の更新の依頼', '10:24'], ['基盤チーム', 'ws の検出を見てほしい', '9:58'], ['監査', '先月の判定の確認', '昨日'], ['決済チーム', '期限の延長について', '昨日'], ['佐藤 さん', 'メモを残しました', '月曜']];
+  document.getElementById('navmore-list').innerHTML = reqs.map(([who, what, when]) =>
+    `<li><a class="ds-cell ds-cell--2line" href="#"><span class="ds-cell__check" aria-hidden="true"><svg class="ds-icon"><use href="#ds-i-check"/></svg></span><span class="ds-avatar" aria-hidden="true">${who.charAt(0)}</span><span class="ds-cell__body"><span class="ds-cell__title">${what}</span><span class="ds-cell__sub">${who}</span></span><span class="ds-cell__trail">${when}</span></a></li>`).join('');
+  document.querySelectorAll('#navmore-list a, #navmore-drawer a, .ds-stat[href]').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+  const bulk = (label) => {
+    const scope = document.getElementById('navmore-screen');
+    const n = ds.selection.selected(scope).length;
+    ds.selection.exit(scope);
+    ds.snackbar({ message: `${n} 件を${label}（見本のため、実際には変えていません）`, within: nm });
+  };
+  document.getElementById('navmore-archive').addEventListener('click', () => bulk('片付けました'));
+  document.getElementById('navmore-delete').addEventListener('click', async () => {
+    const n = ds.selection.selected(document.getElementById('navmore-screen')).length;
+    if (await ds.confirm({ title: `${n} 件を削除しますか？`, message: '削除した依頼は戻せません。', ok: '削除', tone: 'danger', within: nm })) bulk('削除しました');
+  });
+  document.getElementById('navmore-coach').addEventListener('click', () => ds.coach([
+    { target: '#navmore-menu', text: 'ここから、ほかのチームの依頼や設定へ移れます。' },
+    { target: '#navmore-list > li:first-child', text: '行を長押しすると、まとめて選べます。選んだものは、上の帯からまとめて片付けられます。' },
+    { target: '#navmore-coach', text: 'この案内は、? からいつでも出し直せます。' },
+  ], { within: nm }));
+
+  /* ===== 日付・時刻・コード ===== */
+  document.getElementById('wh-h').innerHTML = Array.from({ length: 24 }, (_, i) => `<div class="ds-wheel__item" role="option" data-value="${i}">${i}</div>`).join('');
+  document.getElementById('wh-m').innerHTML = Array.from({ length: 12 }, (_, i) => `<div class="ds-wheel__item" role="option" data-value="${i * 5}">${String(i * 5).padStart(2, '0')}</div>`).join('');
+  ds.init(document.getElementById('input-more'));
+  const wheelOut = () => {
+    const h = document.querySelector('#wh-h .is-selected')?.dataset.value, m = document.querySelector('#wh-m .is-selected')?.dataset.value;
+    if (h != null && m != null) document.getElementById('wh-out').textContent = `${h}:${String(m).padStart(2, '0')} に送ります`;
+  };
+  document.querySelector('#input-more .ds-wheel').addEventListener('ds-change', wheelOut);
+  document.querySelector('#input-more .ds-calendar').addEventListener('ds-change', e => { document.getElementById('cal-out').textContent = `選んだ日: ${e.detail.value}（点は、ほかの期限がある日）`; });
+  document.getElementById('otp-demo').addEventListener('ds-complete', e => {
+    const otp = e.currentTarget;
+    if (e.detail.code === '123456') { otp.querySelectorAll('input').forEach(i => { i.style.borderColor = 'var(--ds-color-success)'; }); }
+    else ds.otpError(otp);
+  });
+  document.getElementById('attach-demo').addEventListener('ds-attach', e => {
+    const item = document.createElement('div');
+    item.className = 'ds-attach__item';
+    item.innerHTML = '<svg class="ds-icon ds-attach__icon"><use href="#ds-i-image"/></svg><span class="ds-attach__name">写真.jpg</span><button type="button" class="ds-attach__remove" aria-label="写真.jpg を外す"><svg class="ds-icon"><use href="#ds-i-close"/></svg></button><span class="ds-attach__progress"></span>';
+    e.currentTarget.insertBefore(item, e.currentTarget.querySelector('.ds-attach__add'));
+    ds.enter(item);
+    let p = 0;
+    const bar = item.querySelector('.ds-attach__progress');
+    const t = setInterval(() => { p += 20; bar.style.setProperty('--ds-progress', p + '%'); if (p >= 100) { clearInterval(t); bar.remove(); } }, 300);
+  });
+
+  /* ===== 会話 ===== */
+  document.querySelector('#thread-app .ds-composer').addEventListener('ds-send', e => {
+    const list = document.getElementById('thread-list');
+    const m = document.createElement('div');
+    m.className = 'ds-message ds-message--mine';
+    m.innerHTML = '<div class="ds-message__bubble"></div><span class="ds-message__meta">送信中…</span>';
+    m.firstChild.textContent = e.detail.text;
+    list.appendChild(m);
+    ds.enter(m);
+    list.closest('.ds-content').scrollTo({ top: 1e6, behavior: 'smooth' });
+    setTimeout(() => { m.querySelector('.ds-message__meta').textContent = '今 ・ 既読 0'; }, 800);
+  });
+
+  /* ===== 初めての案内 ===== */
+  const pager = document.getElementById('ob-pager');
+  const next = document.getElementById('ob-next');
+  pager.addEventListener('ds-pagechange', e => { next.textContent = e.detail.last ? 'はじめる' : '次へ'; });
+  const start = () => { pager.scrollTo({ left: 0 }); ds.snackbar({ message: '案内を終えました（見本のため、最初に戻します）', within: document.getElementById('onboard-app') }); };
+  pager.addEventListener('ds-pager-end', start);
+  document.getElementById('ob-skip').addEventListener('click', start);
+
+  /* ===== 端末 ===== */
+  const phone = document.getElementById('demo-phone');
+  document.getElementById('dev-notify').addEventListener('click', () => dv.notify({ phone, title: '新しい検出: CVE-2024-37890', text: 'ws@8.11.0 ・ 高 ・ api サービス' }));
+  document.getElementById('dev-toast').addEventListener('click', () => dv.toast('リンクをコピーしました', phone));
+  document.getElementById('dev-home').addEventListener('click', () => dv.home(phone));
+  document.getElementById('dev-perm').addEventListener('click', async () => {
+    const r = await dv.permission({ phone, text: '通知の送信を許可しますか？' });
+    ds.snackbar({ message: `「${r}」が選ばれました`, within: document.getElementById('device-app') });
+  });
+});
+</script>
+</body>
+</html>
