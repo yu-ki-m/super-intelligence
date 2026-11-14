@@ -65,9 +65,13 @@ process.on("exit", () => {
   for (const p of servers) { if (p.exitCode === null) p.kill(); }
   removeTempDirs();
 });
-function startServer(manifest, port, extra = []) {
+// opts.browser=true なら --no-browser を付けない。その場合は opts.env で REVIEW_VIEWER_BROWSER_LOG を渡し、
+// 実際のブラウザを開く代わりに URL をファイルへ書かせる
+function startServer(manifest, port, extra = [], opts = {}) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(PY, [SERVER, manifest, "--no-browser", "--port", String(port), ...extra], { stdio: ["ignore", "pipe", "pipe"] });
+    const args = [SERVER, manifest, "--port", String(port), ...extra];
+    if (!opts.browser) args.splice(2, 0, "--no-browser");
+    const proc = spawn(PY, args, { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ...(opts.env || {}) } });
     servers.push(proc);
     let out = "";
     let err = "";
@@ -114,13 +118,14 @@ const shot = async (page, name) => { if (SHOTS) { fs.mkdirSync(SHOTS, { recursiv
 // 成果物の iframe（/raw/ から読んだページ）が出すエラーは、遮断が働いた結果なので数えない。
 // 静的表示の iframe（about:srcdoc）が相対パスの CSS などを読めないのは、仕様どおりの制約なので数えない。
 // 離れる直前の保存は、離れたページ側で「読み込み失敗」と遅れて記録される（保存自体は届く）。
+// 完了してサーバーが止まった後の問い合わせ（/api/state）は、次の版を待つあいだ失敗し続けるのが正しい動き。
 // 保存が本当に失敗したかは、feedback.json の中身と画面の保存状態の表示で確かめる。
 function watchErrors(p, errors, label) {
   p.on("pageerror", (e) => errors.push(label + ": " + String(e)));
   p.on("console", (m) => {
     const where = m.location().url || "";
     if (m.type() !== "error" || where.includes("/raw/") || where.startsWith("about:srcdoc") || m.text().includes("origin 'null'")) return;
-    if (m.text().startsWith("Failed to load resource") && where.endsWith("/api/feedback")) return;
+    if (m.text().startsWith("Failed to load resource") && /\/api\/(feedback|state|data)/.test(where)) return;
     errors.push(label + ": " + m.text() + " @" + where);
   });
   p.on("dialog", (d) => { errors.push(label + ": unexpected dialog: " + d.message()); d.dismiss(); });
@@ -139,6 +144,15 @@ async function openPanel(page, errors) {
 // 入力のあとの自動保存（0.8秒後）が終わるまで待つ
 async function waitSaved(panel) {
   await panel.waitForFunction(() => (document.getElementById("saveStatus").textContent || "").startsWith("保存済み"), null, { timeout: 8000 });
+}
+// 条件が成り立つまで待つ（ファイルの中身など、ページの外の状態を見るとき）
+async function waitFor(fn, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await fn()) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return false;
 }
 const pressedVerdict = (panel) => panel.locator('.verdict-btn[aria-pressed="true"]').textContent().catch(() => "");
 const panelKind = (page) => page.evaluate(() => document.documentElement.getAttribute("data-panel"));
@@ -200,6 +214,27 @@ const hOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth -
   await shot(page, "03-target-markdown");
   await shot(panel, "04-panel-item");
 
+  // 成果物を直すと、読み込み直さずにその場で表示が変わる。レビュー用ウィンドウは開いたまま、入力中の欄もそのまま
+  await panel.locator("#commentBox").focus();
+  fs.appendFileSync(path.join(dir, "案A", "提案書.md"), "\n## 直した節\n\nエージェントが直した内容。\n", "utf8");
+  const updated = await page.waitForFunction(() => [...document.querySelectorAll(".md h2")].some((h) => h.textContent === "直した節"), null, { timeout: 8000 })
+    .then(() => true).catch(() => false);
+  check(updated, "成果物のファイルを直すと、数秒でレビュー対象のウィンドウが新しい内容になる（読み込み直しは不要）");
+  check(!panel.isClosed(), "成果物が変わっても、レビュー用ウィンドウは閉じない");
+  check(await panel.evaluate(() => document.activeElement && document.activeElement.id) === "commentBox", "入力中のコメント欄は描き直さない（カーソルが外れない）");
+  check(await panel.locator("#commentBox").inputValue() === "目標値の根拠を追記してください。", "成果物が変わっても、書いたコメントは残る");
+
+  // F5 は読み込み直しにせず、その場で最新の内容にする（読み込み直すとレビュー用ウィンドウが閉じるため）
+  await page.evaluate(() => {
+    window.__marker = "読み込み直していない";
+    document.addEventListener("keydown", (e) => { if (e.key === "F5") setTimeout(() => { window.__f5 = e.defaultPrevented; }); }, true);
+  });
+  await page.locator("#tbarWhere").click();
+  await page.keyboard.press("F5");
+  await page.waitForTimeout(800);
+  const f5 = await page.evaluate(() => [window.__f5, window.__marker]).catch(() => [null, null]);
+  check(f5[0] === true && f5[1] === "読み込み直していない" && !panel.isClosed(), "F5 を押しても読み込み直さず、レビュー用ウィンドウは閉じない", JSON.stringify(f5));
+
   // HTML（sandbox）。→キーはレビュー用ウィンドウで押しても、レビュー対象のウィンドウが次の項目に変わる
   await panel.locator("#itemTitle").click();
   await panel.keyboard.press("ArrowRight");
@@ -254,11 +289,11 @@ const hOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth -
   check(await page.locator(".error-box", { hasText: "ファイルが見つかりません" }).count() === 1, "存在しないファイルはエラーとして示し、ページは壊れない");
   check(await panel.locator("#nextBtn").textContent() === "一覧へ", "最後の項目では「次の項目」が「一覧へ」になる");
 
-  // 再読み込み：レビュー用ウィンドウは閉じるが、入力は残り、開き直せば復元される
+  // ブラウザの再読み込みボタン（や Shift+F5）で読み込み直すと、レビュー用ウィンドウは閉じるが、入力は残り、開き直せば復元される
   await page.waitForTimeout(1200);
   const closed = panel.waitForEvent("close", { timeout: 5000 }).then(() => true).catch(() => false);
   await page.reload();
-  check(await closed, "レビュー対象のウィンドウを再読み込みすると、レビュー用ウィンドウは閉じる");
+  check(await closed, "ブラウザの再読み込みボタンで読み込み直すと、レビュー用ウィンドウは閉じる");
   await page.waitForSelector("#openPanelBtn");
   check(await page.locator("#targetTitle").textContent() === "その他（</script> 入りと存在しないファイル）", "再読み込みしても同じ項目を表示する");
   panel = await openPanel(page, errors);
@@ -307,8 +342,43 @@ const hOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth -
   check(fb2.status === "complete" && fb2.reviews.length === 5, "完了時は全項目を含めて status: complete で保存する");
   check(fb2.overall_comment === "案Aを基本に進めてください。", "全体コメントが保存される");
   check(fb2.reviews.every((r) => r.viewed), "表示した項目は viewed: true になる");
-  check(errors.length === 0, "ページでスクリプトのエラーが起きない", errors.join(" / "));
   await shot(page, "08-target-done");
+
+  // 次の版：同じポートで次のサーバーを起動すると、開いたままの画面とレビュー用ウィンドウがそのまま切り替わる
+  check((await page.locator("#mainBanner").textContent()).includes("次の版に切り替わります"), "完了の後、画面は次の版を待っていることを示す");
+  const r2 = path.join(dir, "round-2");
+  fs.mkdirSync(r2);
+  fs.writeFileSync(path.join(r2, "review.json"), JSON.stringify({
+    title: "ログイン画面の改善案レビュー（2回目）",
+    previous_feedback: "../feedback.json",
+    groups: [{ id: "A", label: "案A" }],
+    items: [
+      { id: "a-doc", title: "案Aの提案書（直した版）", group: "A", description: "前回の指摘（目標値の根拠）を本文に足しました。", files: ["../案A/提案書.md"] },
+      { id: "a-screen", title: "案Aの画面", group: "A", description: "前回と同じ観点で見てください。", files: ["../案A/画面.html"] },
+    ],
+  }), "utf8");
+  const srv2 = await startServer(path.join(r2, "review.json"), srv.port);
+  check(srv2.port === srv.port, "次の版のサーバーが同じポートで起動する", srv2.port);
+  const switched = await page.waitForFunction(() => document.title.includes("2回目"), null, { timeout: 10000 }).then(() => true).catch(() => false);
+  check(switched, "完了後に開いたままの画面が、次の版に切り替わる（新しいタブは要らない）");
+  check(!panel.isClosed(), "次の版に切り替わっても、レビュー用ウィンドウは開いたまま");
+  check(await panel.locator(".rp-title").textContent() === "ログイン画面の改善案レビュー（2回目）", "レビュー用ウィンドウも次の版の表示になる");
+  check(await page.locator("#targetTitle").textContent() === "案Aの提案書（直した版）", "次の版の最初の項目を表示する");
+  check((await panel.locator("#itemPrevious").textContent()).includes("目標値の根拠を追記してください。"), "次の版では、前回の判定とコメントが「前回のレビュー（参考）」に出る");
+  check(await page.locator("#mainBanner").count() === 0, "切り替わると、完了の表示は消える");
+  check(srv2.out().includes("ATTACHED:"), "サーバーは、開いていた画面がつながったことを出力する");
+  await shot(panel, "08b-panel-round2");
+  await panel.locator("#itemTitle").click();
+  await panel.keyboard.press("1");
+  const savedR2 = await waitFor(() => {
+    try { return JSON.parse(fs.readFileSync(path.join(r2, "feedback.json"), "utf8")).reviews.find((r) => r.id === "a-doc").verdict === "adopt"; } catch (_) { return false; }
+  }, 5000);
+  check(savedR2, "次の版の判定は、次の版の feedback.json に保存される");
+  check(readFb(dir).status === "complete", "前の版の feedback.json は書き換えない");
+  await panel.locator("#completeBtn").click();
+  await panel.locator("#confirmComplete").click();
+  check(await waitExit(srv2.proc, 5000) === 0, "次の版も、完了ボタンでサーバーが終了する");
+  check(errors.length === 0, "ページでスクリプトのエラーが起きない", errors.join(" / "));
   await ctx.close();
   blocker.close();
 }
@@ -500,6 +570,53 @@ const hOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth -
   await shot(page2, "13-narrow-dock");
   s2.proc.kill();
   await ctx2.close();
+}
+
+// ---------------------------------------------------------------------------
+// 7. サーバーが途中で止まって起動し直したとき・新しいタブを開いた後に古い画面がつながってきたとき
+// ---------------------------------------------------------------------------
+{
+  const dir = copyFixture();
+  const manifest = path.join(dir, "review.json");
+  const sA = await startServer(manifest, 0);
+  const port = sA.port;
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  watchErrors(page, errors, "レビュー対象");
+  await page.goto(sA.url + "#a-doc");
+  await page.waitForSelector(".md h1");
+  const panel = await openPanel(page, errors);
+  await panel.keyboard.press("1");
+  await page.waitForTimeout(500);
+  sA.proc.kill(); // 時間切れなどでサーバーが止まった
+  await waitExit(sA.proc, 5000);
+  await panel.locator("#commentBox").fill("サーバーが止まっている間に書いた");
+  await panel.waitForFunction(() => document.getElementById("saveStatus").textContent.includes("失敗"), null, { timeout: 5000 }).catch(() => {});
+  check((await panel.locator("#saveStatus").textContent()).includes("失敗"), "サーバーが止まっていると、保存の失敗を示す");
+  const sB = await startServer(manifest, port);
+  const pushed = await waitFor(() => {
+    try { return readFb(dir).reviews.find((r) => r.id === "a-doc").comment === "サーバーが止まっている間に書いた"; } catch (_) { return false; }
+  }, 10000);
+  check(pushed, "同じ review.json でサーバーが起動し直すと、止まっている間の入力が送り直される");
+  check(!panel.isClosed(), "サーバーが起動し直しても、レビュー用ウィンドウは開いたまま");
+  check((await pressedVerdict(panel)).includes("採用"), "サーバーが起動し直しても、判定は残っている");
+
+  // 新しいタブを開いた後に古い画面がつながってきたら、その画面は使わない（二重に保存しない）
+  sB.proc.kill();
+  await waitExit(sB.proc, 5000);
+  await page.route("**/api/state**", (r) => r.abort()); // 待ち時間のあいだ、この画面の問い合わせが届かない状態を作る
+  const log = path.join(dir, "browser.log");
+  const sC = await startServer(manifest, port, [], { browser: true, env: { REVIEW_VIEWER_BROWSER_LOG: log } });
+  check(await waitFor(() => fs.existsSync(log), 10000), "待ち時間のあいだにつながってくる画面がなければ、新しいタブを開く");
+  await page.unroute("**/api/state**");
+  const superseded = await page.waitForSelector("#mainBanner.warn", { timeout: 8000 }).then(() => true).catch(() => false);
+  check(superseded, "新しいタブを開いた後につながってきた古い画面は、使われなくなったことを示す");
+  check(await panel.locator("#commentBox").evaluate((t) => t.readOnly), "使われなくなった画面では入力できない");
+  check(errors.length === 0, "起動し直し・古い画面の扱いでスクリプトのエラーが起きない", errors.join(" / "));
+  await shot(page, "14-superseded");
+  sC.proc.kill();
+  await ctx.close();
 }
 
 await browser.close();

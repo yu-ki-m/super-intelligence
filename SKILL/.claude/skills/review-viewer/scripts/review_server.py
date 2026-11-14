@@ -5,6 +5,12 @@ review.json（マニフェスト）に書かれた成果物を1つのページ�
 利用者がブラウザで判定とコメントを付けられるようにする。判定とコメントは
 feedback.json に保存し、利用者が「レビュー完了」を押すとサーバーは自分から終了する。
 
+開いているページは、成果物や review.json の変更を問い合わせ（/api/state）で知り、
+読み込み直さずにその場で描き直す。完了した後もページは開いたまま次のサーバーを待ち、
+同じポートで次の版のサーバーが起動すると、そのページがつながって次の版に切り替わる。
+ページを読み込み直すと、判定とコメントを書く別ウィンドウ（レビュー用ウィンドウ）が閉じ、
+開き直すには利用者がボタンを押す必要があるため、読み込み直しを減らす作りにしている。
+
 使い方:
     python review_server.py <review.json>                      # サーバーを起動してブラウザを開く
     python review_server.py <review.json> --no-browser         # ブラウザを開かない
@@ -19,17 +25,20 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as _dt
+import hashlib
 import json
 import mimetypes
 import os
+import secrets
 import socket
 import sys
 import threading
+import time
 import webbrowser
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_PATH = SKILL_DIR / "assets" / "viewer.html"
@@ -37,6 +46,15 @@ PLACEHOLDER = "/*__REVIEW_DATA__*/null"
 
 DEFAULT_PORT = 3118
 PORT_TRIES = 10  # 既定のポートから数えて試す数。すべて使用中なら OS に空きポートを選ばせる
+
+# 前の版から開いたままのページがつながってくるのを待つ秒数。待っているページは1秒ごとに問い合わせる。
+# この間につながらなければ、ブラウザで新しいタブを開く
+ATTACH_WAIT = 2.5
+
+# 成果物の変更を見分けるために調べる、HTML・Markdown と同じフォルダ以下のファイル（相対パスで読む CSS や画像）
+WATCH_DEPTH = 2
+WATCH_MAX_FILES = 300
+WATCH_SKIP_DIRS = {"node_modules", "__pycache__"}
 
 # 表示の上限。超えた分は埋め込まず、「全文を開く」で見てもらう
 TEXT_PREVIEW_BYTES = 256 * 1024
@@ -285,6 +303,36 @@ def resolve_item_files(manifest_dir: Path, item: dict) -> list[dict]:
     return out
 
 
+def watched_neighbors(base: Path, limit: int) -> list[os.DirEntry]:
+    """HTML や Markdown と同じフォルダ以下のファイル（深さ WATCH_DEPTH まで、limit 件まで）。
+
+    HTML が相対パスで読む CSS や画像だけを直したときも、変更として見分けるために使う。
+    隠しフォルダや node_modules は見ない（大きなフォルダで問い合わせが重くならないように）。
+    """
+    found: list[os.DirEntry] = []
+    stack = [(base, 0)]
+    while stack and len(found) < limit:
+        folder, depth = stack.pop()
+        try:
+            entries = sorted(os.scandir(folder), key=lambda e: e.name)
+        except OSError:
+            continue
+        for e in entries:
+            if e.name.startswith(".") or e.name in WATCH_SKIP_DIRS:
+                continue
+            try:
+                if e.is_dir(follow_symlinks=False):
+                    if depth < WATCH_DEPTH:
+                        stack.append((Path(e.path), depth + 1))
+                elif e.is_file():
+                    found.append(e)
+                    if len(found) >= limit:
+                        break
+            except OSError:
+                continue
+    return found
+
+
 def detect_kind(path: Path, forced: str | None) -> str:
     if forced in {"markdown", "html", "image", "text", "table", "binary"}:
         return forced
@@ -468,6 +516,12 @@ class ReviewContext:
         self.lock = threading.Lock()
         self.port: int | None = None
         self.completed = False
+        # このサーバーの起動ごとに変わる値。ページは自分の知っている値と比べ、
+        # 違えば「サーバーが替わった（次の版か、起動し直し）」と判断する
+        self.session = secrets.token_hex(8)
+        self.page_seen = False          # ページから一度でも問い合わせが来たか
+        self.accept_carryover = True    # 前の版から開いたままのページを受け入れるか
+        self.attach_announced = False   # 前の版のページがつながったことを出力したか
 
     def previous_path(self, manifest: dict) -> Path | None:
         if self.previous_path_arg:
@@ -485,6 +539,9 @@ class ReviewContext:
         return manifest, resolved, previous, prev_meta
 
     def build_page_data(self) -> dict:
+        # 内容を読む前に、変更を見分ける値を取っておく。読んでいる途中でファイルが変わっても、
+        # ページは次の問い合わせで値の違いに気づき、もう一度読み直せる
+        version = self.version()
         manifest, resolved, previous, prev_meta = self.load()
         items = []
         for idx, (item, files) in enumerate(zip(manifest["items"], resolved)):
@@ -507,7 +564,58 @@ class ReviewContext:
             "feedback_path": str(self.feedback_path),
             "storage_key": "review-viewer:" + str(self.manifest_path),
             "generated_at": now_iso(),
+            "session": self.session,
+            "version": version,
         }
+
+    def version(self) -> str:
+        """review.json・成果物・前回のフィードバックのどれかが変わると変わる値。
+
+        ファイルの更新時刻と大きさから作る。ページはこの値を問い合わせ、変わっていれば
+        読み込み直さずに描き直す。feedback.json はページ自身が書くので含めない。
+        """
+        skip = {self.feedback_path, self.feedback_path.with_name(self.feedback_path.name + ".tmp")}
+        h = hashlib.sha1()
+
+        def add(path: Path | None, st: os.stat_result | None = None) -> None:
+            if path is None:
+                return
+            try:
+                if st is None:
+                    if path.resolve() in skip:
+                        return
+                    st = path.stat()
+                h.update(f"{path}\0{st.st_mtime_ns}\0{st.st_size}\n".encode("utf-8", "replace"))
+            except OSError:
+                h.update(f"{path}\0-\n".encode("utf-8", "replace"))
+
+        add(self.manifest_path)
+        manifest = load_manifest(self.manifest_path)
+        budget = WATCH_MAX_FILES
+        watched: set[Path] = set()
+        for item in manifest["items"]:
+            for f in resolve_item_files(self.manifest_dir, item):
+                path = f.get("abs")
+                add(path)
+                if path is None or path.suffix.lower() not in MARKDOWN_EXT | HTML_EXT or budget <= 0:
+                    continue
+                try:
+                    base = path.resolve().parent
+                except OSError:
+                    continue
+                if base in watched:
+                    continue
+                watched.add(base)
+                for e in watched_neighbors(base, budget):
+                    budget -= 1
+                    q = Path(e.path)
+                    if q not in skip:
+                        try:
+                            add(q, e.stat())
+                        except OSError:
+                            add(q)
+        add(self.previous_path(manifest))
+        return h.hexdigest()[:16]
 
     def render(self) -> str:
         template = TEMPLATE_PATH.read_text(encoding="utf-8")
@@ -608,13 +716,25 @@ class ReviewHandler(BaseHTTPRequestHandler):
         if not self._host_ok():
             self._send(403, b"forbidden", "text/plain; charset=utf-8")
             return
-        path = urlsplit(self.path).path
+        parts = urlsplit(self.path)
+        path = parts.path
         if path in ("/", "/index.html"):
+            with self.ctx.lock:
+                self.ctx.page_seen = True
             try:
                 html = self.ctx.render()
                 self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
             except ManifestError as e:
                 self._send(500, error_page(str(e)).encode("utf-8"), "text/html; charset=utf-8")
+            return
+        if path == "/api/state":
+            self._serve_state((parse_qs(parts.query).get("session") or [""])[0])
+            return
+        if path == "/api/data":
+            try:
+                self._send_json(200, self.ctx.build_page_data())
+            except ManifestError as e:
+                self._send_json(500, {"error": str(e)})
             return
         if path == "/api/feedback":
             data: object = {}
@@ -633,6 +753,33 @@ class ReviewHandler(BaseHTTPRequestHandler):
             self._send(204, b"", "image/x-icon")
             return
         self._send(404, b"not found", "text/plain; charset=utf-8")
+
+    def _serve_state(self, known: str) -> None:
+        """ページからの問い合わせ。このサーバーの起動の識別子と、成果物の変更を見分ける値を返す。
+
+        known はページが知っている識別子。違う値なら、前の版（または前の起動）から開いたままの
+        ページがつながってきたことを表す。新しいタブを開いた後につながってきたページは、
+        二重に保存しないよう superseded（使わない）として返す。
+        """
+        carry = bool(known) and known != self.ctx.session
+        announce = False
+        with self.ctx.lock:
+            superseded = carry and not self.ctx.accept_carryover
+            if not superseded:
+                self.ctx.page_seen = True
+                if carry and not self.ctx.attach_announced:
+                    self.ctx.attach_announced = announce = True
+        if announce:
+            print("ATTACHED: 開いていたレビュー画面が、この版の表示に切り替わります（新しいタブは開きません）", flush=True)
+        if superseded:
+            self._send_json(200, {"session": self.ctx.session, "superseded": True})
+            return
+        try:
+            version, error = self.ctx.version(), None
+        except ManifestError as e:
+            version, error = None, str(e)
+        self._send_json(200, {"session": self.ctx.session, "version": version,
+                              "completed": self.ctx.completed, "error": error})
 
     def _serve_raw(self, path: str) -> None:
         parts = path.split("/", 4)  # ["", "raw", item, file, rest]
@@ -679,6 +826,20 @@ class ReviewHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
             if not isinstance(payload, dict):
                 raise ValueError("JSON オブジェクトを送ってください")
+            # 前の版の画面が、まだ切り替わる前に送ってきた保存は、この版の feedback.json に書かない
+            claimed = payload.get("manifest")
+            if claimed and str(claimed) != str(self.ctx.manifest_path):
+                self._send_json(409, {"error": "この画面は別の review.json のレビューを表示しています", "stale": True})
+                return
+            sent_session = self.headers.get("X-Review-Session")
+            if sent_session and sent_session != self.ctx.session:
+                with self.ctx.lock:
+                    accepted = self.ctx.accept_carryover
+                    if accepted:
+                        self.ctx.page_seen = True
+                if not accepted:
+                    self._send_json(409, {"error": "このレビューは別のタブで開かれています", "superseded": True})
+                    return
             manifest, _resolved, previous, _meta = self.ctx.load()
             feedback = normalize_feedback(payload, manifest, self.ctx.manifest_path, previous)
             with self.ctx.lock:
@@ -711,6 +872,43 @@ def bind_server(handler, port: int) -> ReviewHTTPServer:
         except OSError:
             continue
     raise OSError("待ち受けるポートを確保できませんでした")
+
+
+def open_url(url: str) -> bool:
+    """ブラウザで URL を開く。REVIEW_VIEWER_BROWSER_LOG があれば、開く代わりにそのファイルへ URL を追記する（テスト用）。"""
+    log = os.environ.get("REVIEW_VIEWER_BROWSER_LOG")
+    if log:
+        with open(log, "a", encoding="utf-8") as fh:
+            fh.write(url + "\n")
+        return True
+    try:
+        return webbrowser.open(url)
+    except Exception:  # noqa: BLE001 - ブラウザを開けない環境では URL の表示だけにする
+        return False
+
+
+def open_browser_when_needed(ctx: ReviewContext, url: str) -> None:
+    """前の版から開いたままのページがつながってこなければ、ブラウザで新しく開く。
+
+    完了したページは、次の版のサーバーを待って同じポートに問い合わせ続けている。
+    つながれば、そのページとレビュー用ウィンドウがそのまま次の版に切り替わるので、
+    新しいタブは開かない（開くと、利用者はレビュー用ウィンドウを開き直すことになる）。
+    """
+    deadline = time.monotonic() + ATTACH_WAIT
+    while time.monotonic() < deadline and not ctx.page_seen:
+        time.sleep(0.1)
+    with ctx.lock:
+        seen, attached = ctx.page_seen, ctx.attach_announced
+        if not seen:
+            ctx.accept_carryover = False  # この後につながってきた古いページには保存させない
+    if seen:
+        if not attached:
+            print("BROWSER: レビュー画面がすでに開かれていたので、新しいタブは開きませんでした", flush=True)
+        return
+    if open_url(url):
+        print("BROWSER: ブラウザでレビュー画面を開きました", flush=True)
+    else:
+        print("[info] ブラウザを自動で開けませんでした。上の URL を開いてください。", flush=True)
 
 
 def print_summary(feedback: dict) -> None:
@@ -806,12 +1004,8 @@ def main() -> int:
     print("利用者が「レビュー完了」を押すと、feedback.json を保存してこのサーバーは終了します。", flush=True)
 
     if not args.no_browser:
-        try:
-            opened = webbrowser.open(url)
-        except Exception:  # noqa: BLE001 - ブラウザを開けない環境では URL の表示だけにする
-            opened = False
-        if not opened:
-            print("[info] ブラウザを自動で開けませんでした。上の URL を開いてください。", flush=True)
+        # 前の版のページがつながってくるかを数秒待ってから決めるので、別のスレッドで行う
+        threading.Thread(target=open_browser_when_needed, args=(ctx, url), daemon=True).start()
 
     try:
         server.serve_forever()

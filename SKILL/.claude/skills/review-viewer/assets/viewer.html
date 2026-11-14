@@ -224,6 +224,7 @@ textarea.comment:focus { outline: 2px solid var(--focus); outline-offset: 0; bor
 .modal ul { margin: 6px 0; padding-left: 1.3em; }
 .warnbox { background: var(--warn-bg); color: var(--text); border-left: 4px solid var(--warn); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
 .banner { padding: 10px 16px; background: var(--good-bg); color: var(--text); border-bottom: 1px solid var(--line); }
+.banner.warn { background: var(--warn-bg); }
 .banner .btn { margin-left: 6px; }
 
 /* 狭い画面（レビュー対象のウィンドウにだけあるクラスに限る） */
@@ -264,35 +265,46 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
 <script>
 "use strict";
 (function () {
-  const D = REVIEW_DATA;
+  let D = REVIEW_DATA;
   const $ = (id) => document.getElementById(id);
   if (!D) {
     document.body.innerHTML = '<p class="empty">このファイルはひな形です。review_server.py から開いてください。</p>';
     return;
   }
 
+  // レビューの内容（D とそこから作る値）は、成果物が変わったときや次の版に切り替わるときに差し替える
   const MODE = D.mode;                       // "server" | "static"
-  const VERDICT = D.verdict;                 // {enabled, options[]}
-  const OPTIONS = VERDICT.enabled ? VERDICT.options : [];
-  const OPT = Object.fromEntries(OPTIONS.map((o) => [o.value, o]));
-  const ITEMS = D.items;
+  let VERDICT, OPTIONS, OPT, ITEMS;          // 判定欄の設定 {enabled, options[]}、選択肢、value→選択肢、項目
+  function setData(d) {
+    D = d;
+    VERDICT = d.verdict;
+    OPTIONS = VERDICT.enabled ? VERDICT.options : [];
+    OPT = Object.fromEntries(OPTIONS.map((o) => [o.value, o]));
+    ITEMS = d.items;
+  }
+  setData(D);
 
   // 画面は2つのウィンドウに分かれる。
   //   レビュー対象のウィンドウ（このページ）: 表示中の項目の成果物だけを出す
   //   レビュー用ウィンドウ: 一覧・見てほしいこと・判定・コメント・完了を出す。判定とコメントはここに書く
   // どちらの画面もこのページのスクリプトが描き、保存もこのページから送る。
   // そのため、レビュー用ウィンドウを閉じても、入力した内容は消えない。
+  // このページを読み込み直すとレビュー用ウィンドウは閉じるので、成果物の変更や次の版への切り替えは、
+  // 読み込み直さずにその場で描き直す。
   const state = {
     reviews: {},              // id -> {verdict, comment, viewed}
     overall_comment: "",
     current: null,            // レビュー対象のウィンドウに表示している項目の id。まだどれも開いていなければ null
     view: "item",             // レビュー用ウィンドウの表示。"item"＝表示中の項目、"overview"＝一覧と全体コメント
     completed: false,
+    superseded: false,        // 新しい版を別のタブで開いたため、このページを使わなくなった
     doneMessage: "",
     save: { kind: "", text: "" },  // 最後の保存状態。レビュー用ウィンドウを開き直したときにも同じ表示を出す
     notice: null,             // 別ウィンドウを開けなかったときの案内 {text, choices: ["popup" | "dock"]}
   };
-  ITEMS.forEach((it) => { state.reviews[it.id] = { verdict: null, comment: "", viewed: false }; });
+  function emptyReview() { return { verdict: null, comment: "", viewed: false }; }
+  ITEMS.forEach((it) => { state.reviews[it.id] = emptyReview(); });
+  const locked = () => state.completed || state.superseded;
 
   // ------------------------------------------------------------------
   // 共通の小道具
@@ -354,6 +366,11 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     const counts = Object.fromEntries(OPTIONS.map((o) => [o.value, 0]));
     let unjudged = 0;
     reviews.forEach((r) => { if (r.verdict) counts[r.verdict]++; else unjudged++; });
+    // レビュー中に review.json から消えた項目の判定とコメントも送る。サーバーが removed_items に残す
+    const known = new Set(ITEMS.map((it) => it.id));
+    const removed = Object.entries(state.reviews)
+      .filter(([id, r]) => !known.has(id) && (r.verdict || r.comment.trim()))
+      .map(([id, r]) => ({ id, verdict: r.verdict, comment: r.comment, viewed: r.viewed }));
     return {
       status, updated_at: new Date().toISOString(), title: D.title, manifest: D.manifest_path,
       verdict_enabled: VERDICT.enabled, verdict_options: OPTIONS,
@@ -364,7 +381,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
         untouched: reviews.filter((r) => !r.verdict && !r.comment.trim()).length,
         not_viewed: reviews.filter((r) => !r.viewed).length,
       },
-      reviews,
+      reviews: reviews.concat(removed),
     };
   }
 
@@ -392,19 +409,26 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   }
 
   async function postFeedback(status, keepalive) {
+    const headers = { "Content-Type": "application/json" };
+    // どのサーバーの起動に向けた保存かを示す。前の版の画面からの保存を、サーバーが見分けて断れるようにする
+    if (live.session) headers["X-Review-Session"] = live.session;
     const res = await fetch("/api/feedback", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildPayload(status)), keepalive: !!keepalive,
+      method: "POST", headers, body: JSON.stringify(buildPayload(status)), keepalive: !!keepalive,
     });
     let body = {};
     try { body = await res.json(); } catch (_) {}
-    if (!res.ok) throw new Error(body.error || ("HTTP " + res.status));
+    if (!res.ok) {
+      const err = new Error(body.error || ("HTTP " + res.status));
+      err.superseded = !!body.superseded;
+      err.stale = !!body.stale;
+      throw err;
+    }
     return body;
   }
 
   // 判定を変えたときは delay=0、コメント入力中は 800ms 待ってから、全項目をまとめて保存する
   function scheduleSave(delay) {
-    if (state.completed) return;
+    if (locked()) return;
     persistLocal();
     clearTimeout(saveTimer);
     if (MODE !== "server") { setSaveStatus("local"); return; }
@@ -413,12 +437,16 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   }
   async function flushSave() {
     saveTimer = null;
-    if (MODE !== "server" || state.completed) return;
+    if (MODE !== "server" || locked()) return;
     if (inflight) { again = true; return; }
     setSaveStatus("saving");
     inflight = postFeedback("in_progress")
       .then(() => setSaveStatus("saved"))
-      .catch((e) => setSaveStatus("error", e.message === "Failed to fetch" ? "サーバーに接続できません" : e.message))
+      .catch((e) => {
+        if (e.superseded) { markSuperseded(); return; }
+        if (e.stale) checkServer(false).catch(() => {}); // サーバーは次の版に替わっている。切り替える
+        setSaveStatus("error", e.message === "Failed to fetch" ? "サーバーに接続できません" : e.message);
+      })
       .finally(() => { inflight = null; if (again) { again = false; flushSave(); } });
     await inflight;
   }
@@ -454,6 +482,135 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       }
       state.overall_comment = local.overall_comment || "";
       setSaveStatus("text", "このブラウザの控えを復元しました");
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // サーバーへの問い合わせ（読み込み直さずに、新しい内容へ切り替える）
+  //   ・成果物や review.json が変わったら、その場で描き直す
+  //   ・完了の後もページを開いたままにし、次の版のサーバーが同じポートで起動したら、その版に切り替わる
+  //   ・同じ review.json でサーバーが起動し直したら、画面の入力を新しいサーバーに送り直す
+  // ------------------------------------------------------------------
+  const live = { timer: null, timerWin: null, busy: false, session: D.session || "", version: D.version || "" };
+  const nowLabel = () => new Date().toLocaleTimeString("ja-JP");
+
+  function schedulePoll(delay) {
+    if (MODE !== "server" || state.superseded) return;
+    stopPoll();
+    // 常に手前に見えているレビュー用ウィンドウのタイマーを使う。
+    // レビュー対象のタブが裏に回っても、ブラウザが問い合わせの間隔を延ばさないようにするため
+    const w = isWindowHost() && host.win && !host.win.closed ? host.win : window;
+    live.timerWin = w;
+    live.timer = w.setTimeout(pollTick, delay);
+  }
+  function stopPoll() {
+    if (live.timer == null) return;
+    try { live.timerWin.clearTimeout(live.timer); } catch (_) {}
+    live.timer = null;
+  }
+  async function pollTick() {
+    live.timer = null;
+    if (!live.busy) {
+      live.busy = true;
+      try { await checkServer(false); } catch (_) { /* サーバーが止まっている（完了の後や時間切れ）。次の起動を待つ */ }
+      live.busy = false;
+    }
+    schedulePoll(state.completed ? 1000 : 2000);
+  }
+
+  // force=true は、利用者が F5 などで読み直しを求めたとき。内容が同じでも成果物を描き直す
+  async function checkServer(force) {
+    const res = await fetch("/api/state?session=" + encodeURIComponent(live.session), { cache: "no-store" });
+    const s = await res.json();
+    if (s.superseded) { markSuperseded(); return; }
+    if (s.session !== live.session) { await loadFromServer(true, false); return; }
+    if (force || (s.version && s.version !== live.version)) { await loadFromServer(false, force); return; }
+    if (s.error && force) setSaveStatus("text", "review.json を読み込めませんでした（書き換えの途中かもしれません）: " + s.error);
+  }
+
+  async function loadFromServer(newSession, force) {
+    const res = await fetch("/api/data", { cache: "no-store" });
+    let nd = {};
+    try { nd = await res.json(); } catch (_) {}
+    if (!res.ok || !Array.isArray(nd.items)) {
+      // review.json を書き換えている途中など。今の表示のまま、次の問い合わせでもう一度試す
+      if (force) setSaveStatus("text", "review.json を読み込めませんでした（書き換えの途中かもしれません）: " + (nd.error || res.status));
+      return;
+    }
+    if (newSession && nd.manifest_path !== D.manifest_path) await enterNewRound(nd);
+    else applyUpdate(nd, newSession, force);
+  }
+
+  // 同じレビューの内容が変わった（成果物や review.json を直した、またはサーバーが起動し直した）
+  function applyUpdate(nd, restarted, force) {
+    const before = currentItem();
+    const beforeJson = before ? JSON.stringify(before) : null;
+    const verdictBefore = JSON.stringify(VERDICT);
+    setData(nd);
+    live.session = nd.session || "";
+    live.version = nd.version || "";
+    ITEMS.forEach((it) => { if (!state.reviews[it.id]) state.reviews[it.id] = emptyReview(); });
+    for (const r of Object.values(state.reviews)) { if (r.verdict && !OPT[r.verdict]) r.verdict = null; }
+    if (restarted && !state.superseded) {
+      // 新しいサーバーは画面の入力を知らないので送り直す。完了の後に起動し直された場合は、もう一度書けるようにする
+      if (state.completed) { state.completed = false; state.doneMessage = ""; renderDone(); }
+      scheduleSave(0);
+    }
+    if (state.current && !currentItem()) { state.current = null; state.view = "overview"; } // 表示中の項目が消えた
+    const it = currentItem();
+    if (force || (it ? JSON.stringify(it) !== beforeJson : before !== null)) renderStage(true);
+    renderBar();
+    if (host.root) {
+      if (JSON.stringify(VERDICT) !== verdictBefore) renderPanel(); // 判定の選択肢が変わった
+      else { refreshPanelInfo(); renderCounts(); applyReadonly(); }
+    }
+    if (!restarted) setSaveStatus("text", "最新の内容を表示しました " + nowLabel());
+  }
+
+  // 次の版のサーバーにつながった。入力と完了の状態をその版のものにして、最初から表示する
+  async function enterNewRound(nd) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    setData(nd);
+    live.session = nd.session || "";
+    live.version = nd.version || "";
+    state.reviews = {};
+    ITEMS.forEach((it) => { state.reviews[it.id] = emptyReview(); });
+    Object.assign(state, { overall_comment: "", current: null, view: "item", completed: false, doneMessage: "", notice: null });
+    state.save = { kind: "", text: "" };
+    renderDone();
+    await restore();
+    if (!state.save.text) setSaveStatus("text", "次の版を表示しました " + nowLabel());
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {}
+    if (host.root) renderPanel();
+    openInitial("");
+  }
+
+  // 新しい版を別のタブで開いたため、このページは使わない。二重に保存しないよう、入力も止める
+  function markSuperseded() {
+    if (state.superseded) return;
+    state.superseded = true;
+    stopPoll();
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    state.doneMessage = "この画面は使われなくなりました。新しい版のレビューは、別のタブで開いています。このタブとレビュー用ウィンドウは閉じてかまいません。";
+    renderDone();
+    applyReadonly();
+    renderBar();
+  }
+
+  // F5・Ctrl+R はページを読み込み直さず、その場で最新の内容にする（読み込み直すとレビュー用ウィンドウが閉じるため）。
+  // Shift を押した強制的な再読み込み（Shift+F5・Ctrl+Shift+R）は、ブラウザに任せる
+  function isReloadKey(e) {
+    if (e.shiftKey || e.altKey) return false;
+    return e.key === "F5" || ((e.ctrlKey || e.metaKey) && (e.key === "r" || e.key === "R"));
+  }
+  async function refreshNow() {
+    try {
+      await checkServer(true);
+    } catch (_) {
+      if (state.completed) setSaveStatus("text", "サーバーは終了しています（次の版を待っています）");
+      else setSaveStatus("error", "サーバーに接続できません");
     }
   }
 
@@ -793,7 +950,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   function panelHeight() { return Math.max(480, Math.min(760, (screen.availHeight || 900) - 120)); }
 
   async function openPanelWindow(kind) {
-    if (opening || state.completed) return;
+    if (opening || state.superseded) return;
     if (isWindowHost()) { focusPanel(); return; }
     kind = kind || (PIP_OK ? "pip" : "popup");
     opening = true;
@@ -871,10 +1028,11 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     renderPanel();
     renderBar();
     if (!currentItem()) renderStage();
+    schedulePoll(1000); // 問い合わせのタイマーを、見えているレビュー用ウィンドウ側に移す
   }
 
   function dockPanel() {
-    if (state.completed) return;
+    if (state.superseded) return;
     if (isWindowHost()) { const w = host.win; detach(); try { w.close(); } catch (_) {} }
     const aside = $("dock");
     aside.hidden = false;
@@ -893,6 +1051,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   // レビュー用ウィンドウとのつながりを外す（ウィンドウを閉じるのは呼び出し側）
   function detach() {
     if (host.timer) clearInterval(host.timer);
+    const wasWindow = isWindowHost();
     if (host.kind === "dock") {
       const aside = $("dock");
       aside.hidden = true;
@@ -902,6 +1061,8 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     }
     Object.assign(host, { kind: null, win: null, doc: null, root: null, timer: null });
     for (const k of Object.keys(ui)) delete ui[k];
+    // 閉じたウィンドウのタイマーは消えるので、問い合わせをこのページのタイマーで続ける
+    if (wasWindow) schedulePoll(1000);
   }
 
   function focusPanel() { try { if (host.win) host.win.focus(); } catch (_) {} }
@@ -924,17 +1085,23 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     }
     const tools = $("tbarTools");
     tools.replaceChildren();
-    if (state.save.kind === "error" && !state.completed) tools.append(el("span", { class: "tbar-error", text: "保存に失敗しました（入力はこのブラウザに控えてあります）" }));
-    if (state.completed) {
-      tools.append(el("span", { class: "tbar-note", text: MODE === "server" ? "レビュー完了（結果はエージェントに届いています）" : "レビュー完了（feedback.json をダウンロードしました）" }));
-    } else if (isWindowHost()) {
-      tools.append(el("span", { class: "tbar-note", text: "判定とコメントはレビュー用ウィンドウに書きます" }));
-      if (host.kind === "popup") tools.append(el("button", { class: "btn small", type: "button", onclick: focusPanel }, "レビュー用ウィンドウを前に出す"));
-    } else if (host.kind === "dock") {
-      tools.append(el("span", { class: "tbar-note", text: "判定とコメントは右側に書きます" }),
-        el("button", { class: "btn small", type: "button", id: "undockBtn", onclick: () => openPanelWindow() }, "別ウィンドウに移す"));
+    if (state.save.kind === "error" && !locked()) tools.append(el("span", { class: "tbar-error", text: "保存に失敗しました（入力はこのブラウザに控えてあります）" }));
+    if (state.superseded) {
+      tools.append(el("span", { class: "tbar-note", text: "このタブは使われなくなりました" }));
+    } else if (state.completed && MODE !== "server") {
+      tools.append(el("span", { class: "tbar-note", text: "レビュー完了（feedback.json をダウンロードしました）" }));
     } else {
-      tools.append(el("button", { class: "btn primary", type: "button", id: "openPanelBtn", onclick: () => openPanelWindow() }, "レビュー用ウィンドウを開く"));
+      // 完了の後も、次の版を待つあいだにレビュー用ウィンドウを開いておける
+      if (state.completed) tools.append(el("span", { class: "tbar-note", id: "waitingNote", text: "レビュー完了。直した版ができると、このまま切り替わります" }));
+      if (isWindowHost()) {
+        if (!state.completed) tools.append(el("span", { class: "tbar-note", text: "判定とコメントはレビュー用ウィンドウに書きます" }));
+        if (host.kind === "popup") tools.append(el("button", { class: "btn small", type: "button", onclick: focusPanel }, "レビュー用ウィンドウを前に出す"));
+      } else if (host.kind === "dock") {
+        if (!state.completed) tools.append(el("span", { class: "tbar-note", text: "判定とコメントは右側に書きます" }));
+        tools.append(el("button", { class: "btn small", type: "button", id: "undockBtn", onclick: () => openPanelWindow() }, "別ウィンドウに移す"));
+      } else {
+        tools.append(el("button", { class: "btn primary", type: "button", id: "openPanelBtn", onclick: () => openPanelWindow() }, "レビュー用ウィンドウを開く"));
+      }
     }
     document.documentElement.setAttribute("data-panel", host.kind || "none");
     renderNotice();
@@ -944,15 +1111,17 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     const box = $("notice");
     box.replaceChildren();
     const n = state.notice;
-    if (!n || state.completed) { box.hidden = true; return; }
+    if (!n || state.superseded) { box.hidden = true; return; }
     box.hidden = false;
     box.append(el("span", { text: n.text }));
     if (n.choices.includes("popup")) box.append(el("button", { class: "btn small", type: "button", id: "popupBtn", onclick: () => openPanelWindow("popup") }, "通常のウィンドウで開く"));
     if (n.choices.includes("dock")) box.append(el("button", { class: "btn small", type: "button", id: "dockBtn", onclick: dockPanel }, "このウィンドウの右側に表示する"));
   }
 
-  function renderStage() {
+  // keepScroll: 同じ項目を描き直すとき（成果物が直されたとき）に、読んでいた位置を残す
+  function renderStage(keepScroll) {
     const stage = $("stage");
+    const top = keepScroll ? stage.scrollTop : 0;
     stage.replaceChildren();
     const it = currentItem();
     if (!it) {
@@ -968,7 +1137,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       }
       it.files.forEach((f, k) => stage.append(renderFile(f, k)));
     }
-    stage.scrollTop = 0;
+    stage.scrollTop = top;
   }
 
   // まだどの項目も表示していないときの画面。2つのウィンドウの役割と、開き方を示す
@@ -980,7 +1149,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     box.append(el("div", { class: "windows" },
       el("div", { class: "win-box" }, el("div", { class: "win-name", text: "このウィンドウ" }), el("div", { class: "win-role", text: "レビュー用ウィンドウで選んだ項目の成果物だけを表示する" })),
       el("div", { class: "win-box accent" }, el("div", { class: "win-name", text: "レビュー用ウィンドウ" }), el("div", { class: "win-role", text: "項目の一覧、見てほしいこと、判定、コメント、レビュー完了" }))));
-    if (state.completed) return box;
+    if (locked()) return box;
     if (host.kind) {
       box.append(el("p", { class: "hint", text: "レビュー用ウィンドウの一覧で項目を選ぶと、ここにその項目の成果物が表示されます。" }));
     } else {
@@ -1050,31 +1219,55 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     if (ui.counts) ui.counts.replaceChildren(...countChips());
   }
 
-  function renderPanelView() {
-    if (!host.root) return;
-    const it = currentItem();
-    const view = it && state.view === "item" ? "item" : "overview";
+  function renderTabs(it, view) {
     ui.tabs.replaceChildren(
       el("button", { class: "tab", type: "button", id: "tabItem", "aria-pressed": view === "item" ? "true" : "false",
         disabled: it ? null : true, title: it ? null : "一覧から項目を選ぶと使えます", onclick: () => { if (it) show(it.id); } }, "判定とコメント"),
       el("button", { class: "tab", type: "button", id: "tabOverview", "aria-pressed": view === "overview" ? "true" : "false", onclick: showOverview }, "一覧と全体コメント"));
+  }
+
+  function renderPanelView() {
+    if (!host.root) return;
+    const it = currentItem();
+    const view = it && state.view === "item" ? "item" : "overview";
+    renderTabs(it, view);
     ui.body.replaceChildren();
     ui.verdictBox = null;
     ui.verdictHint = null;
+    ui.view = view;
+    ui.viewItem = it ? it.id : null;
     if (view === "item") renderItemView(it); else renderOverviewView();
     ui.body.scrollTop = 0;
     applyReadonly();
+  }
+
+  // 成果物や review.json が変わったとき、入力欄（判定・コメント）はそのまま残し、
+  // 説明・ファイル・一覧などの表示だけを新しくする。入力中の文字やカーソルの位置を消さないため
+  function refreshPanelInfo() {
+    if (!host.root) return;
+    const it = currentItem();
+    const view = it && state.view === "item" ? "item" : "overview";
+    if (!ui.info || ui.view !== view || ui.viewItem !== (it ? it.id : null)) { renderPanelView(); return; }
+    renderTabs(it, view);
+    const info = view === "item" ? itemInfo(it) : overviewInfo();
+    ui.info.replaceWith(info);
+    ui.info = info;
+    if (view === "item" && ui.move) {
+      const move = moveRow(it);
+      ui.move.replaceWith(move);
+      ui.move = move;
+    }
   }
 
   function section(label, ...content) {
     return el("div", { class: "rp-section" }, el("div", { class: "section-label", text: label }), ...content);
   }
 
-  function renderItemView(it) {
-    const body = ui.body;
-    const r = state.reviews[it.id];
+  // 項目の見出し・ファイル・見てほしいこと・前回のレビュー（入力欄を含まない部分）
+  function itemInfo(it) {
+    const box = el("div", { class: "rp-info", id: "itemInfo" });
     const idx = indexOf(it.id);
-    body.append(el("div", { class: "rp-item-head" },
+    box.append(el("div", { class: "rp-item-head" },
       el("div", { class: "rp-item-meta" }, el("span", { text: it.group ? groupLabel(it.group) : "" }), el("span", { text: (idx + 1) + " / " + ITEMS.length })),
       el("h2", { id: "itemTitle", text: it.title })));
     const files = el("div", { class: "rp-files", id: "itemFiles" });
@@ -1086,19 +1279,34 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       files.append(el("span", { text: "レビュー対象のウィンドウに表示中（押すとその位置へ移動）：" }));
       it.files.forEach((f, k) => files.append(el("button", { class: "btn small", type: "button", onclick: () => scrollStageTo(k) }, f.label)));
     }
-    body.append(files);
+    box.append(files);
 
-    if (it.description) body.append(section("見てほしいこと・判断してほしいこと", el("div", { class: "desc", id: "itemDesc", text: it.description })));
+    if (it.description) box.append(section("見てほしいこと・判断してほしいこと", el("div", { class: "desc", id: "itemDesc", text: it.description })));
     if (it.previous && (it.previous.verdict || it.previous.comment)) {
       const p = it.previous;
       const o = p.verdict ? OPT[p.verdict] : null;
-      const box = el("div", { class: "previous", id: "itemPrevious" },
+      const prev = el("div", { class: "previous", id: "itemPrevious" },
         el("div", { class: "section-label", text: "前回のレビュー（参考）" }),
         p.verdict ? el("span", { class: "chip tone-" + (o ? o.tone : "neutral") }, el("span", { class: "dot" }), (o ? o.label : p.verdict_label || p.verdict)) : el("span", { class: "chip tone-none" }, "前回は未判定"),
         p.comment ? el("div", { class: "comment", text: p.comment }) : el("div", { class: "hint", text: "前回のコメントはありません" }));
-      if (o) box.style.borderLeftColor = "var(--" + o.tone + ")";
-      body.append(box);
+      if (o) prev.style.borderLeftColor = "var(--" + o.tone + ")";
+      box.append(prev);
     }
+    return box;
+  }
+
+  function moveRow(it) {
+    const idx = indexOf(it.id);
+    return el("div", { class: "rp-move" },
+      el("button", { class: "btn", type: "button", id: "prevBtn", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前の項目"),
+      el("button", { class: "btn", type: "button", id: "nextBtn", onclick: () => move(1) }, idx >= ITEMS.length - 1 ? "一覧へ" : "次の項目 →"));
+  }
+
+  function renderItemView(it) {
+    const body = ui.body;
+    const r = state.reviews[it.id];
+    ui.info = itemInfo(it);
+    body.append(ui.info);
 
     if (VERDICT.enabled) {
       ui.verdictBox = el("div", { class: "verdicts", role: "group", "aria-label": "判定" });
@@ -1122,9 +1330,8 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     body.append(section("コメント", ta,
       el("div", { class: "hint", text: (MODE === "server" ? "入力は自動で保存されます。" : "入力はこのブラウザに自動で控えられます。")
         + "入力欄の外で ← → を押すと前後の項目へ移動します" + (VERDICT.enabled ? "（数字キーで判定、0 で判定を外す）。" : "。") })));
-    body.append(el("div", { class: "rp-move" },
-      el("button", { class: "btn", type: "button", id: "prevBtn", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前の項目"),
-      el("button", { class: "btn", type: "button", id: "nextBtn", onclick: () => move(1) }, idx >= ITEMS.length - 1 ? "一覧へ" : "次の項目 →")));
+    ui.move = moveRow(it);
+    body.append(ui.move);
   }
 
   function updateVerdictView(id) {
@@ -1155,12 +1362,13 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       r.comment.trim() ? el("span", { class: "excerpt", text: r.comment.replace(/\s+/g, " ") }) : null));
   }
 
-  function renderOverviewView() {
-    const body = ui.body;
+  // 最初の項目へのボタン・このレビューについて・項目の一覧（入力欄を含まない部分）
+  function overviewInfo() {
+    const box = el("div", { class: "rp-info", id: "overviewInfo" });
     if (!currentItem()) {
-      body.append(el("div", { class: "rp-start" }, el("button", { class: "btn primary", type: "button", id: "firstItemBtn", onclick: () => show(ITEMS[0].id) }, "最初の項目から見る →")));
+      box.append(el("div", { class: "rp-start" }, el("button", { class: "btn primary", type: "button", id: "firstItemBtn", onclick: () => show(ITEMS[0].id) }, "最初の項目から見る →")));
     }
-    if (D.instructions) body.append(section("このレビューについて", el("div", { class: "desc", text: D.instructions })));
+    if (D.instructions) box.append(section("このレビューについて", el("div", { class: "desc", text: D.instructions })));
     const list = el("div", { class: "olist", id: "itemList" });
     let lastGroup;
     ITEMS.forEach((it) => {
@@ -1173,7 +1381,14 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       }
       list.append(overviewEntry(it));
     });
-    body.append(section("項目の一覧（押すと、その項目をレビュー対象のウィンドウに表示）", list));
+    box.append(section("項目の一覧（押すと、その項目をレビュー対象のウィンドウに表示）", list));
+    return box;
+  }
+
+  function renderOverviewView() {
+    const body = ui.body;
+    ui.info = overviewInfo();
+    body.append(ui.info);
 
     const parts = [];
     if (D.previous_meta && D.previous_meta.overall_comment) {
@@ -1223,7 +1438,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     show(ITEMS[idx].id);
   }
   function setVerdict(id, value) {
-    if (state.completed) return;
+    if (locked()) return;
     state.reviews[id].verdict = value;
     if (state.view === "item" && state.current === id) updateVerdictView(id);
     renderCounts();
@@ -1232,6 +1447,10 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
 
   // どちらのウィンドウで押したキーも同じように扱う
   function onKey(e) {
+    if (isReloadKey(e)) {
+      if (MODE === "server" && !state.superseded) { e.preventDefault(); refreshNow(); }
+      return;
+    }
     if (ui.modalRoot && ui.modalRoot.firstChild) { if (e.key === "Escape") closeModal(); return; }
     if (isTyping(e.target) || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); }
@@ -1250,7 +1469,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   function closeModal() { if (ui.modalRoot) ui.modalRoot.replaceChildren(); }
 
   function openComplete() {
-    if (state.completed || !ui.modalRoot) return;
+    if (locked() || !ui.modalRoot) return;
     const pending = ITEMS.filter((it) => !state.reviews[it.id].verdict);
     const modal = el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "mTitle" });
     modal.append(el("h2", { id: "mTitle", text: "レビューを完了しますか？" }));
@@ -1266,7 +1485,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
         el("div", { class: "hint", text: "判断に迷う項目は、未判定のまま完了してかまいません。エージェントには「未判定」として伝わり、問題なしとは扱われません。" })));
     }
     modal.append(el("p", { class: "hint", text: MODE === "server"
-      ? "完了すると、判定とコメントがエージェントに渡り、このレビュー画面のサーバーは終了します。終了後に直したくなったら、チャットで伝えてください。"
+      ? "完了すると、判定とコメントがエージェントに渡り、このレビュー画面のサーバーは終了します。画面とレビュー用ウィンドウは開いたままにしておけば、エージェントが直した版を用意したときに、そのまま切り替わります。終了後に直したくなったら、チャットで伝えてください。"
       : "完了すると、判定とコメントを feedback.json としてダウンロードします。保存した場所をエージェントに伝えてください。" }));
     const err = el("div", { class: "error-box", hidden: true, style: "border-radius:6px;margin-top:8px" });
     modal.append(err);
@@ -1291,8 +1510,10 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     if (MODE === "server") {
       if (inflight) { try { await inflight; } catch (_) {} }
       const res = await postFeedback("complete");
-      markDone("レビューを受け付けました（" + time + "）。結果はエージェントに渡り、サーバーは終了します。画面は閉じてかまいません。");
+      markDone("レビューを受け付けました（" + time + "）。結果はエージェントに渡り、サーバーは終了します。"
+        + "エージェントが直した版を用意すると、この画面とレビュー用ウィンドウはそのまま次の版に切り替わります（閉じてもかまいません）。");
       setSaveStatus("text", "完了として保存済み");
+      schedulePoll(1000); // 次の版のサーバーを待つ
       return res;
     }
     // ダウンロードは、成果物を表示しているこのページから行う
@@ -1318,10 +1539,11 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   function renderDone() {
     $("banner").replaceChildren();
     if (ui.banner) ui.banner.replaceChildren();
-    if (!state.completed) return;
-    $("banner").append(el("div", { class: "banner", text: state.doneMessage }));
+    if (!locked()) return;
+    const cls = "banner" + (state.superseded ? " warn" : "");
+    $("banner").append(el("div", { class: cls, id: "mainBanner", text: state.doneMessage }));
     if (ui.banner && host.kind !== "dock") {
-      const b = el("div", { class: "banner", id: "doneBanner" }, el("span", { text: state.doneMessage }));
+      const b = el("div", { class: cls, id: "doneBanner" }, el("span", { text: state.doneMessage }));
       if (isWindowHost()) b.append(el("button", { class: "btn small", type: "button", onclick: () => { try { host.win.close(); } catch (_) {} } }, "このウィンドウを閉じる"));
       ui.banner.append(b);
     }
@@ -1329,9 +1551,10 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
 
   function applyReadonly() {
     if (!host.root) return;
-    host.root.classList.toggle("readonly", state.completed);
-    for (const t of host.root.querySelectorAll("textarea")) t.readOnly = state.completed;
-    if (ui.completeBtn) ui.completeBtn.disabled = state.completed;
+    const ro = locked();
+    host.root.classList.toggle("readonly", ro);
+    for (const t of host.root.querySelectorAll("textarea")) t.readOnly = ro;
+    if (ui.completeBtn) ui.completeBtn.disabled = ro;
   }
 
   // ------------------------------------------------------------------
@@ -1339,7 +1562,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   // ------------------------------------------------------------------
   document.addEventListener("keydown", onKey);
   window.addEventListener("pagehide", () => {
-    if (saveTimer && MODE === "server" && !state.completed) {
+    if (saveTimer && MODE === "server" && !locked()) {
       clearTimeout(saveTimer);
       postFeedback("in_progress", true).catch(() => {});
     }
@@ -1357,12 +1580,24 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   });
   if (MODE === "static") setSaveStatus("text", "サーバーなしの表示（入力はこのブラウザに控えます）");
 
+  // 最初に表示する項目を決める（起動したとき・次の版に切り替わったとき）
+  function openInitial(id) {
+    if (indexOf(id) >= 0) show(id);                  // 再読み込み: 同じ項目を表示する
+    else if (!D.instructions) show(ITEMS[0].id);     // 全体の説明がなければ最初の項目から
+    else {                                           // 説明があれば、始める前の画面（レビュー用ウィンドウは一覧）から
+      state.current = null;
+      state.view = "overview";
+      renderStage();
+      renderBar();
+      renderPanelView();
+    }
+  }
+
   restore().then(() => {
     let id = "";
     try { id = decodeURIComponent((location.hash || "").slice(1)); } catch (_) { id = ""; }
-    if (indexOf(id) >= 0) show(id);                  // 再読み込み: 同じ項目を表示する
-    else if (!D.instructions) show(ITEMS[0].id);     // 全体の説明がなければ最初の項目から
-    else { state.view = "overview"; renderStage(); renderBar(); } // 説明があれば、始める前の画面から
+    openInitial(id);
+    schedulePoll(2000);
   });
 })();
 </script>

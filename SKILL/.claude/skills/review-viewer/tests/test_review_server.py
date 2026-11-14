@@ -16,9 +16,11 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -35,30 +37,51 @@ def free_port() -> int:
 
 
 class Server:
-    """テスト用にサーバーを起動し、標準出力から URL を読み取る。"""
+    """テスト用にサーバーを起動し、標準出力を読み続けて URL などの行を集める。
 
-    def __init__(self, manifest: Path, *extra: str, port: int | None = None):
+    browser=True のときは --no-browser を付けない。その場合は env で REVIEW_VIEWER_BROWSER_LOG を渡し、
+    実際のブラウザを開く代わりに URL をファイルへ書かせる。
+    """
+
+    def __init__(self, manifest: Path, *extra: str, port: int | None = None, browser: bool = False,
+                 env: dict | None = None):
         self.port_arg = port or free_port()
-        self.proc = subprocess.Popen(
-            [sys.executable, str(SERVER), str(manifest), "--no-browser", "--port", str(self.port_arg), *extra],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ENV,
-        )
+        args = [sys.executable, str(SERVER), str(manifest), "--port", str(self.port_arg), *extra]
+        if not browser:
+            args.insert(3, "--no-browser")
+        self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={**ENV, **(env or {})})
         self.lines: list[str] = []
-        deadline = time.time() + 15
         self.url = None
-        while time.time() < deadline:
-            raw = self.proc.stdout.readline()
-            if not raw:
-                break
-            line = raw.decode("utf-8")
-            self.lines.append(line)
-            m = re.match(r"URL: (http://127\.0\.0\.1:(\d+)/)", line)
-            if m:
-                self.url, self.port = m.group(1), int(m.group(2))
-                break
-        if not self.url:
+        self._ready = threading.Event()
+        self._reader = threading.Thread(target=self._read, daemon=True)
+        self._reader.start()
+        if not self._ready.wait(15) or not self.url:
             err = self.proc.stderr.read().decode("utf-8", "replace") if self.proc.poll() is not None else ""
             raise RuntimeError("server did not start: " + "".join(self.lines) + err)
+
+    def _read(self) -> None:
+        for raw in iter(self.proc.stdout.readline, b""):
+            line = raw.decode("utf-8", "replace")
+            self.lines.append(line)
+            m = re.match(r"URL: (http://127\.0\.0\.1:(\d+)/)", line)
+            if m and not self.url:
+                self.url, self.port = m.group(1), int(m.group(2))
+                self._ready.set()
+        self._ready.set()
+
+    def output(self) -> str:
+        return "".join(self.lines)
+
+    def wait_line(self, prefix: str, timeout: float) -> bool:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if any(line.startswith(prefix) for line in list(self.lines)):
+                return True
+            time.sleep(0.05)
+        return False
+
+    def state(self, session: str = "") -> dict:
+        return json.loads(self.get("/api/state?session=" + urllib.parse.quote(session))[2].decode("utf-8"))
 
     def get(self, path: str, headers: dict | None = None) -> tuple[int, dict, bytes]:
         req = urllib.request.Request(self.url.rstrip("/") + path, headers=headers or {})
@@ -82,6 +105,7 @@ class Server:
         if self.proc.poll() is None:
             self.proc.kill()
             self.proc.wait(5)
+        self._reader.join(5)
         for s in (self.proc.stdout, self.proc.stderr):
             if s:
                 s.close()
@@ -109,8 +133,9 @@ class ReviewServerTest(unittest.TestCase):
             s.stop()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def start(self, *extra: str, manifest: Path | None = None, port: int | None = None) -> Server:
-        s = Server(manifest or self.manifest, *extra, port=port)
+    def start(self, *extra: str, manifest: Path | None = None, port: int | None = None,
+              browser: bool = False, env: dict | None = None) -> Server:
+        s = Server(manifest or self.manifest, *extra, port=port, browser=browser, env=env)
         self.servers.append(s)
         return s
 
@@ -254,7 +279,8 @@ class ReviewServerTest(unittest.TestCase):
         self.assertEqual(resp["status"], "complete")
         rc = s.proc.wait(timeout=10)
         self.assertEqual(rc, 0)
-        out = s.proc.stdout.read().decode("utf-8")
+        s._reader.join(5)
+        out = s.output()
         self.assertIn("REVIEW_COMPLETE:", out)
         self.assertIn("未判定 4", out)
         fb = json.loads((self.work / "feedback.json").read_text(encoding="utf-8"))
@@ -270,6 +296,82 @@ class ReviewServerTest(unittest.TestCase):
         s.proc.wait(timeout=10)
         fb = json.loads((self.work / "feedback.json").read_text(encoding="utf-8"))
         self.assertEqual(fb["status"], "complete")
+
+    # --- ページからの問い合わせと、次の版への切り替え ------------------------
+
+    def test_state_and_data_endpoints(self):
+        s = self.start()
+        page = page_data(s.get("/")[2].decode("utf-8"))
+        st = s.state(page["session"])
+        self.assertEqual(st["session"], page["session"])
+        self.assertEqual(st["version"], page["version"])
+        self.assertFalse(st.get("superseded"))
+        code, _h, body = s.get("/api/data")
+        self.assertEqual(code, 200)
+        data = json.loads(body.decode("utf-8"))
+        self.assertEqual(len(data["items"]), 5)
+        self.assertEqual(data["session"], page["session"])
+
+    def test_version_follows_artifacts_but_not_feedback(self):
+        s = self.start()
+        v0 = s.state()["version"]
+        s.post("/api/feedback", {"status": "in_progress", "reviews": [{"id": "a-doc", "comment": "保存しただけ"}]})
+        self.assertEqual(s.state()["version"], v0)  # 保存（feedback.json の書き込み）では変わらない
+        md = self.work / "案A" / "提案書.md"
+        md.write_text(md.read_text(encoding="utf-8") + "\n追記した行\n", encoding="utf-8")
+        v1 = s.state()["version"]
+        self.assertNotEqual(v1, v0)  # 成果物を直すと変わる
+        css = self.work / "案A" / "style.css"  # 画面.html が相対パスで読む CSS（review.json には書いていない）
+        css.write_text(css.read_text(encoding="utf-8") + "\n/* 直した */\n", encoding="utf-8")
+        v2 = s.state()["version"]
+        self.assertNotEqual(v2, v1)
+        data = json.loads(self.manifest.read_text(encoding="utf-8"))
+        data["title"] = "題名を直した"
+        self.write_manifest(data)
+        self.assertNotEqual(s.state()["version"], v2)  # review.json を直すと変わる
+
+    def test_feedback_next_to_artifacts_does_not_change_version(self):
+        m = self.work / "案A" / "r.json"
+        m.write_text(json.dumps({"items": [{"id": "x", "files": ["提案書.md"]}]}, ensure_ascii=False), encoding="utf-8")
+        s = self.start(manifest=m)
+        v0 = s.state()["version"]
+        s.post("/api/feedback", {"status": "in_progress", "reviews": [{"id": "x", "comment": "同じフォルダに保存される"}]})
+        self.assertTrue((self.work / "案A" / "feedback.json").exists())
+        self.assertEqual(s.state()["version"], v0)
+
+    def test_page_from_previous_round_prevents_new_tab(self):
+        log = self.tmp / "browser.log"
+        s = self.start(browser=True, env={"REVIEW_VIEWER_BROWSER_LOG": str(log)})
+        # 前の版から開いたままのページ（前のサーバーの session を知っている）が、待ち時間の間に問い合わせる
+        self.assertFalse(s.state("前の版の-session").get("superseded"))
+        self.assertTrue(s.wait_line("ATTACHED:", 5))
+        time.sleep(3.2)  # 待ち時間（ATTACH_WAIT）を過ぎても
+        self.assertFalse(log.exists())  # 新しいタブは開かない
+        self.assertFalse(any(line.startswith("BROWSER:") for line in s.lines))
+
+    def test_new_tab_when_no_page_attaches_and_late_page_is_superseded(self):
+        log = self.tmp / "browser.log"
+        s = self.start(browser=True, env={"REVIEW_VIEWER_BROWSER_LOG": str(log)})
+        self.assertTrue(s.wait_line("BROWSER:", 8))
+        self.assertEqual(log.read_text(encoding="utf-8").strip(), s.url)
+        # 新しいタブを開いた後につながってきた古いページは使わない。保存もさせない
+        self.assertTrue(s.state("前の版の-session").get("superseded"))
+        code, resp = s.post("/api/feedback", {"status": "in_progress", "reviews": []}, {"X-Review-Session": "前の版の-session".encode("utf-8").hex()})
+        self.assertEqual(code, 409)
+        self.assertTrue(resp.get("superseded"))
+        # 新しいタブのページ（このサーバーの session を知っている）は使える
+        page = page_data(s.get("/")[2].decode("utf-8"))
+        self.assertFalse(s.state(page["session"]).get("superseded"))
+        code, _ = s.post("/api/feedback", {"status": "in_progress", "reviews": []}, {"X-Review-Session": page["session"]})
+        self.assertEqual(code, 200)
+
+    def test_save_for_another_manifest_is_rejected(self):
+        s = self.start()
+        code, resp = s.post("/api/feedback", {"status": "complete", "manifest": str(self.work / "別の版" / "review.json"), "reviews": []})
+        self.assertEqual(code, 409)
+        self.assertTrue(resp.get("stale"))
+        self.assertIsNone(s.proc.poll())  # 完了として扱っていない
+        self.assertFalse((self.work / "feedback.json").exists())
 
     # --- ポート -------------------------------------------------------------
 
