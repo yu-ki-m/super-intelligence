@@ -52,17 +52,23 @@
        y.span.textContent=x.label;y.span.parentElement.style.justifyContent=x.span.parentElement.style.justifyContent;y.td.classList.add('ov');if(y.td.style.position==='sticky')y.td.style.zIndex=String(+y.td.style.zIndex+1);}
    }
  }
+ // Excel keeps one line per cell edge, but each cell here draws its own borders. A left or top border is therefore handed to the
+ // neighbour's right or bottom side (unless the neighbour has its own), so that the edge is drawn once and not twice.
+ function joinBorders(td,st,q,edges,own){own.set(td,{right:st.borderRight!=='none',bottom:st.borderBottom!=='none'});
+   const hand=(side,list,key,prop)=>{let all=true;for(const a of list){const n=edges.get(a);if(!n){all=false;continue;}const o=own.get(n);if(!o[key]){n.style[prop]=st[side];o[key]=true;}}return all;};
+   if(st.borderLeft!=='none'&&q.c1>0&&hand('borderLeft',Array.from({length:q.r2-q.r1+1},(_,i)=>C.addr(q.r1+i,q.c1-1)),'right','borderRight'))td.style.borderLeft='';
+   if(st.borderTop!=='none'&&q.r1>0&&hand('borderTop',Array.from({length:q.c2-q.c1+1},(_,i)=>C.addr(q.r1-1,q.c1+i)),'bottom','borderBottom'))td.style.borderTop='';}
  function render(){
    renderCache=new Map();const s=sheet();document.title=book.title;$('book-title').value=book.title;
    const frag=document.createDocumentFragment(),cols=document.createElement('colgroup');let cg='<col style="width:42px">';for(let c=0;c<s.cols;c++)cg+='<col style="width:'+C.width(s,c)+'px">';cols.innerHTML=cg;frag.append(cols);
    const thead=document.createElement('thead'),header=document.createElement('tr');header.innerHTML='<th class="corner" data-corner="true" aria-label="すべて選択">◢</th>';
    let left=42;for(let c=0;c<s.cols;c++){const th=document.createElement('th');th.scope='col';th.dataset.col=c;th.setAttribute('aria-label',C.colName(c)+'列');th.innerHTML=C.colName(c)+'<span class="col-resize" data-resize-col="'+c+'"></span>';if(c<(s.freeze?.cols||0)){th.style.left=left+'px';th.style.zIndex='9';}left+=C.width(s,c);header.append(th);}thead.append(header);frag.append(thead);
-   const body=document.createElement('tbody');let top=24;const mergeMap=new Map();for(const m of s.merges)C.each(m,(r,c)=>mergeMap.set(C.addr(r,c),m));
+   const body=document.createElement('tbody');let top=24;const mergeMap=new Map(),edges=new Map(),own=new Map();for(const m of s.merges)C.each(m,(r,c)=>mergeMap.set(C.addr(r,c),m));
    for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.style.height=C.height(s,r)+'px';const rh=document.createElement('th');rh.className='row-head';rh.dataset.row=r;rh.scope='row';rh.setAttribute('aria-label',(r+1)+'行');rh.innerHTML=(r+1)+'<span class="row-resize" data-resize-row="'+r+'"></span>';if(r<(s.freeze?.rows||0)){rh.style.top=top+'px';rh.style.zIndex='9';}tr.append(rh);left=42;
      const rowInfo=[];
      for(let c=0;c<s.cols;c++){const a=C.addr(r,c),m=mergeMap.get(a),cw=C.width(s,c);if(m&&(m.r1!==r||m.c1!==c)){rowInfo[c]={merged:true};left+=cw;continue;}
        const cell=C.get(s,r,c),st=stAt(r,c),value=valueAt(r,c),label=C.display(value,st.numFmt),td=document.createElement('td');td.dataset.r=r;td.dataset.c=c;td.id='cell-'+a;td.setAttribute('role','gridcell');td.setAttribute('aria-label',a+(label?' '+label:''));td.title=cell.t==='f'?cell.f:label;
-       td.style.cssText=C.css(st,value);let hh=C.height(s,r);if(m){td.rowSpan=m.r2-r+1;td.colSpan=m.c2-c+1;hh=0;for(let rr=r;rr<=m.r2;rr++)hh+=C.height(s,rr);}
+       td.style.cssText=C.css(st,value);const q=m||{r1:r,c1:c,r2:r,c2:c};C.each(q,(rr,cc)=>edges.set(C.addr(rr,cc),td));joinBorders(td,st,q,edges,own);let hh=C.height(s,r);if(m){td.rowSpan=m.r2-r+1;td.colSpan=m.c2-c+1;hh=0;for(let rr=r;rr<=m.r2;rr++)hh+=C.height(s,rr);}
        const div=document.createElement('div');div.style.height=(hh-1)+'px';div.style.justifyContent=st.valign==='top'?'flex-start':st.valign==='middle'?'center':'flex-end';const text=document.createElement('span');text.className='cell-text';text.textContent=label;if(st.wrap){text.style.whiteSpace='pre-wrap';text.style.overflowWrap='anywhere';}else text.style.whiteSpace='pre';div.append(text);td.append(div);rowInfo[c]={td,span:text,label,value,st,merged:!!m,frozen:c<(s.freeze?.cols||0),empty:cell.t!=='f'&&(cell.v===''||cell.v==null)};
        const fr=r<(s.freeze?.rows||0),fc=c<(s.freeze?.cols||0);if(fr||fc){td.style.position='sticky';td.style.zIndex=fr&&fc?'6':'4';if(st.fill==='none')td.style.backgroundColor='#fff';if(fr)td.style.top=top+'px';if(fc)td.style.left=left+'px';}if(cell.link)td.dataset.link=cell.link;tr.append(td);left+=cw;
      }layoutRow(s,rowInfo);body.append(tr);top+=C.height(s,r);
