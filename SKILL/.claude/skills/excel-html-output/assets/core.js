@@ -31,11 +31,17 @@
   const style=(w,s,cell)=>({...DEFAULT,...w.defaultStyle,...s.defaultStyle,...cell.s});
   function mergeAt(s,r,c){return s.merges.find(m=>within(r,c,m));}
   function expanded(s,q){q={...q};let changed=true;while(changed){changed=false;for(const m of s.merges) if(overlap(q,m)){const n=rect([Math.min(q.r1,m.r1),Math.min(q.c1,m.c1)],[Math.max(q.r2,m.r2),Math.max(q.c2,m.c2)]);if(!same(n,q)){q=n;changed=true;}}}return q;}
-  function validate(w) {
+  const PICTURE_DATA=/^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+  // assetsDetached: the editor keeps picture bytes outside the book while editing, so references are not checked then.
+  function validate(w,{assetsDetached=false}={}) {
     const fail=m=>{throw Error('ブック形式エラー: '+m);};
     const integer=(n,min,max)=>Number.isInteger(n)&&n>=min&&n<=max;
     if(!w||w.schema!==SCHEMA||typeof w.id!=='string'||!w.id||typeof w.revision!=='string'||!w.revision) fail('schema / id / revision');
     if(typeof w.title!=='string'||!Array.isArray(w.sheets)||!w.sheets.length||w.sheets.length>30) fail('title / sheets');
+    if(w.assets!==undefined){
+      if(!w.assets||typeof w.assets!=='object'||Array.isArray(w.assets)) fail('assets');
+      for(const [k,v] of Object.entries(w.assets)) if(!k||typeof v!=='string'||v.length>15e6||!PICTURE_DATA.test(v)) fail('画像データ '+k+'（png / jpeg / gif / webp の data URL）');
+    }
     const ids=new Set(), names=new Set();
     const vs = st => { if(!st) return; if(typeof st!=='object'||Array.isArray(st)) fail('style');
       for(const [k,v] of Object.entries(st)) {
@@ -77,6 +83,15 @@
       }
       if(s.freeze&&(!integer(s.freeze.rows,0,s.rows)||!integer(s.freeze.cols,0,s.cols))) fail('固定範囲');
       if(s.freeze&&s.merges.some(m=>m.r1<s.freeze.rows&&m.r2>=s.freeze.rows||m.c1<s.freeze.cols&&m.c2>=s.freeze.cols)) fail('結合をまたぐ固定は未対応');
+      if(s.images!==undefined){
+        if(!Array.isArray(s.images)||s.images.length>100) fail('images（1シート100枚まで）');
+        const seen=new Set();
+        for(const p of s.images){
+          if(!p||typeof p.id!=='string'||!p.id||seen.has(p.id)||typeof p.asset!=='string'||!p.asset||!integer(p.r,0,s.rows-1)||!integer(p.c,0,s.cols-1)||![p.x,p.y].every(v=>Number.isFinite(v)&&v>=0&&v<=20000)||![p.w,p.h].every(v=>Number.isFinite(v)&&v>=4&&v<=10000)) fail('画像 '+(p&&p.id||''));
+          seen.add(p.id);
+          if(!assetsDetached&&!(w.assets&&Object.prototype.hasOwnProperty.call(w.assets,p.asset))) fail('画像の中身がありません '+p.id);
+        }
+      }
     }
     if(!ids.has(w.activeSheet)) fail('activeSheet');
     if(w.view){

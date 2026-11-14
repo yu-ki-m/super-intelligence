@@ -40,4 +40,11 @@ test('markdown table keeps what is shown, escapes pipes and line breaks, aligns 
   s.merges=[];s.cells={A1:{t:'s',v:'サイト',link:'https://example.com/a b(1)'}};
   assert.ok(C.markdown(w,s,C.range('A1')).text.includes('[サイト](https://example.com/a%20b%281%29)'));
   assert.equal(C.markdown(w,s,C.range('E10:F12')).empty,true);});
+test('pictures need real image data and stay inside the sheet',()=>{const w=make(),s=w.sheets[0],png='data:image/png;base64,iVBORw0KGgo=';
+  s.images=[{id:'p1',asset:'a1',r:2,c:3,x:5,y:6,w:120,h:80}];
+  assert.throws(()=>C.validate(w),/画像の中身/,'a picture without its data is refused');
+  assert.doesNotThrow(()=>C.validate(w,{assetsDetached:true}),'the editor keeps the data apart while editing');
+  w.assets={a1:png};C.validate(w);
+  for(const bad of ['data:image/svg+xml;base64,PHN2Zz4=','data:text/html;base64,PGI+','data:image/png;base64,<script>','javascript:alert(1)']){w.assets={a1:bad};assert.throws(()=>C.validate(w),/画像データ/,bad);}
+  w.assets={a1:png};for(const patch of [{r:30},{c:15},{w:2},{x:-1},{id:''}]){s.images=[{id:'p1',asset:'a1',r:2,c:3,x:5,y:6,w:120,h:80,...patch}];assert.throws(()=>C.validate(w),/画像/,JSON.stringify(patch));}});
 console.log(`${count} behavioral tests passed.`);
