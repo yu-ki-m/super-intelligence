@@ -1,0 +1,6 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>問い合わせの詳細 | 社内ヘルプデスク</title><link rel="stylesheet" href="style.css"></head>
+<body><header><strong>社内ヘルプデスク</strong><a id="back" href="index.html">一覧へ戻る</a></header>
+<main><section><h1 id="ticket-title"></h1><p>状態：<span id="state"></span></p><p id="detail">3階の複合機から印刷すると「用紙がありません」と出て止まる。用紙は入っている。</p></section>
+<section><h2>コメント</h2><form id="comment-form" method="post" action="ticket.html"><textarea id="comment" rows="3" cols="60" placeholder="担当者への連絡を書く"></textarea><br><button type="submit">コメントを送信</button></form></section></main>
+<script>const id=new URLSearchParams(location.search).get('id');const t={101:['プリンターが印刷できない','対応中'],102:['パスワードを忘れた','受付'],103:['プリンターのトナーを交換したい','完了'],104:['会議室のモニターが映らない','受付']}[id]||['（見つからない）',''];
+document.getElementById('ticket-title').textContent=t[0];document.getElementById('state').textContent=t[1];</script></body></html>

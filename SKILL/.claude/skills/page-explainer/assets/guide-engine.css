@@ -1,0 +1,356 @@
+/* page-explainer の見た目。Shadow DOM の中だけに効く（ページの CSS とは混ざらない）。
+ * 色と文字は、どのページに付けても同じになるよう、ページの変数を借りずに、ここで決める。 */
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+.root {
+  --g-bg: #18181b;
+  --g-fg: #f4f4f5;
+  --g-muted: #a1a1aa;
+  --g-line: rgba(255, 255, 255, 0.1);
+  --g-ring: #60a5fa;
+  /* 暗幕の濃さ。ページの全体が読める薄さにする（依頼者の指示で 0.5 から下げた） */
+  --g-dim: rgba(9, 9, 11, 0.25);
+  --g-pri-text: #1e40af;
+  --g-font: "Inter", "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+  --g-mono: "Cascadia Mono", Consolas, Menlo, monospace;
+  --g-radius: 10px;
+  direction: ltr;
+  font-family: var(--g-font);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: normal;
+  text-align: left;
+  color: var(--g-fg);
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+/* 暗いページの上では、吹き出しを少し明るくし、線を濃くして、地と分ける */
+.root.on-dark {
+  --g-bg: #27272a;
+  --g-line: rgba(255, 255, 255, 0.18);
+  --g-dim: rgba(0, 0, 0, 0.4);
+}
+button, textarea { font: inherit; color: inherit; }
+
+/* ---------- 案内を開くボタン（既定の文字は「解説」） ---------- */
+.launcher {
+  position: fixed; z-index: 1;
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 38px; padding: 0 15px 0 10px;
+  border: 1px solid var(--g-line); border-radius: 999px;
+  background: var(--g-bg); color: var(--g-fg);
+  font-size: 13.5px; font-weight: 700; line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+.launcher:hover { filter: brightness(1.18); }
+.launcher:focus-visible { outline: 3px solid var(--g-ring); outline-offset: 2px; }
+.launcher .q {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fafafa; color: var(--g-pri-text);
+  font-size: 13px; font-weight: 800;
+}
+.pos-bottom-right { right: 16px; bottom: 16px; }
+.pos-bottom-left { left: 16px; bottom: 16px; }
+.pos-top-right { right: 16px; top: 16px; }
+.pos-top-left { left: 16px; top: 16px; }
+.root.is-open .launcher { visibility: hidden; }
+
+/* ---------- 案内の層（モーダルの dialog。画面いっぱいで透明） ---------- */
+.dlg {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  background: transparent; color: inherit;
+  overflow: hidden;
+}
+.dlg::backdrop { background: transparent; }
+.dlg:focus { outline: none; }
+.dlg[open] .dim { animation: g-fade 0.2s ease-out; }
+
+/* 暗幕：画面全体を覆う四角から、指す部品の部分だけをくり抜く */
+.dim { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dim-path { fill: var(--g-dim); }
+/* 暗幕が薄いので、枠の外側に青い光をにじませて、指す部分を見つけやすくする */
+.ring { fill: none; stroke: var(--g-ring); stroke-width: 3; transition: opacity 0.2s; filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.9)); }
+
+/* ---------- 吹き出し ---------- */
+.balloon {
+  position: absolute; left: 0; top: 0;
+  width: min(440px, calc(100vw - 24px));
+  display: flex; flex-direction: column;
+  will-change: transform;
+}
+.balloon.moving { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.arrow {
+  position: absolute; z-index: 0;
+  width: 14px; height: 14px;
+  background: var(--g-bg);
+  border: 1px solid var(--g-line);
+  transform: rotate(45deg);
+}
+.card {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  flex: 1 1 auto; min-height: 0;
+  overflow: hidden;
+  background: var(--g-bg); color: var(--g-fg);
+  border: 1px solid var(--g-line);
+  border-radius: calc(var(--g-radius) + 2px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+.balloon.sheet .card { border-radius: 14px; }
+.card.pulse { animation: g-pulse 0.45s ease-out; }
+
+.hd { flex: none; padding: 10px 16px 8px; border-bottom: 1px solid var(--g-line); }
+.meta { display: flex; align-items: center; gap: 8px; min-height: 26px; font-size: 12px; line-height: 1.4; color: var(--g-muted); }
+.meta > span:first-child { flex: none; white-space: nowrap; }
+.meta .chap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sp { flex: 1 1 auto; }
+.lvl { flex: none; padding: 1px 8px; border-radius: 999px; background: rgba(251, 191, 36, 0.14); color: #fde68a; font-weight: 700; white-space: nowrap; }
+.ttl { margin: 2px 0 0; font-size: 17px; line-height: 1.45; font-weight: 700; color: var(--g-fg); overflow-wrap: anywhere; }
+.ttl:focus { outline: none; }
+.added { margin: 4px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--g-muted); }
+
+.bd {
+  flex: 1 1 auto; min-height: 0;
+  overflow: auto; overscroll-behavior: contain;
+  /* スクロールバーの分の幅を最初から空けておき、スクロールバーが出ても行の折り返しが変わらないようにする */
+  scrollbar-gutter: stable;
+  padding: 12px 16px 2px;
+}
+.bd:focus-visible { outline: 2px solid var(--g-ring); outline-offset: -2px; }
+.bd.fresh { animation: g-fade 0.18s ease-out; }
+.bd p, .bd dd, .bd dt, .bd li { overflow-wrap: anywhere; }
+.bd strong { color: #ffffff; font-weight: 700; }
+.bd code { font-family: var(--g-mono); font-size: 0.88em; padding: 1px 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); overflow-wrap: anywhere; }
+
+/* ---------- 説明のまとまり（ブロック） ---------- */
+.blk { margin: 0 0 14px; }
+.blk p { margin: 0; }
+.lbl {
+  display: inline-block; margin: 0 0 4px; padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 12px; line-height: 1.6; font-weight: 700; letter-spacing: 0.04em;
+}
+/* 冒頭の 1〜2 文：札は付けず、左の線と背景と太字で、最初に読む文だと示す */
+.b-summary { padding: 10px 12px; border-radius: 10px; border-left: 3px solid var(--g-ring); background: rgba(96, 165, 250, 0.12); }
+.b-summary p { font-weight: 600; }
+.b-premise .lbl { color: #fde68a; background: rgba(251, 191, 36, 0.18); }
+.b-term { padding: 9px 12px; border-radius: 10px; background: rgba(167, 139, 250, 0.1); }
+.b-term .lbl { color: #ddd6fe; background: rgba(167, 139, 250, 0.22); }
+.b-term dl { margin: 0; }
+.b-term dt { font-weight: 700; color: #ffffff; }
+.b-term dd { margin: 0; }
+.b-example { padding-left: 12px; border-left: 3px solid #4ade80; }
+.b-example .lbl { color: #bbf7d0; background: rgba(74, 222, 128, 0.16); }
+.b-cause .lbl { color: #a5f3fc; background: rgba(34, 211, 238, 0.16); }
+.ctitle { margin: 0 0 6px !important; font-weight: 600; }
+.chain { list-style: none; margin: 4px 0 0; padding: 0; counter-reset: g-c; }
+.chain li {
+  position: relative; counter-increment: g-c;
+  padding: 6px 10px 6px 36px;
+  border-radius: 8px; background: rgba(255, 255, 255, 0.05);
+}
+.chain li::before {
+  content: counter(g-c);
+  position: absolute; left: 10px; top: 8px;
+  display: grid; place-items: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  font-size: 11px; line-height: 1; font-weight: 700;
+  background: rgba(34, 211, 238, 0.25); color: #cffafe;
+}
+.chain li + li { margin-top: 22px; }
+.chain li + li::after {
+  content: "↓";
+  position: absolute; left: 14px; top: -21px;
+  font-size: 13px; line-height: 20px; color: var(--g-muted);
+}
+.b-do .lbl { color: #e4e4e7; background: rgba(255, 255, 255, 0.12); }
+.do-step {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px;
+  padding: 8px 10px; border: 1px solid var(--g-line); border-radius: 10px;
+}
+.do-step + .do-step { margin-top: 8px; }
+.do-step.single { grid-template-columns: minmax(0, 1fr); }
+.do-step.single .do-no { display: none; }
+.do-no {
+  grid-row: span 2; align-self: start;
+  display: grid; place-items: center;
+  width: 22px; height: 22px; margin-top: 2px; border-radius: 50%;
+  background: #fafafa; color: var(--g-pri-text);
+  font-size: 12px; font-weight: 800; line-height: 1;
+}
+.who { display: inline-block; min-width: 3em; margin-right: 6px; font-size: 12px; font-weight: 700; color: var(--g-muted); }
+.act { font-weight: 600; }
+.b-note .lbl { color: #fecaca; background: rgba(248, 113, 113, 0.18); }
+
+/* 前の手順で説明した言葉（押すと、意味をその場に出す） */
+.tref { all: unset; cursor: pointer; border-bottom: 1px dashed currentColor; }
+.tref:focus-visible { outline: 2px solid var(--g-ring); outline-offset: 1px; border-radius: 2px; }
+.tdef { color: #ddd6fe; font-size: 0.92em; }
+
+.missing {
+  margin: 0 0 14px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(251, 191, 36, 0.12); color: #fde68a;
+  font-size: 13.5px; line-height: 1.65;
+}
+
+/* ---------- 「分からない」の行（ふつうは詳細の中の最後。詳細が無い手順だけ、吹き出しの下に出す） ---------- */
+.gran { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 16px; border-top: 1px solid var(--g-line); }
+.details .gran { margin-top: 14px; padding: 12px 0 2px; }
+.gran .hint { flex: 1 1 140px; font-size: 12px; line-height: 1.45; color: var(--g-muted); }
+.gran:empty, .ft:empty { display: none; }
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 34px; padding: 0 14px;
+  border: 1px solid #52525b; border-radius: 8px;
+  background: transparent; color: #fafafa;
+  font-size: 13.5px; font-weight: 600; line-height: 1.2;
+  white-space: nowrap; cursor: pointer;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.08); }
+.btn:focus-visible { outline: 2px solid var(--g-ring); outline-offset: 2px; }
+.btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
+.btn.pri { background: #fafafa; border-color: #fafafa; color: var(--g-pri-text); }
+.btn.pri:hover { background: #eff6ff; }
+.btn.lnk { border-color: transparent; color: var(--g-muted); padding: 0 8px; }
+.btn.lnk:hover { color: #fafafa; background: transparent; text-decoration: underline; }
+.btn.ask { border-color: #fbbf24; color: #fde68a; }
+.btn.ask:hover { background: rgba(251, 191, 36, 0.12); }
+.btn.small { min-height: 28px; padding: 0 10px; font-size: 12.5px; }
+
+/* ---------- 下の帯（進み具合・やめる・戻る・次へ） ---------- */
+.ft { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 16px 12px; }
+.dots { display: flex; flex-wrap: wrap; gap: 4px; margin-right: auto; max-width: 42%; }
+.dots span { width: 6px; height: 6px; border-radius: 50%; background: #52525b; }
+.dots span.on { background: #fafafa; }
+.bar { margin-right: auto; width: 96px; height: 4px; border-radius: 2px; background: #3f3f46; overflow: hidden; }
+.bar i { display: block; height: 100%; background: #fafafa; }
+
+/* ---------- 目次 ---------- */
+.toc-h { margin: 4px 0 8px !important; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--g-muted); }
+.toc-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.toc-chap { margin: 10px 0 4px; font-size: 12.5px; font-weight: 700; color: #e4e4e7; }
+.toc-item {
+  all: unset; box-sizing: border-box;
+  display: flex; gap: 10px; width: 100%;
+  padding: 6px 8px; border-radius: 8px;
+  line-height: 1.5; cursor: pointer;
+}
+.toc-item:hover { background: rgba(255, 255, 255, 0.07); }
+.toc-item:focus-visible { outline: 2px solid var(--g-ring); }
+.toc-item.cur { background: rgba(96, 165, 250, 0.18); }
+.toc-no { flex: none; width: 1.8em; color: var(--g-muted); font-variant-numeric: tabular-nums; }
+.gloss { margin: 0 0 12px; }
+.gloss dt { margin-top: 10px; font-weight: 700; color: #ffffff; }
+.gloss dd { margin: 0; color: #e4e4e7; }
+.gloss .from { color: var(--g-muted); font-size: 12px; }
+
+/* ---------- 「分からない」で最も細かい説明を超えたとき ---------- */
+.handoff { margin: 2px 0 14px; padding: 12px; border: 1px solid #fbbf24; border-radius: 10px; background: rgba(251, 191, 36, 0.08); }
+.handoff p { margin: 0 0 8px; }
+.handoff textarea {
+  display: block; width: 100%; min-height: 128px; margin-top: 8px; padding: 8px;
+  border: 1px solid var(--g-line); border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28); color: var(--g-fg);
+  font: 12.5px/1.6 var(--g-mono); resize: vertical;
+}
+.copied { min-height: 1.6em; margin: 6px 0 0 !important; color: #bbf7d0; font-size: 13px; }
+
+/* ---------- 案内への誘い ---------- */
+.wel-p { margin: 0 0 12px; }
+.wel-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+.wel-note { margin: 0 0 12px; font-size: 13px; color: var(--g-muted); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@keyframes g-fade { from { opacity: 0; } }
+@keyframes g-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); box-shadow: 0 0 0 4px var(--g-ring), 0 24px 64px rgba(0, 0, 0, 0.45); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .balloon.moving { transition: none; }
+  .card.pulse, .bd.fresh, .dlg[open] .dim { animation: none; }
+  .ring { transition: none; }
+}
+@media (forced-colors: active) {
+  .card, .launcher { border: 1px solid CanvasText; }
+  .ring { stroke: Highlight; }
+  .btn { border: 1px solid ButtonText; }
+}
+@media print {
+  .launcher, .dlg { display: none !important; }
+}
+
+/* ---------- 「詳細」（冒頭の 1〜2 文のほかのまとまりを開閉する） ---------- */
+.more {
+  all: unset; box-sizing: border-box;
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 0 0 12px; padding: 7px 12px;
+  border: 1px solid var(--g-line); border-radius: 8px;
+  font-size: 13.5px; font-weight: 700; line-height: 1.4; color: #e4e4e7;
+  cursor: pointer;
+}
+.more:hover { background: rgba(255, 255, 255, 0.06); }
+.more:focus-visible { outline: 2px solid var(--g-ring); outline-offset: 2px; }
+.more .chev {
+  width: 7px; height: 7px; margin-left: auto;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s;
+}
+.more[aria-expanded="true"] .chev { transform: translateY(2px) rotate(-135deg); }
+.details:not([hidden]) { animation: g-fade 0.18s ease-out; }
+/* 狭い画面で、吹き出しの下に「分からない」の行を出すときは、横の説明を省いて、本文に高さを回す（詳細の中の行は、本文と一緒に送れるので省かない） */
+.balloon.sheet .card > .gran .hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .details:not([hidden]) { animation: none; }
+  .more .chev { transition: none; }
+}
+
+/* ---------- ライブの案内（URL のページを Playwright で解説するとき） ---------- */
+/* 読み手が自分でページを操作する手順：暗幕を出さず、吹き出しの外はページがクリックを受け取る */
+.root.interactive .dlg { pointer-events: none; }
+.root.interactive .balloon { pointer-events: auto; }
+.root.interactive .dim-path { fill: transparent; }
+/* 操作を受け持つ側が次の画面を出すまでの間 */
+.card.busy { cursor: progress; }
+/* 自動の操作を見せている間：解説と同じ暗幕と枠で操作する部分を照らす。
+ * 暗幕・枠・吹き出しはクリックを受け取らない（Playwright のクリックや入力が、照らしている部分に届くように）。
+ * 枠は橙にして、解説の枠（青）と区別する */
+.root.op .dlg, .root.op .balloon { pointer-events: none; }
+.root.op .ring { stroke: #f59e0b; filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.9)); }
+.op-badge {
+  display: inline-block; padding: 1px 9px; border-radius: 999px;
+  background: rgba(245, 158, 11, 0.22); color: #fde68a;
+  font-size: 12px; font-weight: 700;
+}
+.op-lead { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--g-muted); }
+.root.op .bd { padding-bottom: 14px; }
+
+/* 自動で操作している間は、隅の「解説」ボタンも隠す（操作する部品に重なって、クリックをさえぎらないように） */
+.root.operating .launcher { visibility: hidden; }
+/* 次の手順で自動で行う操作の予告 */
+.op-next {
+  margin-top: 14px; padding: 10px 12px;
+  border: 1px dashed rgba(245, 158, 11, 0.55); border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  font-size: 13.5px;
+}
+.op-next-lead { margin: 0 0 4px; font-weight: 700; color: #fde68a; }
+.op-next ol { margin: 0; padding-left: 1.4em; }
+/* 読み手が自分で操作する手順の知らせ */
+.self-op {
+  margin: 10px 0 12px; padding: 6px 10px; border-radius: 8px;
+  background: rgba(96, 165, 250, 0.12); color: #bfdbfe;
+  font-size: 13.5px; font-weight: 700;
+}
