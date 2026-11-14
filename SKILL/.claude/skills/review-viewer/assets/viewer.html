@@ -5,30 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>成果物レビュー</title>
 <style>
+/* このスタイルは、レビュー用ウィンドウ（判定とコメントを書く別ウィンドウ）にも写して使う。
+   画面の幅で切り替える指定は、別ウィンドウにも効くため、レビュー対象のウィンドウにしか無いクラスだけに付ける。 */
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f1f3f6; --text: #1d2330; --muted: #5d6677;
-  --line: #dde1e8; --accent: #2f5bd3; --accent-weak: #e7edfc; --focus: #2f5bd3;
+  --line: #dde1e8; --accent: #2f5bd3; --accent-weak: #e7edfc; --focus: #2f5bd3; --on-accent: #ffffff;
   --good: #1f8a4c; --good-bg: #e3f4ea; --warn: #b26a00; --warn-bg: #fdf0dc;
   --bad: #c0362c; --bad-bg: #fbe4e2; --neutral: #4b5cc4; --neutral-bg: #e9ecfb;
   --none: #8a93a3; --code-bg: #f4f5f8; --shadow: 0 1px 2px rgba(20,30,50,.06), 0 2px 8px rgba(20,30,50,.05);
+  --bar-bg: #262c38; --bar-text: #eef1f7; --bar-muted: #b3bccd; --bar-line: #4a5367; --bar-error: #ffb4ab;
   --mono: ui-monospace, "Cascadia Code", Consolas, "BIZ UDGothic", "MS Gothic", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171d; --panel: #1b1f27; --panel-2: #222733; --text: #e4e7ee; --muted: #9aa3b5;
-    --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff;
+    --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff; --on-accent: #0d1426;
     --good: #5fd08f; --good-bg: #183324; --warn: #f0b45a; --warn-bg: #3a2c14;
     --bad: #ff8a80; --bad-bg: #3d1c1a; --neutral: #9aa7ff; --neutral-bg: #262b4a;
     --none: #7b8496; --code-bg: #161a21; --shadow: 0 1px 2px rgba(0,0,0,.3);
+    --bar-bg: #0b0d12; --bar-text: #e4e7ee; --bar-muted: #98a1b3; --bar-line: #30374a; --bar-error: #ff8a80;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --panel: #1b1f27; --panel-2: #222733; --text: #e4e7ee; --muted: #9aa3b5;
-  --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff;
+  --line: #2e3442; --accent: #7d9bff; --accent-weak: #232c48; --focus: #7d9bff; --on-accent: #0d1426;
   --good: #5fd08f; --good-bg: #183324; --warn: #f0b45a; --warn-bg: #3a2c14;
   --bad: #ff8a80; --bad-bg: #3d1c1a; --neutral: #9aa7ff; --neutral-bg: #262b4a;
   --none: #7b8496; --code-bg: #161a21; --shadow: 0 1px 2px rgba(0,0,0,.3);
+  --bar-bg: #0b0d12; --bar-text: #e4e7ee; --bar-muted: #98a1b3; --bar-line: #30374a; --bar-error: #ff8a80;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -36,29 +41,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 button { font: inherit; color: inherit; }
 a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-
-/* 全体の枠 */
-.app { display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); height: 100vh; }
-header.top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-header.top h1 { font-size: 16px; margin: 0; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
-.counts { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
-.save-status { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.save-status.error { color: var(--bad); font-weight: 600; }
-.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; min-height: 0; }
-.layout.no-panel { grid-template-columns: 260px minmax(0, 1fr); }
-nav.list { border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 8px 0 24px; }
-main.content { overflow-y: auto; padding: 16px 20px 48px; min-width: 0; }
-main.content:focus { outline: none; }
-aside.panel { border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 16px; }
+[hidden] { display: none !important; }
 
 /* ボタン */
 .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: var(--panel-2); }
 .btn:disabled { opacity: .45; cursor: default; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 2px 8px; font-size: 12px; }
-.btn.link { border: none; background: none; color: var(--accent); padding: 0; text-decoration: underline; cursor: pointer; }
+.btn.big { padding: 8px 20px; font-size: 15px; }
+.btn.link { border: none; background: none; color: var(--accent); padding: 0; text-decoration: underline; cursor: pointer; white-space: normal; text-align: left; }
 
 /* 判定の表示 */
 .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 9px; font-size: 12px; border: 1px solid transparent; white-space: nowrap; }
@@ -69,42 +62,57 @@ aside.panel { border-left: 1px solid var(--line); background: var(--panel); over
 .tone-neutral { color: var(--neutral); background: var(--neutral-bg); }
 .tone-none { color: var(--none); background: transparent; border-color: var(--line); }
 .tone-none .dot { background: transparent; border: 1.5px solid currentColor; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.empty { color: var(--muted); padding: 40px; text-align: center; }
 
-/* 一覧 */
-.list-entry { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left; border: none; background: none; padding: 6px 14px; cursor: pointer; border-left: 3px solid transparent; }
-.list-entry:hover { background: var(--panel-2); }
-.list-entry.active { background: var(--accent-weak); border-left-color: var(--accent); }
-.list-entry .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: currentColor; }
-.list-entry .dot.none { background: transparent; border: 1.5px solid var(--none); color: var(--none); }
-.list-entry .body { min-width: 0; flex: 1; }
-.list-entry .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.list-entry.unviewed .name { font-weight: 650; }
-.list-entry .meta { display: block; font-size: 11.5px; color: var(--muted); }
-.list-group { padding: 12px 14px 4px; font-size: 12px; font-weight: 650; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
-.list-overview { font-weight: 600; }
-.list-sep { height: 1px; background: var(--line); margin: 6px 0; }
-.list-legend { padding: 10px 14px 0; font-size: 11.5px; color: var(--muted); }
+/* ------------------------------------------------------------------
+   レビュー対象のウィンドウ（成果物だけを表示する）
+   ------------------------------------------------------------------ */
+/* 案内欄（#notice）を隠しても成果物の欄が残りの高さを使い切るよう、縦の flex で並べる */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.tbar { display: flex; align-items: center; gap: 6px 12px; padding: 6px 12px; min-height: 42px; background: var(--bar-bg); color: var(--bar-text); font-size: 13px; flex-wrap: wrap; }
+.tbar-tag { flex: none; font-size: 11.5px; font-weight: 650; color: var(--bar-muted); border: 1px solid var(--bar-line); border-radius: 4px; padding: 0 6px; white-space: nowrap; }
+.tbar-where { display: flex; align-items: baseline; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.tbar-group, .tbar-sep, .tbar-pos { color: var(--bar-muted); white-space: nowrap; }
+.tbar-pos { font-size: 12px; }
+.tbar-title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tbar-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.tbar-note { color: var(--bar-muted); font-size: 12px; }
+.tbar-error { color: var(--bar-error); font-weight: 650; font-size: 12px; }
+.tbar .btn { background: transparent; border-color: var(--bar-line); color: var(--bar-text); }
+.tbar .btn:hover { background: rgba(255,255,255,.08); }
+.tbar .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.notice-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--warn-bg); border-bottom: 1px solid var(--line); font-size: 13px; }
+.tlayout { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.tlayout.docked { grid-template-columns: minmax(0, 1fr) 380px; }
+.stage { overflow: auto; min-width: 0; min-height: 0; padding: 12px 16px 40px; }
+.stage:focus { outline: none; }
+.dock { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--panel); }
+.dock > .rp { height: auto; flex: 1 1 auto; min-height: 0; }
+.stage-empty { max-width: 640px; margin: 40px auto; color: var(--muted); text-align: center; }
 
-/* 項目の本文 */
-.item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-.item-head h2 { font-size: 19px; margin: 0; flex: 1; min-width: 200px; }
-.crumb { font-size: 12px; color: var(--muted); }
-.pos { color: var(--muted); font-size: 13px; white-space: nowrap; }
+/* 始める前の画面 */
+.start { max-width: 760px; margin: 28px auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 22px 24px; }
+.start h1 { font-size: 20px; margin: 0 0 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.start .desc { margin: 0 0 12px; }
+.windows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 18px; }
+.win-box { border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--panel-2); }
+.win-box.accent { border-color: var(--accent); background: var(--accent-weak); }
+.win-name { font-weight: 650; }
+.win-role { font-size: 12.5px; color: var(--muted); }
+
+/* 成果物ファイル */
+.file-toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 14px; }
 .card > .card-body { padding: 12px 16px; }
-.desc { white-space: pre-wrap; }
-.desc-label, .section-label { font-size: 12px; font-weight: 650; color: var(--muted); margin-bottom: 4px; letter-spacing: .02em; }
-.previous { border-left: 4px solid var(--none); }
-.previous .comment { white-space: pre-wrap; margin-top: 6px; }
-.file-toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .file-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; background: var(--panel-2); border-radius: 8px 8px 0 0; }
 .file-head .fname { font-weight: 600; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; flex: 1; min-width: 160px; }
 .file-head .fmeta { color: var(--muted); font-size: 12px; }
-.file-head .tools { display: flex; gap: 6px; }
+.file-head .tools { display: flex; gap: 6px; flex-wrap: wrap; }
 .file-body { padding: 0; }
 .notice { padding: 8px 12px; font-size: 12.5px; background: var(--warn-bg); color: var(--warn); border-bottom: 1px solid var(--line); }
 .error-box { padding: 12px 16px; color: var(--bad); background: var(--bad-bg); border-radius: 0 0 8px 8px; overflow-wrap: anywhere; }
-.frame-wrap { resize: vertical; overflow: hidden; height: 620px; min-height: 160px; border-radius: 0 0 8px 8px; background: #fff; }
+.frame-wrap { resize: vertical; overflow: hidden; height: calc(100vh - 150px); min-height: 320px; border-radius: 0 0 8px 8px; background: #fff; }
 .frame-wrap iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
 .img-wrap { padding: 12px; text-align: center; background-color: var(--panel-2);
   background-image: linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%),
@@ -113,18 +121,18 @@ aside.panel { border-left: 1px solid var(--line); background: var(--panel); over
 .img-wrap img { max-width: 100%; height: auto; cursor: zoom-in; }
 .img-wrap.actual { overflow: auto; text-align: left; }
 .img-wrap.actual img { max-width: none; cursor: zoom-out; }
-pre.code { margin: 0; padding: 10px 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--code-bg); overflow: auto; max-height: 72vh; counter-reset: ln; border-radius: 0 0 8px 8px; tab-size: 4; }
+pre.code { margin: 0; padding: 10px 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--code-bg); overflow: auto; max-height: 78vh; counter-reset: ln; border-radius: 0 0 8px 8px; tab-size: 4; }
 pre.code .l { display: block; padding: 0 12px 0 0; white-space: pre; min-height: 1.55em; }
 pre.code .l::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 3.6em; padding-right: 12px; margin-right: 10px; text-align: right; color: var(--none); border-right: 1px solid var(--line); user-select: none; }
 pre.code.wrap .l { white-space: pre-wrap; overflow-wrap: anywhere; padding-left: 4.9em; text-indent: -4.9em; }
-.table-wrap { overflow: auto; max-height: 72vh; border-radius: 0 0 8px 8px; }
+.table-wrap { overflow: auto; max-height: 78vh; border-radius: 0 0 8px 8px; }
 table.data { border-collapse: collapse; font-size: 12.5px; font-family: var(--mono); }
 table.data th, table.data td { border: 1px solid var(--line); padding: 3px 8px; white-space: pre; text-align: left; vertical-align: top; }
 table.data thead th { position: sticky; top: 0; background: var(--panel-2); }
 table.data td.rn { color: var(--none); text-align: right; }
 
 /* Markdown */
-.md { padding: 6px 22px 14px; overflow-wrap: anywhere; }
+.md { padding: 6px 22px 14px; overflow-wrap: anywhere; max-width: 980px; }
 .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { line-height: 1.35; margin: 1.2em 0 .5em; }
 .md h1 { font-size: 1.6em; border-bottom: 1px solid var(--line); padding-bottom: .25em; }
 .md h2 { font-size: 1.35em; border-bottom: 1px solid var(--line); padding-bottom: .2em; }
@@ -143,13 +151,42 @@ table.data td.rn { color: var(--none); text-align: right; }
 .md img { max-width: 100%; }
 .md li.task { list-style: none; margin-left: -1.3em; }
 
-/* 判定とコメントの欄 */
-.panel h3 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 650; }
-.verdicts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+/* ------------------------------------------------------------------
+   レビュー用ウィンドウ（一覧・見てほしいこと・判定・コメント・完了）
+   ------------------------------------------------------------------ */
+body.panel-doc { height: 100vh; overflow: hidden; background: var(--panel); }
+.rp { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--panel); }
+.rp-head { padding: 10px 14px 8px; border-bottom: 1px solid var(--line); }
+.rp-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rp-tag { flex: none; font-size: 11px; font-weight: 650; color: var(--accent); background: var(--accent-weak); border-radius: 4px; padding: 0 6px; white-space: nowrap; }
+.rp-title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.counts { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.rp-tabs { display: flex; gap: 4px; padding: 8px 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tab { border: 1px solid transparent; border-bottom: none; background: none; padding: 5px 10px; border-radius: 6px 6px 0 0; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
+.tab:hover { color: var(--text); }
+.tab[aria-pressed="true"] { background: var(--panel); border-color: var(--line); color: var(--text); font-weight: 650; }
+.tab:disabled { opacity: .45; cursor: default; }
+.rp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px 20px; }
+.rp-body:focus { outline: none; }
+.rp-foot { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.save-status { color: var(--muted); font-size: 12px; flex: 1; min-width: 0; }
+.save-status.error { color: var(--bad); font-weight: 600; }
+.rp-item-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.rp-item-head h2 { font-size: 17px; margin: 2px 0 6px; line-height: 1.4; overflow-wrap: anywhere; }
+.rp-files { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.rp-files .fname-inline { font-family: var(--mono); color: var(--text); overflow-wrap: anywhere; }
+.rp-files .btn { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.section-label { font-size: 12px; font-weight: 650; color: var(--muted); margin: 16px 0 4px; letter-spacing: .02em; }
+.rp-section > .section-label:first-child { margin-top: 14px; }
+.desc { white-space: pre-wrap; overflow-wrap: anywhere; }
+.previous { border-left: 4px solid var(--none); background: var(--panel-2); border-radius: 0 6px 6px 0; padding: 8px 10px; margin: 14px 0 0; }
+.previous .section-label { margin-top: 0; }
+.previous .comment { white-space: pre-wrap; margin-top: 6px; overflow-wrap: anywhere; }
+.verdicts { display: flex; flex-direction: column; gap: 6px; }
 .verdict-btn { display: flex; align-items: center; gap: 8px; border: 1.5px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; cursor: pointer; text-align: left; }
 .verdict-btn:hover { background: var(--panel-2); }
 .verdict-btn .key { margin-left: auto; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-family: var(--mono); }
-.verdict-btn .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.verdict-btn .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
 .verdict-btn[aria-pressed="true"] { border-color: currentColor; font-weight: 650; }
 .verdict-btn.tone-good, .verdict-btn.tone-warn, .verdict-btn.tone-bad, .verdict-btn.tone-neutral { background: var(--panel); }
 .verdict-btn.tone-good[aria-pressed="true"] { background: var(--good-bg); }
@@ -157,22 +194,29 @@ table.data td.rn { color: var(--none); text-align: right; }
 .verdict-btn.tone-bad[aria-pressed="true"] { background: var(--bad-bg); }
 .verdict-btn.tone-neutral[aria-pressed="true"] { background: var(--neutral-bg); }
 .verdict-btn .lbl { color: var(--text); }
-.clear-verdict { font-size: 12px; }
-textarea.comment { width: 100%; min-height: 200px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; background: var(--panel); color: var(--text); line-height: 1.6; }
+textarea.comment { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; background: var(--panel); color: var(--text); line-height: 1.6; display: block; }
 textarea.comment:focus { outline: 2px solid var(--focus); outline-offset: 0; border-color: transparent; }
-.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
-.panel-nav { display: flex; gap: 8px; margin-top: 14px; }
-.panel-nav .btn { flex: 1; }
+.rp-move { display: flex; gap: 8px; margin-top: 14px; }
+.rp-move .btn { flex: 1; }
+.rp-start { margin: 0 0 4px; }
+.olist { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.olist-group { display: flex; justify-content: space-between; gap: 8px; padding: 6px 12px 2px; font-size: 12px; font-weight: 650; color: var(--muted); background: var(--panel-2); border-top: 1px solid var(--line); }
+.olist-group:first-child { border-top: none; }
+.o-entry { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left; border: none; border-left: 3px solid transparent; background: var(--panel); padding: 7px 12px; cursor: pointer; }
+.o-entry:hover { background: var(--panel-2); }
+.o-entry.active { background: var(--accent-weak); border-left-color: var(--accent); }
+.o-entry .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: currentColor; }
+.o-entry .dot.none { background: transparent; border: 1.5px solid var(--none); color: var(--none); }
+.o-entry .body { min-width: 0; flex: 1; }
+.o-entry .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-entry.unviewed .name { font-weight: 650; }
+.o-entry .meta, .o-entry .excerpt { display: block; font-size: 11.5px; color: var(--muted); }
+.o-entry .excerpt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-complete { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.rp-complete .hint { margin: 0; flex: 1 1 180px; }
+.rp.readonly textarea, .rp.readonly .verdict-btn { pointer-events: none; opacity: .7; }
 
-/* 概要 */
-table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
-table.summary th, table.summary td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
-table.summary th { color: var(--muted); font-weight: 600; font-size: 12px; }
-table.summary tr.row { cursor: pointer; }
-table.summary tr.row:hover { background: var(--panel-2); }
-table.summary .excerpt { color: var(--muted); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* 完了の確認 */
+/* 完了の確認と、完了後の表示 */
 .modal-back { position: fixed; inset: 0; background: rgba(10,15,25,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
 .modal { background: var(--panel); border-radius: 10px; max-width: 560px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,.3); padding: 20px 22px; max-height: 90vh; overflow: auto; }
 .modal h2 { margin: 0 0 10px; font-size: 18px; }
@@ -180,44 +224,39 @@ table.summary .excerpt { color: var(--muted); max-width: 420px; overflow: hidden
 .modal ul { margin: 6px 0; padding-left: 1.3em; }
 .warnbox { background: var(--warn-bg); color: var(--text); border-left: 4px solid var(--warn); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
 .banner { padding: 10px 16px; background: var(--good-bg); color: var(--text); border-bottom: 1px solid var(--line); }
-.banner.err { background: var(--bad-bg); }
-.readonly textarea, .readonly .verdict-btn { pointer-events: none; opacity: .7; }
-.empty { color: var(--muted); padding: 40px; text-align: center; }
+.banner .btn { margin-left: 6px; }
 
-/* 狭い画面 */
-@media (max-width: 1100px) {
-  .layout, .layout.no-panel { grid-template-columns: 220px minmax(0, 1fr); }
-  aside.panel { grid-column: 2; border-left: none; border-top: 1px solid var(--line); }
-  .layout { grid-template-rows: 1fr auto; }
-  nav.list { grid-row: 1 / span 2; }
+/* 狭い画面（レビュー対象のウィンドウにだけあるクラスに限る） */
+@media (max-width: 900px) {
+  .app.is-docked { height: auto; min-height: 100vh; }
+  .tlayout.docked { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; }
+  .tlayout.docked .stage { overflow: visible; }
+  .dock { border-left: none; border-top: 1px solid var(--line); }
+  .dock > .rp { flex: none; }
+  .dock .rp-body { overflow: visible; }
 }
 @media (max-width: 760px) {
-  .app { height: auto; }
-  .layout, .layout.no-panel { display: block; }
-  nav.list { max-height: 40vh; border-right: none; border-bottom: 1px solid var(--line); }
-  main.content { padding: 12px 16px 24px; }
-  header.top h1 { max-width: 100%; white-space: normal; flex: 1; }
-  .counts { order: 3; flex-basis: 100%; }
-  .item-head .btn { flex: 1; }
+  .stage { padding: 10px 10px 24px; }
+  .start { margin: 12px auto; padding: 16px; }
+  .windows { grid-template-columns: minmax(0, 1fr); }
+  .tlayout .md { padding: 6px 14px 12px; }
 }
 </style>
 </head>
 <body>
 <div class="app" id="app">
-  <header class="top">
-    <h1 id="title">成果物レビュー</h1>
-    <div class="counts" id="counts"></div>
-    <span class="save-status" id="saveStatus"></span>
-    <button class="btn primary" id="completeBtn" type="button">レビュー完了</button>
+  <header class="tbar" id="tbar">
+    <span class="tbar-tag">レビュー対象</span>
+    <span class="tbar-where" id="tbarWhere"></span>
+    <span class="tbar-tools" id="tbarTools"></span>
   </header>
+  <div class="notice-row" id="notice" hidden></div>
   <div id="banner"></div>
-  <div class="layout" id="layout">
-    <nav class="list" id="list" aria-label="レビュー項目の一覧"></nav>
-    <main class="content" id="content" tabindex="-1"></main>
-    <aside class="panel" id="panel" aria-label="判定とコメント"></aside>
+  <div class="tlayout" id="tlayout">
+    <main class="stage" id="stage" tabindex="-1" aria-label="レビュー対象の成果物"></main>
+    <aside class="dock" id="dock" hidden aria-label="判定とコメント"></aside>
   </div>
 </div>
-<div id="modalRoot"></div>
 
 <script>
 const REVIEW_DATA = /*__REVIEW_DATA__*/null;
@@ -237,13 +276,21 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   const OPTIONS = VERDICT.enabled ? VERDICT.options : [];
   const OPT = Object.fromEntries(OPTIONS.map((o) => [o.value, o]));
   const ITEMS = D.items;
-  const OVERVIEW = "__overview__";
 
+  // 画面は2つのウィンドウに分かれる。
+  //   レビュー対象のウィンドウ（このページ）: 表示中の項目の成果物だけを出す
+  //   レビュー用ウィンドウ: 一覧・見てほしいこと・判定・コメント・完了を出す。判定とコメントはここに書く
+  // どちらの画面もこのページのスクリプトが描き、保存もこのページから送る。
+  // そのため、レビュー用ウィンドウを閉じても、入力した内容は消えない。
   const state = {
     reviews: {},              // id -> {verdict, comment, viewed}
     overall_comment: "",
-    current: null,            // 項目 id または OVERVIEW
+    current: null,            // レビュー対象のウィンドウに表示している項目の id。まだどれも開いていなければ null
+    view: "item",             // レビュー用ウィンドウの表示。"item"＝表示中の項目、"overview"＝一覧と全体コメント
     completed: false,
+    doneMessage: "",
+    save: { kind: "", text: "" },  // 最後の保存状態。レビュー用ウィンドウを開き直したときにも同じ表示を出す
+    notice: null,             // 別ウィンドウを開けなかったときの案内 {text, choices: ["popup" | "dock"]}
   };
   ITEMS.forEach((it) => { state.reviews[it.id] = { verdict: null, comment: "", viewed: false }; });
 
@@ -265,7 +312,8 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     }
     for (const c of children.flat()) {
       if (c == null || c === false) continue;
-      e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+      // 別ウィンドウの要素も受け取れるよう、instanceof ではなく nodeType で見分ける
+      e.append(typeof c === "object" && c.nodeType ? c : String(c));
     }
     return e;
   }
@@ -282,6 +330,8 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     const g = D.groups.find((x) => x.id === id);
     return g ? g.label : id;
   }
+  function indexOf(id) { return ITEMS.findIndex((x) => x.id === id); }
+  function currentItem() { const i = indexOf(state.current); return i >= 0 ? ITEMS[i] : null; }
 
   // ------------------------------------------------------------------
   // 保存（サーバーへの送信と、ブラウザ内の控え）
@@ -328,14 +378,17 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   }
 
   function setSaveStatus(kind, detail) {
-    const s = $("saveStatus");
-    s.classList.toggle("error", kind === "error");
-    if (kind === "pending") s.textContent = "保存待ち…";
-    else if (kind === "saving") s.textContent = "保存中…";
-    else if (kind === "saved") s.textContent = "保存済み " + new Date().toLocaleTimeString("ja-JP");
-    else if (kind === "local") s.textContent = "このブラウザに保存済み " + new Date().toLocaleTimeString("ja-JP");
-    else if (kind === "error") s.textContent = "保存に失敗しました: " + (detail || "") + "（入力内容はこのブラウザに控えてあります）";
-    else s.textContent = detail || "";
+    let text;
+    if (kind === "pending") text = "保存待ち…";
+    else if (kind === "saving") text = "保存中…";
+    else if (kind === "saved") text = "保存済み " + new Date().toLocaleTimeString("ja-JP");
+    else if (kind === "local") text = "このブラウザに保存済み " + new Date().toLocaleTimeString("ja-JP");
+    else if (kind === "error") text = "保存に失敗しました: " + (detail || "") + "（入力内容はこのブラウザに控えてあります）";
+    else text = detail || "";
+    const errorChanged = (state.save.kind === "error") !== (kind === "error");
+    state.save = { kind, text };
+    renderSaveStatus();
+    if (errorChanged) renderBar(); // レビュー用ウィンドウを閉じていても、保存の失敗に気づけるようにする
   }
 
   async function postFeedback(status, keepalive) {
@@ -369,12 +422,6 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       .finally(() => { inflight = null; if (again) { again = false; flushSave(); } });
     await inflight;
   }
-  window.addEventListener("pagehide", () => {
-    if (saveTimer && MODE === "server" && !state.completed) {
-      clearTimeout(saveTimer);
-      postFeedback("in_progress", true).catch(() => {});
-    }
-  });
 
   async function restore() {
     let data = null;
@@ -603,7 +650,7 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
   }
 
   // ------------------------------------------------------------------
-  // 成果物ファイルの表示
+  // 成果物ファイルの表示（レビュー対象のウィンドウ）
   // ------------------------------------------------------------------
   function codeBlock(text, wrap) {
     const pre = el("pre", { class: "code" + (wrap ? " wrap" : "") });
@@ -724,9 +771,259 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     return card;
   }
 
+  function scrollStageTo(k) {
+    const t = document.getElementById("file-" + k);
+    if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   // ------------------------------------------------------------------
-  // 画面の描画
+  // レビュー用ウィンドウの置き場所
+  //   pip   : 常に手前に表示される別ウィンドウ（Document Picture-in-Picture。Chrome・Edge で使える）
+  //   popup : 通常の別ウィンドウ（window.open。上が使えないブラウザで使う）
+  //   dock  : このウィンドウの右側（別ウィンドウを開けなかったときに、利用者が選んだ場合だけ使う）
+  // どれも、このページで作った要素を移して表示するので、クリックや入力の処理はこのページで動く。
   // ------------------------------------------------------------------
+  const PIP = window.documentPictureInPicture;
+  const PIP_OK = !!(PIP && typeof PIP.requestWindow === "function");
+  const host = { kind: null, win: null, doc: null, root: null, timer: null };
+  const ui = {};             // レビュー用ウィンドウの中の要素。開いていないときは空
+  let opening = false;
+
+  function isWindowHost() { return host.kind === "pip" || host.kind === "popup"; }
+  function panelHeight() { return Math.max(480, Math.min(760, (screen.availHeight || 900) - 120)); }
+
+  async function openPanelWindow(kind) {
+    if (opening || state.completed) return;
+    if (isWindowHost()) { focusPanel(); return; }
+    kind = kind || (PIP_OK ? "pip" : "popup");
+    opening = true;
+    let win = null;
+    try {
+      if (kind === "pip") {
+        try {
+          // 「タブに戻る」ボタンは出さない。押すとこのウィンドウが閉じ、開き直す手間が増えるため
+          win = await PIP.requestWindow({ width: 420, height: panelHeight(), disallowReturnToOpener: true });
+        } catch (e) {
+          state.notice = { text: "常に手前に表示されるレビュー用ウィンドウを開けませんでした（" + ((e && e.message) || e) + "）。", choices: ["popup", "dock"] };
+          renderBar();
+          return;
+        }
+      } else {
+        const w = 440, h = panelHeight();
+        const left = Math.max(0, (screen.availLeft || 0) + (screen.availWidth || 1280) - w - 24);
+        const top = Math.max(0, (screen.availTop || 0) + 40);
+        // 名前にポートを含め、別のレビュー（別のポート）のウィンドウを取り違えないようにする
+        try { win = window.open("", "review-viewer-panel-" + (location.port || "static"), "popup=yes,width=" + w + ",height=" + h + ",left=" + left + ",top=" + top); }
+        catch (_) { win = null; }
+        if (!win) {
+          state.notice = { text: "ブラウザが新しいウィンドウを開くのを止めました（ポップアップのブロック）。", choices: ["dock"] };
+          renderBar();
+          return;
+        }
+      }
+      if (host.kind === "dock") detach();
+      try {
+        attachWindow(kind, win);
+      } catch (e) {
+        detach();
+        try { win.close(); } catch (_) {}
+        state.notice = { text: "レビュー用ウィンドウを準備できませんでした（" + ((e && e.message) || e) + "）。", choices: ["dock"] };
+        renderBar();
+      }
+    } finally {
+      opening = false;
+    }
+  }
+
+  function attachWindow(kind, win) {
+    const doc = win.document;
+    // 使い回したポップアップに前の中身が残っていても、作り直す
+    doc.documentElement.lang = "ja";
+    doc.head.replaceChildren();
+    doc.body.replaceChildren();
+    const charset = doc.createElement("meta");
+    charset.setAttribute("charset", "utf-8");
+    const viewport = doc.createElement("meta");
+    viewport.setAttribute("name", "viewport");
+    viewport.setAttribute("content", "width=device-width, initial-scale=1");
+    doc.head.append(charset, viewport);
+    for (const s of document.querySelectorAll("style")) {
+      const c = doc.createElement("style");
+      c.textContent = s.textContent;
+      doc.head.append(c);
+    }
+    doc.title = "判定とコメント — " + D.title;
+    doc.body.className = "panel-doc";
+    const root = doc.createElement("div");
+    root.className = "rp";
+    doc.body.append(root);
+    Object.assign(host, { kind, win, doc, root, timer: null });
+    doc.addEventListener("keydown", onKey);
+    const onClosed = () => {
+      if (host.win !== win) return;
+      detach();
+      renderBar();
+      if (!currentItem()) renderStage();
+    };
+    win.addEventListener("pagehide", onClosed);
+    if (kind === "popup") host.timer = setInterval(() => { if (win.closed) onClosed(); }, 700);
+    state.notice = null;
+    renderPanel();
+    renderBar();
+    if (!currentItem()) renderStage();
+  }
+
+  function dockPanel() {
+    if (state.completed) return;
+    if (isWindowHost()) { const w = host.win; detach(); try { w.close(); } catch (_) {} }
+    const aside = $("dock");
+    aside.hidden = false;
+    aside.replaceChildren();
+    $("tlayout").classList.add("docked");
+    $("app").classList.add("is-docked");
+    const root = el("div", { class: "rp" });
+    aside.append(root);
+    Object.assign(host, { kind: "dock", win: window, doc: document, root, timer: null });
+    state.notice = null;
+    renderPanel();
+    renderBar();
+    if (!currentItem()) renderStage();
+  }
+
+  // レビュー用ウィンドウとのつながりを外す（ウィンドウを閉じるのは呼び出し側）
+  function detach() {
+    if (host.timer) clearInterval(host.timer);
+    if (host.kind === "dock") {
+      const aside = $("dock");
+      aside.hidden = true;
+      aside.replaceChildren();
+      $("tlayout").classList.remove("docked");
+      $("app").classList.remove("is-docked");
+    }
+    Object.assign(host, { kind: null, win: null, doc: null, root: null, timer: null });
+    for (const k of Object.keys(ui)) delete ui[k];
+  }
+
+  function focusPanel() { try { if (host.win) host.win.focus(); } catch (_) {} }
+
+  // ------------------------------------------------------------------
+  // レビュー対象のウィンドウの描画
+  // ------------------------------------------------------------------
+  function renderBar() {
+    const it = currentItem();
+    const where = $("tbarWhere");
+    where.replaceChildren();
+    if (it) {
+      if (it.group) where.append(el("span", { class: "tbar-group", text: groupLabel(it.group) }), el("span", { class: "tbar-sep", text: "›", "aria-hidden": "true" }));
+      where.append(el("span", { class: "tbar-title", id: "targetTitle", text: it.title, title: it.title }),
+        el("span", { class: "tbar-pos", text: (indexOf(it.id) + 1) + " / " + ITEMS.length }));
+      document.title = it.title + " — " + D.title;
+    } else {
+      where.append(el("span", { class: "tbar-title", id: "targetTitle", text: D.title, title: D.title }));
+      document.title = D.title + " — レビュー";
+    }
+    const tools = $("tbarTools");
+    tools.replaceChildren();
+    if (state.save.kind === "error" && !state.completed) tools.append(el("span", { class: "tbar-error", text: "保存に失敗しました（入力はこのブラウザに控えてあります）" }));
+    if (state.completed) {
+      tools.append(el("span", { class: "tbar-note", text: MODE === "server" ? "レビュー完了（結果はエージェントに届いています）" : "レビュー完了（feedback.json をダウンロードしました）" }));
+    } else if (isWindowHost()) {
+      tools.append(el("span", { class: "tbar-note", text: "判定とコメントはレビュー用ウィンドウに書きます" }));
+      if (host.kind === "popup") tools.append(el("button", { class: "btn small", type: "button", onclick: focusPanel }, "レビュー用ウィンドウを前に出す"));
+    } else if (host.kind === "dock") {
+      tools.append(el("span", { class: "tbar-note", text: "判定とコメントは右側に書きます" }),
+        el("button", { class: "btn small", type: "button", id: "undockBtn", onclick: () => openPanelWindow() }, "別ウィンドウに移す"));
+    } else {
+      tools.append(el("button", { class: "btn primary", type: "button", id: "openPanelBtn", onclick: () => openPanelWindow() }, "レビュー用ウィンドウを開く"));
+    }
+    document.documentElement.setAttribute("data-panel", host.kind || "none");
+    renderNotice();
+  }
+
+  function renderNotice() {
+    const box = $("notice");
+    box.replaceChildren();
+    const n = state.notice;
+    if (!n || state.completed) { box.hidden = true; return; }
+    box.hidden = false;
+    box.append(el("span", { text: n.text }));
+    if (n.choices.includes("popup")) box.append(el("button", { class: "btn small", type: "button", id: "popupBtn", onclick: () => openPanelWindow("popup") }, "通常のウィンドウで開く"));
+    if (n.choices.includes("dock")) box.append(el("button", { class: "btn small", type: "button", id: "dockBtn", onclick: dockPanel }, "このウィンドウの右側に表示する"));
+  }
+
+  function renderStage() {
+    const stage = $("stage");
+    stage.replaceChildren();
+    const it = currentItem();
+    if (!it) {
+      stage.append(startView());
+    } else if (!it.files.length) {
+      stage.append(el("div", { class: "stage-empty" }, el("strong", { text: it.title }),
+        el("p", { text: "この項目にはファイルがありません。レビュー用ウィンドウの説明を読んで判断してください。" })));
+    } else {
+      if (it.files.length > 1) {
+        const toc = el("div", { class: "file-toc" });
+        it.files.forEach((f, k) => toc.append(el("button", { class: "btn small", type: "button", onclick: () => scrollStageTo(k) }, f.label)));
+        stage.append(toc);
+      }
+      it.files.forEach((f, k) => stage.append(renderFile(f, k)));
+    }
+    stage.scrollTop = 0;
+  }
+
+  // まだどの項目も表示していないときの画面。2つのウィンドウの役割と、開き方を示す
+  function startView() {
+    const box = el("section", { class: "start", id: "startView" });
+    box.append(el("h1", { text: D.title }));
+    if (D.instructions) box.append(el("div", { class: "desc", text: D.instructions }));
+    box.append(el("p", { text: "レビューする項目は " + ITEMS.length + " 件です。判定とコメントは、レビュー対象とは別の「レビュー用ウィンドウ」に書きます。" }));
+    box.append(el("div", { class: "windows" },
+      el("div", { class: "win-box" }, el("div", { class: "win-name", text: "このウィンドウ" }), el("div", { class: "win-role", text: "レビュー用ウィンドウで選んだ項目の成果物だけを表示する" })),
+      el("div", { class: "win-box accent" }, el("div", { class: "win-name", text: "レビュー用ウィンドウ" }), el("div", { class: "win-role", text: "項目の一覧、見てほしいこと、判定、コメント、レビュー完了" }))));
+    if (state.completed) return box;
+    if (host.kind) {
+      box.append(el("p", { class: "hint", text: "レビュー用ウィンドウの一覧で項目を選ぶと、ここにその項目の成果物が表示されます。" }));
+    } else {
+      box.append(el("button", { class: "btn primary big", type: "button", id: "startBtn", onclick: () => openPanelWindow() }, "レビュー用ウィンドウを開く"));
+      box.append(el("p", { class: "hint", text: PIP_OK
+        ? "レビュー用ウィンドウは、ほかのウィンドウより常に手前に表示されます。成果物に重なるときは、ドラッグで動かすか、端をドラッグして小さくしてください。"
+        : "レビュー用ウィンドウは別のウィンドウとして開きます。このウィンドウと横に並べると、成果物を見ながら書けます。" }));
+    }
+    return box;
+  }
+
+  // ------------------------------------------------------------------
+  // レビュー用ウィンドウの描画
+  // ------------------------------------------------------------------
+  function renderPanel() {
+    if (!host.root) return;
+    for (const k of Object.keys(ui)) delete ui[k];
+    ui.counts = el("div", { class: "counts", id: "counts" });
+    ui.saveStatus = el("span", { class: "save-status", id: "saveStatus", role: "status" });
+    ui.completeBtn = el("button", { class: "btn primary", type: "button", id: "completeBtn", onclick: openComplete }, "レビュー完了");
+    ui.banner = el("div", { id: "panelBanner" });
+    ui.tabs = el("div", { class: "rp-tabs" });
+    ui.body = el("div", { class: "rp-body", id: "panelBody", tabindex: "-1" });
+    ui.modalRoot = el("div", { id: "modalRoot" });
+    host.root.replaceChildren(
+      el("header", { class: "rp-head" },
+        el("div", { class: "rp-title-row" }, el("span", { class: "rp-tag", text: "レビュー用" }), el("span", { class: "rp-title", text: D.title, title: D.title })),
+        ui.counts),
+      ui.banner, ui.tabs, ui.body,
+      el("footer", { class: "rp-foot" }, ui.saveStatus, ui.completeBtn),
+      ui.modalRoot);
+    renderCounts();
+    renderSaveStatus();
+    renderPanelView();
+    renderDone();
+  }
+
+  function renderSaveStatus() {
+    if (!ui.saveStatus) return;
+    ui.saveStatus.textContent = state.save.text;
+    ui.saveStatus.classList.toggle("error", state.save.kind === "error");
+  }
+
   function counts() {
     const c = Object.fromEntries(OPTIONS.map((o) => [o.value, 0]));
     let unjudged = 0, commented = 0;
@@ -738,246 +1035,235 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
     return { c, unjudged, commented };
   }
 
-  function renderCounts() {
-    const box = $("counts");
-    box.replaceChildren();
+  function countChips() {
     const { c, unjudged, commented } = counts();
+    const chips = [];
     if (VERDICT.enabled) {
-      OPTIONS.forEach((o) => box.append(el("span", { class: "chip tone-" + o.tone }, el("span", { class: "dot" }), o.label + " " + c[o.value])));
-      box.append(el("span", { class: "chip tone-none" }, el("span", { class: "dot" }), "未判定 " + unjudged));
+      OPTIONS.forEach((o) => chips.push(el("span", { class: "chip tone-" + o.tone }, el("span", { class: "dot" }), o.label + " " + c[o.value])));
+      chips.push(el("span", { class: "chip tone-none" }, el("span", { class: "dot" }), "未判定 " + unjudged));
     }
-    box.append(el("span", { class: "chip tone-none", style: "border-style:dashed" }, "コメント " + commented + " / " + ITEMS.length));
+    chips.push(el("span", { class: "chip tone-none", style: "border-style:dashed" }, "コメント " + commented + " / " + ITEMS.length));
+    return chips;
   }
 
-  function listEntry(it) {
+  function renderCounts() {
+    if (ui.counts) ui.counts.replaceChildren(...countChips());
+  }
+
+  function renderPanelView() {
+    if (!host.root) return;
+    const it = currentItem();
+    const view = it && state.view === "item" ? "item" : "overview";
+    ui.tabs.replaceChildren(
+      el("button", { class: "tab", type: "button", id: "tabItem", "aria-pressed": view === "item" ? "true" : "false",
+        disabled: it ? null : true, title: it ? null : "一覧から項目を選ぶと使えます", onclick: () => { if (it) show(it.id); } }, "判定とコメント"),
+      el("button", { class: "tab", type: "button", id: "tabOverview", "aria-pressed": view === "overview" ? "true" : "false", onclick: showOverview }, "一覧と全体コメント"));
+    ui.body.replaceChildren();
+    ui.verdictBox = null;
+    ui.verdictHint = null;
+    if (view === "item") renderItemView(it); else renderOverviewView();
+    ui.body.scrollTop = 0;
+    applyReadonly();
+  }
+
+  function section(label, ...content) {
+    return el("div", { class: "rp-section" }, el("div", { class: "section-label", text: label }), ...content);
+  }
+
+  function renderItemView(it) {
+    const body = ui.body;
+    const r = state.reviews[it.id];
+    const idx = indexOf(it.id);
+    body.append(el("div", { class: "rp-item-head" },
+      el("div", { class: "rp-item-meta" }, el("span", { text: it.group ? groupLabel(it.group) : "" }), el("span", { text: (idx + 1) + " / " + ITEMS.length })),
+      el("h2", { id: "itemTitle", text: it.title })));
+    const files = el("div", { class: "rp-files", id: "itemFiles" });
+    if (!it.files.length) {
+      files.append(el("span", { text: "この項目にはファイルがありません。説明を読んで判断してください。" }));
+    } else if (it.files.length === 1) {
+      files.append(el("span", { text: "レビュー対象のウィンドウに表示中：" }), el("span", { class: "fname-inline", text: it.files[0].label }));
+    } else {
+      files.append(el("span", { text: "レビュー対象のウィンドウに表示中（押すとその位置へ移動）：" }));
+      it.files.forEach((f, k) => files.append(el("button", { class: "btn small", type: "button", onclick: () => scrollStageTo(k) }, f.label)));
+    }
+    body.append(files);
+
+    if (it.description) body.append(section("見てほしいこと・判断してほしいこと", el("div", { class: "desc", id: "itemDesc", text: it.description })));
+    if (it.previous && (it.previous.verdict || it.previous.comment)) {
+      const p = it.previous;
+      const o = p.verdict ? OPT[p.verdict] : null;
+      const box = el("div", { class: "previous", id: "itemPrevious" },
+        el("div", { class: "section-label", text: "前回のレビュー（参考）" }),
+        p.verdict ? el("span", { class: "chip tone-" + (o ? o.tone : "neutral") }, el("span", { class: "dot" }), (o ? o.label : p.verdict_label || p.verdict)) : el("span", { class: "chip tone-none" }, "前回は未判定"),
+        p.comment ? el("div", { class: "comment", text: p.comment }) : el("div", { class: "hint", text: "前回のコメントはありません" }));
+      if (o) box.style.borderLeftColor = "var(--" + o.tone + ")";
+      body.append(box);
+    }
+
+    if (VERDICT.enabled) {
+      ui.verdictBox = el("div", { class: "verdicts", role: "group", "aria-label": "判定" });
+      OPTIONS.forEach((o, k) => ui.verdictBox.append(el("button", {
+        class: "verdict-btn tone-" + o.tone, type: "button", "data-value": o.value, "aria-pressed": "false",
+        onclick: () => setVerdict(it.id, state.reviews[it.id].verdict === o.value ? null : o.value),
+      }, el("span", { class: "dot" }), el("span", { class: "lbl", text: o.label }), k < 9 ? el("span", { class: "key", text: String(k + 1) }) : null)));
+      ui.verdictHint = el("div", { class: "hint" });
+      body.append(section("判定", ui.verdictBox, ui.verdictHint));
+      updateVerdictView(it.id);
+    }
+
+    const ta = el("textarea", { class: "comment", id: "commentBox", "aria-label": "コメント",
+      placeholder: VERDICT.enabled ? "直してほしい点、採用・不採用の理由など" : "気づいた点、直してほしい点など" });
+    ta.value = r.comment;
+    ta.addEventListener("input", () => {
+      r.comment = ta.value;
+      renderCounts();
+      scheduleSave(800);
+    });
+    body.append(section("コメント", ta,
+      el("div", { class: "hint", text: (MODE === "server" ? "入力は自動で保存されます。" : "入力はこのブラウザに自動で控えられます。")
+        + "入力欄の外で ← → を押すと前後の項目へ移動します" + (VERDICT.enabled ? "（数字キーで判定、0 で判定を外す）。" : "。") })));
+    body.append(el("div", { class: "rp-move" },
+      el("button", { class: "btn", type: "button", id: "prevBtn", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前の項目"),
+      el("button", { class: "btn", type: "button", id: "nextBtn", onclick: () => move(1) }, idx >= ITEMS.length - 1 ? "一覧へ" : "次の項目 →")));
+  }
+
+  function updateVerdictView(id) {
+    if (!ui.verdictBox) return;
+    const v = state.reviews[id].verdict;
+    for (const b of ui.verdictBox.querySelectorAll(".verdict-btn")) b.setAttribute("aria-pressed", b.getAttribute("data-value") === v ? "true" : "false");
+    ui.verdictHint.replaceChildren(v
+      ? el("button", { class: "btn link", type: "button", onclick: () => setVerdict(id, null) }, "判定を外して未判定に戻す")
+      : el("span", { text: "迷う場合は未判定のままでかまいません。" }));
+  }
+
+  function overviewEntry(it) {
     const r = state.reviews[it.id];
     const o = r.verdict ? OPT[r.verdict] : null;
     const dot = el("span", { class: "dot" + (o ? "" : " none") });
-    const metaParts = [];
-    if (VERDICT.enabled) metaParts.push(o ? o.label : "未判定");
-    if (r.comment.trim()) metaParts.push("コメントあり");
-    if (!r.viewed) metaParts.push("未表示");
-    if (!VERDICT.enabled && !metaParts.length) metaParts.push("—");
-    const btn = el("button", {
-      class: "list-entry" + (state.current === it.id ? " active" : "") + (r.viewed ? "" : " unviewed"),
-      type: "button", "aria-current": state.current === it.id ? "true" : null,
-      onclick: () => show(it.id),
-    }, dot, el("span", { class: "body" }, el("span", { class: "name", text: it.title, title: it.title }), el("span", { class: "meta", text: metaParts.join(" ・ ") })));
     if (o) dot.style.color = "var(--" + o.tone + ")";
-    return btn;
+    const meta = [];
+    if (VERDICT.enabled) meta.push(o ? o.label : "未判定");
+    if (r.comment.trim()) meta.push("コメントあり");
+    if (!r.viewed) meta.push("未表示");
+    if (state.current === it.id) meta.push("レビュー対象のウィンドウに表示中");
+    return el("button", {
+      class: "o-entry" + (state.current === it.id ? " active" : "") + (r.viewed ? "" : " unviewed"),
+      type: "button", "data-id": it.id, "aria-current": state.current === it.id ? "true" : null, onclick: () => show(it.id),
+    }, dot, el("span", { class: "body" },
+      el("span", { class: "name", text: it.title, title: it.title }),
+      el("span", { class: "meta", text: meta.join(" ・ ") || "—" }),
+      r.comment.trim() ? el("span", { class: "excerpt", text: r.comment.replace(/\s+/g, " ") }) : null));
   }
 
-  function renderNav() {
-    const nav = $("list");
-    const scroll = nav.scrollTop;
-    nav.replaceChildren();
-    nav.append(el("button", { class: "list-entry list-overview" + (state.current === OVERVIEW ? " active" : ""), type: "button", onclick: () => show(OVERVIEW) },
-      el("span", { class: "body" }, el("span", { class: "name", text: "概要と全体コメント" }), el("span", { class: "meta", text: state.overall_comment.trim() ? "全体コメントあり" : "全体の説明・一覧・完了" }))));
-    nav.append(el("div", { class: "list-sep" }));
-    let lastGroup = undefined;
+  function renderOverviewView() {
+    const body = ui.body;
+    if (!currentItem()) {
+      body.append(el("div", { class: "rp-start" }, el("button", { class: "btn primary", type: "button", id: "firstItemBtn", onclick: () => show(ITEMS[0].id) }, "最初の項目から見る →")));
+    }
+    if (D.instructions) body.append(section("このレビューについて", el("div", { class: "desc", text: D.instructions })));
+    const list = el("div", { class: "olist", id: "itemList" });
+    let lastGroup;
     ITEMS.forEach((it) => {
       if (D.groups.length && it.group !== lastGroup) {
         lastGroup = it.group;
         const members = ITEMS.filter((x) => x.group === it.group);
         const done = members.filter((x) => state.reviews[x.id].verdict).length;
-        nav.append(el("div", { class: "list-group" }, el("span", { text: it.group ? groupLabel(it.group) : "グループなし" }),
+        list.append(el("div", { class: "olist-group" }, el("span", { text: it.group ? groupLabel(it.group) : "グループなし" }),
           VERDICT.enabled ? el("span", { text: done + "/" + members.length + " 判定済み" }) : null));
       }
-      nav.append(listEntry(it));
+      list.append(overviewEntry(it));
     });
-    nav.append(el("div", { class: "list-legend", text: "← → で前後の項目へ移動" + (VERDICT.enabled ? "、数字キーで判定、0 で判定を外す" : "") }));
-    nav.scrollTop = scroll;
-  }
+    body.append(section("項目の一覧（押すと、その項目をレビュー対象のウィンドウに表示）", list));
 
-  function indexOf(id) { return ITEMS.findIndex((x) => x.id === id); }
-
-  function renderItem(it) {
-    const main = $("content");
-    main.replaceChildren();
-    const idx = indexOf(it.id);
-    const head = el("div", { class: "item-head" },
-      el("div", { style: "flex:1;min-width:200px" },
-        it.group ? el("div", { class: "crumb", text: groupLabel(it.group) }) : null,
-        el("h2", { text: it.title })),
-      el("span", { class: "pos", text: (idx + 1) + " / " + ITEMS.length }),
-      el("button", { class: "btn", type: "button", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前へ"),
-      el("button", { class: "btn", type: "button", onclick: () => move(1), disabled: idx >= ITEMS.length - 1 ? true : null }, "次へ →"));
-    main.append(head);
-
-    if (it.description) {
-      main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "見てほしいこと・判断してほしいこと" }), el("div", { class: "desc", text: it.description }))));
-    }
-    if (it.previous && (it.previous.verdict || it.previous.comment)) {
-      const p = it.previous;
-      const o = p.verdict ? OPT[p.verdict] : null;
-      const box = el("div", { class: "card previous" }, el("div", { class: "card-body" },
-        el("div", { class: "desc-label", text: "前回のレビュー（参考）" }),
-        p.verdict ? el("span", { class: "chip tone-" + (o ? o.tone : "neutral") }, el("span", { class: "dot" }), (o ? o.label : p.verdict_label || p.verdict)) : el("span", { class: "chip tone-none" }, "前回は未判定"),
-        p.comment ? el("div", { class: "comment", text: p.comment }) : el("div", { class: "hint", text: "前回のコメントはありません" })));
-      if (o) box.style.borderLeftColor = "var(--" + o.tone + ")";
-      main.append(box);
-    }
-    if (!it.files.length) {
-      main.append(el("div", { class: "card" }, el("div", { class: "card-body hint", text: "この項目にはファイルがありません。説明を読んで判断してください。" })));
-    } else {
-      if (it.files.length > 1) {
-        const toc = el("div", { class: "file-toc" });
-        it.files.forEach((f, k) => toc.append(el("button", { class: "btn small", type: "button", onclick: () => document.getElementById("file-" + k).scrollIntoView({ behavior: "smooth", block: "start" }) }, f.label)));
-        main.append(toc);
-      }
-      it.files.forEach((f, k) => main.append(renderFile(f, k)));
-    }
-    main.scrollTop = 0;
-  }
-
-  function renderPanel(it) {
-    const panel = $("panel");
-    panel.replaceChildren();
-    if (!it) { panel.hidden = true; $("layout").classList.add("no-panel"); return; }
-    panel.hidden = false; $("layout").classList.remove("no-panel");
-    const r = state.reviews[it.id];
-    if (VERDICT.enabled) {
-      panel.append(el("h3", { text: "判定" }));
-      const box = el("div", { class: "verdicts", role: "group", "aria-label": "判定" });
-      OPTIONS.forEach((o, k) => {
-        box.append(el("button", {
-          class: "verdict-btn tone-" + o.tone, type: "button", "aria-pressed": r.verdict === o.value ? "true" : "false",
-          onclick: () => setVerdict(it.id, r.verdict === o.value ? null : o.value),
-        }, el("span", { class: "dot" }), el("span", { class: "lbl", text: o.label }), k < 9 ? el("span", { class: "key", text: String(k + 1) }) : null));
-      });
-      panel.append(box);
-      panel.append(el("div", { class: "hint", style: "margin:-8px 0 14px" },
-        r.verdict ? el("button", { class: "btn link clear-verdict", type: "button", onclick: () => setVerdict(it.id, null) }, "判定を外して未判定に戻す") : "迷う場合は未判定のままでかまいません。"));
-    }
-    panel.append(el("h3", { text: "コメント" }));
-    const ta = el("textarea", { class: "comment", id: "commentBox", placeholder: VERDICT.enabled ? "直してほしい点、採用・不採用の理由など" : "気づいた点、直してほしい点など", "aria-label": "コメント" });
-    ta.value = r.comment;
-    ta.addEventListener("input", () => {
-      r.comment = ta.value;
-      refreshSide();
-      scheduleSave(800);
-    });
-    panel.append(ta);
-    panel.append(el("div", { class: "hint", text: MODE === "server" ? "入力は自動で保存されます。" : "入力はこのブラウザに自動で控えられます。" }));
-    const idx = indexOf(it.id);
-    panel.append(el("div", { class: "panel-nav" },
-      el("button", { class: "btn", type: "button", onclick: () => move(-1), disabled: idx <= 0 ? true : null }, "← 前へ"),
-      el("button", { class: "btn", type: "button", onclick: () => move(1) }, idx >= ITEMS.length - 1 ? "概要へ" : "次へ →")));
-  }
-
-  function renderOverview() {
-    const main = $("content");
-    main.replaceChildren();
-    main.append(el("div", { class: "item-head" }, el("h2", { text: "概要と全体コメント" }),
-      el("button", { class: "btn", type: "button", onclick: () => show(ITEMS[0].id) }, "最初の項目へ →")));
-    if (D.instructions) {
-      main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "このレビューについて" }), el("div", { class: "desc", text: D.instructions }))));
-    }
-    const tbl = el("table", { class: "summary" });
-    const hasGroups = D.groups.length > 0;
-    tbl.append(el("thead", {}, el("tr", {}, hasGroups ? el("th", { text: "グループ" }) : null, el("th", { text: "項目" }), VERDICT.enabled ? el("th", { text: "判定" }) : null, el("th", { text: "コメント" }))));
-    const tb = el("tbody");
-    ITEMS.forEach((it) => {
-      const r = state.reviews[it.id];
-      tb.append(el("tr", { class: "row", onclick: () => show(it.id) },
-        hasGroups ? el("td", { text: it.group ? groupLabel(it.group) : "" }) : null,
-        el("td", {}, it.title, r.viewed ? null : el("span", { class: "hint", text: "（未表示）" })),
-        VERDICT.enabled ? el("td", {}, chipFor(r.verdict)) : null,
-        el("td", { class: "excerpt", text: r.comment.trim() ? r.comment.replace(/\s+/g, " ") : "—" })));
-    });
-    tbl.append(tb);
-    main.append(el("div", { class: "card" }, el("div", { class: "card-body" }, el("div", { class: "desc-label", text: "項目の一覧（行を押すとその項目へ移動）" }), tbl)));
-
-    const card = el("div", { class: "card" }, el("div", { class: "card-body" }));
-    const body = card.firstChild;
-    body.append(el("div", { class: "desc-label", text: "全体へのコメント" }));
+    const parts = [];
     if (D.previous_meta && D.previous_meta.overall_comment) {
-      body.append(el("div", { class: "hint", style: "margin-bottom:8px" }, "前回の全体コメント（参考）: ", el("span", { style: "white-space:pre-wrap", text: D.previous_meta.overall_comment })));
+      parts.push(el("div", { class: "hint", style: "margin:0 0 8px" }, "前回の全体コメント（参考）: ", el("span", { style: "white-space:pre-wrap", text: D.previous_meta.overall_comment })));
     }
-    const ta = el("textarea", { class: "comment", placeholder: "全体を通しての感想、項目をまたぐ指示、次の版への要望など", "aria-label": "全体へのコメント", style: "min-height:140px" });
+    const ta = el("textarea", { class: "comment", id: "overallBox", "aria-label": "全体へのコメント", style: "min-height:120px",
+      placeholder: "全体を通しての感想、項目をまたぐ指示、次の版への要望など" });
     ta.value = state.overall_comment;
     ta.addEventListener("input", () => { state.overall_comment = ta.value; scheduleSave(800); });
-    body.append(ta);
-    body.append(el("div", { style: "margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" },
+    parts.push(ta);
+    parts.push(el("div", { class: "rp-complete" },
       el("button", { class: "btn primary", type: "button", onclick: openComplete }, "レビュー完了"),
-      el("span", { class: "hint", style: "margin:0", text: MODE === "server" ? "完了すると結果がエージェントに渡り、この画面のサーバーは終了します。" : "完了すると feedback.json がダウンロードされます。" })));
-    main.append(card);
-    main.scrollTop = 0;
+      el("span", { class: "hint", text: MODE === "server" ? "完了すると結果がエージェントに渡り、この画面のサーバーは終了します。" : "完了すると feedback.json がダウンロードされます。" })));
+    body.append(section("全体へのコメント", ...parts));
   }
 
-  function refreshSide() { renderCounts(); renderNav(); }
-
+  // ------------------------------------------------------------------
+  // 操作
+  // ------------------------------------------------------------------
+  // 項目を開く: レビュー対象のウィンドウにその成果物を出し、レビュー用ウィンドウをその項目の判定とコメントにする
   function show(id) {
-    if (id !== OVERVIEW && indexOf(id) < 0) id = OVERVIEW;
+    const idx = indexOf(id);
+    if (idx < 0) return;
+    const changed = state.current !== id;
     state.current = id;
+    state.view = "item";
+    const r = state.reviews[id];
+    if (!r.viewed) { r.viewed = true; scheduleSave(800); }
     try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch (_) {}
-    if (id === OVERVIEW) {
-      renderOverview(); renderPanel(null);
-    } else {
-      const it = ITEMS[indexOf(id)];
-      const r = state.reviews[id];
-      if (!r.viewed) { r.viewed = true; scheduleSave(800); }
-      renderItem(it); renderPanel(it);
-    }
-    applyReadonly();
-    refreshSide();
+    if (changed) renderStage(); // 同じ項目なら描き直さず、成果物のスクロール位置や操作の状態を残す
+    renderBar();
+    renderPanelView();
+  }
+  function showOverview() {
+    state.view = "overview";
+    renderPanelView();
   }
   function move(delta) {
-    if (state.current === OVERVIEW) { if (delta > 0) show(ITEMS[0].id); return; }
-    const idx = indexOf(state.current) + delta;
+    const it = currentItem();
+    if (!it || state.view === "overview") {
+      if (delta > 0) show(it ? it.id : ITEMS[0].id);
+      return;
+    }
+    const idx = indexOf(it.id) + delta;
     if (idx < 0) return;
-    if (idx >= ITEMS.length) { show(OVERVIEW); return; }
+    if (idx >= ITEMS.length) { showOverview(); return; }
     show(ITEMS[idx].id);
   }
   function setVerdict(id, value) {
     if (state.completed) return;
     state.reviews[id].verdict = value;
-    if (state.current === id) renderPanel(ITEMS[indexOf(id)]);
-    refreshSide();
+    if (state.view === "item" && state.current === id) updateVerdictView(id);
+    renderCounts();
     scheduleSave(0);
   }
 
-  document.addEventListener("keydown", (e) => {
-    if ($("modalRoot").firstChild) { if (e.key === "Escape") closeModal(); return; }
+  // どちらのウィンドウで押したキーも同じように扱う
+  function onKey(e) {
+    if (ui.modalRoot && ui.modalRoot.firstChild) { if (e.key === "Escape") closeModal(); return; }
     if (isTyping(e.target) || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); }
     else if (e.key === "ArrowRight") { e.preventDefault(); move(1); }
-    else if (VERDICT.enabled && state.current !== OVERVIEW && /^[0-9]$/.test(e.key)) {
+    else if (VERDICT.enabled && host.root && state.view === "item" && currentItem() && /^[0-9]$/.test(e.key)) {
+      // 判定はレビュー用ウィンドウに見えているときだけ数字キーで変える（見えない所で判定が変わらないように）
       const n = +e.key;
       if (n === 0) setVerdict(state.current, null);
       else if (n <= OPTIONS.length) setVerdict(state.current, OPTIONS[n - 1].value);
     }
-  });
+  }
 
   // ------------------------------------------------------------------
   // レビュー完了
   // ------------------------------------------------------------------
-  function closeModal() { $("modalRoot").replaceChildren(); }
+  function closeModal() { if (ui.modalRoot) ui.modalRoot.replaceChildren(); }
 
   function openComplete() {
-    if (state.completed) return;
-    const { c, unjudged, commented } = counts();
-    const root = $("modalRoot");
+    if (state.completed || !ui.modalRoot) return;
+    const pending = ITEMS.filter((it) => !state.reviews[it.id].verdict);
     const modal = el("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "mTitle" });
     modal.append(el("h2", { id: "mTitle", text: "レビューを完了しますか？" }));
-    const sum = el("div", { style: "display:flex;gap:6px;flex-wrap:wrap" });
-    if (VERDICT.enabled) {
-      OPTIONS.forEach((o) => sum.append(el("span", { class: "chip tone-" + o.tone }, el("span", { class: "dot" }), o.label + " " + c[o.value])));
-      sum.append(el("span", { class: "chip tone-none" }, el("span", { class: "dot" }), "未判定 " + unjudged));
-    }
-    sum.append(el("span", { class: "chip tone-none", style: "border-style:dashed" }, "コメント " + commented + " / " + ITEMS.length));
-    modal.append(sum);
+    modal.append(el("div", { style: "display:flex;gap:6px;flex-wrap:wrap" }, ...countChips()));
 
-    const pending = ITEMS.filter((it) => !state.reviews[it.id].verdict);
     let firstPending = null;
     if (VERDICT.enabled && pending.length) {
       firstPending = pending[0];
-      const box = el("div", { class: "warnbox", id: "unjudgedWarn" },
+      modal.append(el("div", { class: "warnbox", id: "unjudgedWarn" },
         el("strong", { text: "未判定の項目が " + pending.length + " 件あります。" }),
         el("ul", {}, pending.slice(0, 8).map((it) => el("li", {}, el("button", { class: "btn link", type: "button", onclick: () => { closeModal(); show(it.id); } }, it.title)))),
         pending.length > 8 ? el("div", { text: "ほか " + (pending.length - 8) + " 件" }) : null,
-        el("div", { class: "hint", text: "判断に迷う項目は、未判定のまま完了してかまいません。エージェントには「未判定」として伝わり、問題なしとは扱われません。" }));
-      modal.append(box);
+        el("div", { class: "hint", text: "判断に迷う項目は、未判定のまま完了してかまいません。エージェントには「未判定」として伝わり、問題なしとは扱われません。" })));
     }
     modal.append(el("p", { class: "hint", text: MODE === "server"
       ? "完了すると、判定とコメントがエージェントに渡り、このレビュー画面のサーバーは終了します。終了後に直したくなったら、チャットで伝えてください。"
@@ -995,53 +1281,88 @@ const REVIEW_DATA = /*__REVIEW_DATA__*/null;
       firstPending ? el("button", { class: "btn", type: "button", onclick: () => { closeModal(); show(firstPending.id); } }, "未判定の項目を見る") : null,
       finish));
     const back = el("div", { class: "modal-back", onclick: (e) => { if (e.target === back) closeModal(); } }, modal);
-    root.replaceChildren(back);
+    ui.modalRoot.replaceChildren(back);
     finish.focus();
   }
 
   async function complete() {
     clearTimeout(saveTimer); saveTimer = null;
+    const time = new Date().toLocaleTimeString("ja-JP");
     if (MODE === "server") {
       if (inflight) { try { await inflight; } catch (_) {} }
       const res = await postFeedback("complete");
-      state.completed = true;
-      persistLocal();
-      showBanner("レビューを受け付けました（" + new Date().toLocaleTimeString("ja-JP") + "）。結果はエージェントに渡り、サーバーは終了します。このタブは閉じてかまいません。", false);
+      markDone("レビューを受け付けました（" + time + "）。結果はエージェントに渡り、サーバーは終了します。画面は閉じてかまいません。");
       setSaveStatus("text", "完了として保存済み");
       return res;
     }
+    // ダウンロードは、成果物を表示しているこのページから行う
     const payload = buildPayload("complete");
     const blob = new Blob([JSON.stringify(payload, null, 2) + "\n"], { type: "application/json" });
     const a = el("a", { href: URL.createObjectURL(blob), download: "feedback.json" });
     document.body.append(a); a.click(); a.remove();
-    state.completed = true;
-    persistLocal();
-    showBanner("feedback.json をダウンロードしました。保存された場所（通常はダウンロードフォルダ。同名のファイルがあると feedback (1).json のような名前になります）をエージェントに伝えてください。", false);
+    markDone("feedback.json をダウンロードしました（" + time + "）。保存された場所（通常はダウンロードフォルダ。同名のファイルがあると feedback (1).json のような名前になります）をエージェントに伝えてください。");
     setSaveStatus("text", "完了（ダウンロード済み）");
+    return null;
   }
 
-  function showBanner(text, isErr) {
-    $("banner").replaceChildren(el("div", { class: "banner" + (isErr ? " err" : ""), text }));
+  function markDone(message) {
+    state.completed = true;
+    state.doneMessage = message;
+    state.notice = null;
+    persistLocal();
+    renderDone();
     applyReadonly();
+    renderBar();
   }
+
+  function renderDone() {
+    $("banner").replaceChildren();
+    if (ui.banner) ui.banner.replaceChildren();
+    if (!state.completed) return;
+    $("banner").append(el("div", { class: "banner", text: state.doneMessage }));
+    if (ui.banner && host.kind !== "dock") {
+      const b = el("div", { class: "banner", id: "doneBanner" }, el("span", { text: state.doneMessage }));
+      if (isWindowHost()) b.append(el("button", { class: "btn small", type: "button", onclick: () => { try { host.win.close(); } catch (_) {} } }, "このウィンドウを閉じる"));
+      ui.banner.append(b);
+    }
+  }
+
   function applyReadonly() {
-    $("app").classList.toggle("readonly", state.completed);
-    $("completeBtn").disabled = state.completed;
+    if (!host.root) return;
+    host.root.classList.toggle("readonly", state.completed);
+    for (const t of host.root.querySelectorAll("textarea")) t.readOnly = state.completed;
+    if (ui.completeBtn) ui.completeBtn.disabled = state.completed;
   }
 
   // ------------------------------------------------------------------
   // 起動
   // ------------------------------------------------------------------
-  document.title = D.title + " — レビュー";
-  $("title").textContent = D.title;
-  $("title").title = D.title;
-  $("completeBtn").addEventListener("click", openComplete);
+  document.addEventListener("keydown", onKey);
+  window.addEventListener("pagehide", () => {
+    if (saveTimer && MODE === "server" && !state.completed) {
+      clearTimeout(saveTimer);
+      postFeedback("in_progress", true).catch(() => {});
+    }
+    // 常に手前のウィンドウはこのページと一緒に閉じる。通常のウィンドウは自分で閉じる
+    if (host.kind === "popup" && host.win) { try { host.win.close(); } catch (_) {} }
+  });
+  window.addEventListener("pageshow", () => {
+    if (isWindowHost() && (!host.win || host.win.closed)) { detach(); renderBar(); }
+  });
+  // URL の # の後ろ（項目の id）だけを書き換えて開き直したときも、その項目を表示する
+  window.addEventListener("hashchange", () => {
+    let id = "";
+    try { id = decodeURIComponent((location.hash || "").slice(1)); } catch (_) { id = ""; }
+    if (indexOf(id) >= 0 && id !== state.current) show(id);
+  });
   if (MODE === "static") setSaveStatus("text", "サーバーなしの表示（入力はこのブラウザに控えます）");
 
   restore().then(() => {
-    let start = decodeURIComponent((location.hash || "").slice(1));
-    if (!start) start = D.instructions ? OVERVIEW : ITEMS[0].id;
-    show(start);
+    let id = "";
+    try { id = decodeURIComponent((location.hash || "").slice(1)); } catch (_) { id = ""; }
+    if (indexOf(id) >= 0) show(id);                  // 再読み込み: 同じ項目を表示する
+    else if (!D.instructions) show(ITEMS[0].id);     // 全体の説明がなければ最初の項目から
+    else { state.view = "overview"; renderStage(); renderBar(); } // 説明があれば、始める前の画面から
   });
 })();
 </script>
