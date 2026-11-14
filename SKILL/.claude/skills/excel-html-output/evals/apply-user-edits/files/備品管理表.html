@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>備品管理表</title><style>*{box-sizing:border-box} :root{font-family:'Yu Gothic UI','Meiryo',sans-serif;font-size:12px;color:#242424;background:#fff;--green:#107c41;--line:#e0e0e0;--head:#f5f5f5}body{margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}button,input,select,textarea{font:inherit;color:inherit}button{border:1px solid transparent;background:transparent;border-radius:3px;cursor:pointer;white-space:nowrap;min-height:28px;padding:3px 7px}button:hover{background:#e6e6e6}button:focus-visible{outline:2px solid var(--green);outline-offset:-2px}button:disabled{opacity:.35;cursor:default}button.primary{background:var(--green);color:white;padding:4px 12px}button.primary:hover{background:#096737}button[aria-pressed=true]{background:#cde8d7;border-color:#8ec5a3}input,select{background:#fff;border:1px solid #d0d0d0;border-radius:2px;min-height:26px}input:focus,select:focus{outline:1px solid var(--green)}[hidden]{display:none!important}.spacer{flex:1}.titlebar{height:46px;min-height:46px;background:#f5f5f5;display:flex;align-items:center;gap:12px;padding:0 16px}.appmark{font-size:26px;color:var(--green)}#book-title{background:transparent;border-color:transparent;font-size:14px;width:300px}#book-title:hover,#book-title:focus{border-color:#bdbdbd}#dirty-state{font-size:11px;color:#626262}.tabs{height:34px;min-height:34px;background:#f5f5f5;display:flex;align-items:stretch;padding:0 16px;gap:20px}.tabs button{border-radius:0;padding:2px 0}.tabs button.selected{font-weight:600;border-bottom:3px solid var(--green)}.local-label{align-self:center;color:#737373;font-size:11px}.ribbon{display:flex;min-height:48px;align-items:center;padding:6px 12px;gap:10px;overflow-x:auto;border-bottom:1px solid #d5d5d5;background:#fafafa;flex-wrap:nowrap}.group{display:flex;align-items:center;gap:3px;white-space:nowrap;border-right:1px solid #ddd;padding-right:10px}.group:last-child{border-right:0}.group label{display:flex;align-items:center;gap:4px}.group select{height:27px;max-width:140px;font-size:12px}.group input[type=number]{width:58px;height:27px}.group input[type=color]{width:24px;min-height:24px;height:24px;padding:0;border:0}.group .color{height:28px;position:relative;width:25px;display:flex;justify-content:center;font-size:17px}.color input{position:absolute;left:3px;bottom:1px;width:20px!important;height:5px!important;min-height:5px!important;cursor:pointer}.color input::-webkit-color-swatch-wrapper{padding:0}.color input::-webkit-color-swatch{border:0}#font{width:124px}#font-size{width:48px}#border-line{width:62px}#border{width:65px}#align,#valign{width:78px}#number-format{width:102px}.help-ribbon{min-height:48px;padding:7px 16px;display:flex;align-items:center;gap:15px;background:#fafafa;border-bottom:1px solid #ddd}.help-ribbon button{border-color:#ccc}.formula-bar{height:34px;min-height:34px;display:flex;align-items:center;gap:3px;padding:3px 8px;background:#f5f5f5;border-bottom:1px solid #ddd}#name-box{width:116px;padding:2px 7px}#formula{flex:1;min-width:100px;padding:2px 7px}#cancel-edit,#commit-edit{color:#737373;font-size:18px;width:26px;padding:0}.fx{font-family:Georgia,serif;font-style:italic;padding:0 10px;color:#666}#viewport{flex:1;min-height:0;overflow:auto;position:relative;outline:none;background:white;overscroll-behavior:contain}#sheet-surface{position:relative;width:max-content;min-width:100%;min-height:100%;transform-origin:0 0}#grid{border-collapse:separate;border-spacing:0;table-layout:fixed;user-select:none;font-family:'Yu Gothic','Meiryo',sans-serif;font-size:11pt}#grid td,#grid th{position:relative;padding:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}#grid td{background:#fff;cursor:cell}#grid td>div{height:100%;max-height:inherit;overflow:hidden;white-space:inherit;display:flex;flex-direction:column;justify-content:inherit;min-height:0}#grid td .cell-text{display:block;max-width:100%;overflow:hidden}#grid th{font-weight:400;font-family:'Yu Gothic UI','Meiryo',sans-serif;font-size:12px;color:#626262;text-align:center;background:var(--head);z-index:4}#grid thead th{position:sticky;top:0;height:24px;z-index:8}#grid .row-head{position:sticky;left:0;width:42px;min-width:42px;text-align:right;padding-right:5px;z-index:7}#grid .corner{left:0;z-index:10;color:#a0a0a0}#grid th.selected-head{background:#d3eada;color:#107c41}#grid td.selected-cell{box-shadow:inset 0 0 0 9999px #107c4115}#grid td.active-cell{box-shadow:none}#grid.no-grid td{border-right-color:transparent;border-bottom-color:transparent}#grid td.ov{overflow:visible;z-index:2}#grid td.ov>div{overflow:visible}#grid td.ov .cell-text{max-width:none;overflow:visible}#grid td.ov-r{border-right-color:transparent}.col-resize{position:absolute;right:-2px;top:0;width:6px;height:100%;cursor:col-resize;z-index:12}.row-resize{position:absolute;bottom:-2px;left:0;height:6px;width:100%;cursor:row-resize;z-index:12}#selection{position:absolute;border:2px solid var(--green);pointer-events:none;z-index:9}#fill-handle{pointer-events:auto;position:absolute;width:7px;height:7px;bottom:-4px;right:-4px;background:var(--green);border:1px solid white;cursor:crosshair}#selection.copying{border-style:dashed}#cell-editor{position:absolute;z-index:15;resize:none;margin:0;border:2px solid var(--green);outline:0;padding:1px 3px;overflow:auto;background:white;min-width:32px;min-height:22px;border-radius:0}.sheetbar{height:34px;min-height:34px;display:flex;align-items:stretch;border-top:1px solid #ccc;background:#f5f5f5;padding:0 8px;gap:6px}#sheet-tabs{display:flex;align-items:stretch;max-width:65vw;overflow-x:auto}.sheetbar button{border-radius:0;padding:0 15px}.sheetbar button.active{color:var(--green);font-weight:600;background:#fff;border-bottom:3px solid var(--green)}.sheet-nav{color:#777;align-self:center;margin-right:8px}#add-sheet{font-size:20px;padding:0 10px}#selection-size{align-self:center;color:#777;margin-right:8px}.statusbar{height:27px;min-height:27px;display:flex;align-items:center;padding:0 12px;gap:12px;border-top:1px solid #ddd;color:#626262;font-size:11px}.statusbar button{min-height:22px;height:22px;padding:0 5px}#status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}#zoom{width:100px;height:16px;min-height:16px;accent-color:var(--green)}#zoom-label{min-width:35px}#stats{white-space:nowrap}#context-menu{position:fixed;z-index:40;background:#fff;border:1px solid #d0d0d0;box-shadow:0 4px 16px #0002;min-width:195px;padding:5px}#context-menu button{display:block;text-align:left;width:100%;padding:5px 12px}#context-menu hr{border:0;border-top:1px solid #ddd}dialog{border:1px solid #ccc;border-radius:6px;box-shadow:0 12px 45px #0003;max-width:min(800px,90vw);padding:24px}dialog::backdrop{background:#0005}dialog h2{font-size:19px;margin:0 0 16px}dialog p,dialog dd{line-height:1.8}dialog dt{font-weight:700;margin-top:12px}dialog dd{margin:5px 0 0}.dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}.dialog-actions button{border-color:#c5c5c5}#handoff-text{width:100%;height:320px;font:12px Consolas,monospace;white-space:pre;resize:vertical;border:1px solid #bbb;padding:10px}#message-dialog{min-width:340px}#message-input{width:100%;padding:6px}#message-body{white-space:pre-wrap}#help-dialog{max-height:90vh;overflow:auto}@media(max-width:800px){.titlebar{padding:0 8px;gap:6px}#book-title{width:160px}#dirty-state,.local-label{display:none}.tabs{gap:16px}.statusbar{gap:5px}#stats{display:none}}
+</style></head>
+<body>
+<header class="titlebar"><span class="appmark" aria-hidden="true">▦</span><input id="book-title" aria-label="ブック名"><span id="dirty-state">元の状態</span><span class="spacer"></span><button id="copy-excel" class="primary">Excelへコピー</button><button id="handoff">AIに渡す</button></header>
+<nav class="tabs" aria-label="リボン"><button data-tab="home" class="selected">ホーム</button><button data-tab="cells">セル・表示</button><button data-tab="help">使い方・互換性</button><span class="spacer"></span><span class="local-label">単一HTML · ローカル編集</span></nav>
+<section id="ribbon-home" class="ribbon" aria-label="ホーム">
+ <div class="group"><button data-action="undo" title="元に戻す Ctrl+Z" aria-label="元に戻す">↶</button><button data-action="redo" title="やり直し Ctrl+Y" aria-label="やり直し">↷</button><button data-action="copy" title="選択範囲をコピー Ctrl+C">コピー</button><button data-action="paste" title="貼り付け Ctrl+V">貼り付け</button></div>
+ <div class="group"><select id="font" aria-label="フォント"><option>Yu Gothic</option><option>Yu Gothic UI</option><option>Meiryo</option><option>Aptos</option><option>Calibri</option><option>Arial</option><option>MS PGothic</option></select><input id="font-size" type="number" min="6" max="96" value="11" aria-label="フォントサイズ"><button data-style="bold" aria-label="太字" title="太字 Ctrl+B"><b>B</b></button><button data-style="italic" aria-label="斜体" title="斜体 Ctrl+I"><i>I</i></button><button data-style="underline" aria-label="下線" title="下線 Ctrl+U"><u>U</u></button><button data-style="strike" aria-label="取り消し線" title="取り消し線"><s>S</s></button><label class="color" title="文字色">A<input id="font-color" type="color" aria-label="文字色" value="#000000"></label><label class="color" title="塗りつぶし">▰<input id="fill-color" type="color" aria-label="塗りつぶし" value="#ffffff"></label><button id="fill-none" type="button" aria-label="塗りつぶしなし" title="塗りつぶしなし">⊘</button><select id="border" aria-label="罫線"><option value="">罫線</option><option value="all">格子</option><option value="outer">外枠</option><option value="bottom">下罫線</option><option value="none">罫線なし</option></select><input id="border-color" type="color" aria-label="罫線の色" value="#808080"><select id="border-line" aria-label="罫線の種類"><option value="1px solid">細線</option><option value="2px solid">太線</option><option value="1px dashed">破線</option><option value="1px dotted">点線</option><option value="3px double">二重線</option></select></div>
+ <div class="group"><select id="align" aria-label="横位置"><option value="general">標準配置</option><option value="left">左揃え</option><option value="center">中央揃え</option><option value="right">右揃え</option></select><select id="valign" aria-label="縦位置"><option value="top">上揃え</option><option value="middle">上下中央</option><option value="bottom">下揃え</option></select><button data-style="wrap" aria-label="折り返す">折り返す</button><button data-action="merge" title="結合 / 結合解除">結合</button></div>
+ <div class="group"><select id="number-format" aria-label="表示形式"><option value="General">標準</option><option value="@">文字列</option><option value="0">数値 0</option><option value="0.00">数値 0.00</option><option value="#,##0">桁区切り</option><option value="#,##0.00">桁区切り .00</option><option value="0%">パーセント</option><option value="0.00%">パーセント .00</option><option value="¥#,##0">円</option><option value="yyyy/mm/dd">日付</option></select><button data-action="sum" title="上の数値範囲をSUM">Σ</button><button data-action="clear" title="内容のクリア Delete">クリア</button><button data-action="find" title="検索 Ctrl+F">検索</button></div>
+</section>
+<section id="ribbon-cells" class="ribbon" aria-label="セル・表示" hidden>
+ <div class="group"><button data-action="insert-row">行の挿入</button><button data-action="delete-row">行の削除</button><button data-action="insert-col">列の挿入</button><button data-action="delete-col">列の削除</button></div>
+ <div class="group"><label>列幅 <input id="column-width" type="number" min="24" max="800" aria-label="列幅 px"></label><label>行高 <input id="row-height" type="number" min="16" max="600" aria-label="行高 px"></label><button data-action="autofit-col">列幅の自動調整</button><button data-action="autofit-row">行高の自動調整</button></div>
+ <div class="group"><button data-action="freeze">選択セルで枠を固定</button><button data-action="unfreeze">固定の解除</button><button data-action="gridlines">枠線の表示</button><button data-action="link">リンク</button></div>
+</section>
+<section id="ribbon-help" class="help-ribbon" hidden><span>クリックで選択、ドラッグ / Shift+矢印で範囲選択、F2 / ダブルクリックで編集。Enter / Tabで確定移動、Escで取消、Alt+Enterでセル内改行。</span><button id="help-open">操作・貼り付け条件</button></section>
+<div class="formula-bar"><input id="name-box" aria-label="名前ボックス" value="A1"><button id="cancel-edit" aria-label="編集の取消">×</button><button id="commit-edit" aria-label="編集の確定">✓</button><span class="fx" aria-hidden="true">fx</span><input id="formula" aria-label="数式バー" autocomplete="off" spellcheck="false"></div>
+<main id="viewport" tabindex="0" role="region" aria-label="ワークシート。矢印で移動、F2で編集"><div id="sheet-surface"><table id="grid" role="grid" aria-label="ワークシート"></table><div id="selection" aria-hidden="true"><span id="fill-handle" title="ドラッグしてコピー / 連続データ"></span></div><textarea id="cell-editor" aria-label="セル編集" spellcheck="false" hidden></textarea></div></main>
+<footer class="sheetbar"><span class="sheet-nav" aria-hidden="true">‹　›　☰</span><div id="sheet-tabs" role="tablist" aria-label="ワークシート"></div><button id="add-sheet" aria-label="シートの追加">＋</button><span class="spacer"></span><span id="selection-size"></span></footer>
+<div class="statusbar"><span id="status" role="status" aria-live="polite">準備完了</span><span class="spacer"></span><span id="stats"></span><button id="zoom-out" aria-label="縮小">−</button><input id="zoom" type="range" min="50" max="200" step="10" value="100" aria-label="ズーム"><span id="zoom-label">100%</span><button id="zoom-in" aria-label="拡大">＋</button></div>
+<div id="context-menu" role="menu" hidden><button data-action="copy">コピー　Ctrl+C</button><button data-action="paste">貼り付け　Ctrl+V</button><button data-action="clear">内容のクリア　Delete</button><button data-action="merge">結合 / 結合解除</button><hr><button data-action="insert-row">行の挿入</button><button data-action="delete-row">行の削除</button><button data-action="insert-col">列の挿入</button><button data-action="delete-col">列の削除</button></div>
+<dialog id="handoff-dialog"><form method="dialog"><h2>編集内容をAIに渡す</h2><p>下のテキストと元のHTMLをClaude Codeに渡し、「この編集状態を反映してHTMLを再生成して」と伝えてください。値・書式・寸法・結合・全シートが含まれます。</p><textarea id="handoff-text" aria-label="AIに渡す編集状態" readonly spellcheck="false"></textarea><p id="handoff-result" role="status"></p><div class="dialog-actions"><button type="button" id="copy-state" class="primary">テキストをコピー</button><button type="button" id="download-state">テキストをエクスポート</button><button>閉じる</button></div></form></dialog>
+<dialog id="help-dialog"><form method="dialog"><h2>Excel形式の編集とコピー</h2><dl><dt>範囲と編集</dt><dd>名前ボックスに A1:F12 を入力して選択。矢印 / Tab / Enterで移動。文字を打つと置換、F2で追記。Ctrl+Aで使用範囲、Ctrl+HomeでA1、Ctrl+Endで最終セル。行列の境界をドラッグしてサイズを変更、ダブルクリックで自動調整。</dd><dt>コピーと貼り付け</dt><dd>「Excelへコピー」またはCtrl+Cで選択範囲をコピーし、Excelで左上のセルを選んでCtrl+V。値（数値は全桁）、文字列（先頭ゼロ・空白・改行を含む）、表示形式、フォント、色、塗りつぶし、罫線、配置、折り返し、インデント、結合、リンクがこの表と同じになります（デスクトップ版Excelで確認）。数式は、参照先がすべてコピー範囲の中にあるときに数式として入り、範囲の外を参照する数式は計算結果の値として入ります。00123 や 1/2 のように数値・日付に見える文字列は、値が変わらないよう表示形式「文字列」で入ります。Excelからこの表への貼り付けでは、Excelに表示されていた値と書式を取り込みます（数式は値になります）。</dd><dt>貼り付け後に確認する項目</dt><dd>列幅と行の高さは、Excel同士でコピーしたときと同じく、貼り付け先のままです（行の高さは自動で調整されます）。数値が「####」と表示されたら列幅を広げてください。ブラウザー版Excelでは取り込み方が異なる場合があるため、大事な表は貼り付け後に見比べてください。</dd><dt>数式</dt><dd>同じシートのA1参照・範囲、四則演算・比較・文字連結、SUM / AVERAGE / MIN / MAX / COUNT / COUNTA / IF / ROUND。未対応の式はエラーを表示します。全Excel関数の実装ではありません。</dd><dt>保存</dt><dd>Ctrl+Sまたは「AIに渡す」で状態テキストを出力します。ファイル自体への自動保存はありません。編集の書き出し後も、元HTMLと状態テキストを一緒に保管してください。</dd><dt>シート</dt><dd>タブで切り替え、ダブルクリックで名前変更、＋で追加。緑の選択枠の右下をドラッグすると値・書式・相対数式をコピーします。数値2セルを選んで下へドラッグすると連続データになります。</dd></dl><div class="dialog-actions"><button>閉じる</button></div></form></dialog>
+<dialog id="message-dialog"><form method="dialog"><h2 id="message-title"></h2><p id="message-body"></p><input id="message-input" aria-label="入力値" hidden><div class="dialog-actions"><button value="cancel">キャンセル</button><button value="ok" class="primary">OK</button></div></form></dialog>
+<script id="workbook-data" type="application/json">{"schema":"excel-html-workbook/v1","id":"equipment-ledger-2026","revision":"sha256:61cfca0632a202dc86f815ecabcf27947c7ab5bfb2b4a2d83d780b695b643b69","title":"備品管理表","activeSheet":"items","view":{"zoom":100},"sheets":[{"id":"items","name":"備品","rows":60,"cols":12,"colWidths":[90,190,90,100,110,80,80],"rowHeights":[32,22,26],"freeze":{"rows":3,"cols":0},"merges":[],"cells":{"A1":{"t":"s","v":"備品管理表","s":{"bold":true,"size":16,"color":"#107c41"}},"A2":{"t":"s","v":"2026年11月時点"},"A3":{"t":"s","v":"管理番号","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"B3":{"t":"s","v":"品名","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"C3":{"t":"s","v":"区分","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"D3":{"t":"s","v":"購入日","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"E3":{"t":"s","v":"購入金額","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"F3":{"t":"s","v":"担当者","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"G3":{"t":"s","v":"状態","s":{"bold":true,"fill":"#217346","color":"#ffffff","borderBottom":"2px solid #14512e"}},"A4":{"t":"s","v":"00011","s":{"numFmt":"@"}},"B4":{"t":"s","v":"ノートPC"},"C4":{"t":"s","v":"PC"},"D4":{"t":"n","v":46100,"s":{"numFmt":"yyyy/mm/dd"}},"E4":{"t":"n","v":158000,"s":{"numFmt":"¥#,##0"}},"F4":{"t":"s","v":"佐藤"},"G4":{"t":"s","v":"使用中"},"A5":{"t":"s","v":"00012","s":{"numFmt":"@"}},"B5":{"t":"s","v":"ノートPC"},"C5":{"t":"s","v":"PC"},"D5":{"t":"n","v":46100,"s":{"numFmt":"yyyy/mm/dd"}},"E5":{"t":"n","v":158000,"s":{"numFmt":"¥#,##0"}},"F5":{"t":"s","v":"鈴木"},"G5":{"t":"s","v":"使用中"},"A6":{"t":"s","v":"00013","s":{"numFmt":"@"}},"B6":{"t":"s","v":"モニター 27型"},"C6":{"t":"s","v":"周辺機器"},"D6":{"t":"n","v":45930,"s":{"numFmt":"yyyy/mm/dd"}},"E6":{"t":"n","v":42000,"s":{"numFmt":"¥#,##0"}},"F6":{"t":"s","v":"高橋"},"G6":{"t":"s","v":"使用中"},"A7":{"t":"s","v":"00014","s":{"numFmt":"@"}},"B7":{"t":"s","v":"プロジェクター"},"C7":{"t":"s","v":"会議室"},"D7":{"t":"n","v":45500,"s":{"numFmt":"yyyy/mm/dd"}},"E7":{"t":"n","v":120000,"s":{"numFmt":"¥#,##0"}},"F7":{"t":"s","v":"総務"},"G7":{"t":"s","v":"修理中"},"A8":{"t":"s","v":"00015","s":{"numFmt":"@"}},"B8":{"t":"s","v":"Webカメラ"},"C8":{"t":"s","v":"周辺機器"},"D8":{"t":"n","v":45800,"s":{"numFmt":"yyyy/mm/dd"}},"E8":{"t":"n","v":9800,"s":{"numFmt":"¥#,##0"}},"F8":{"t":"s","v":"田中"},"G8":{"t":"s","v":"在庫"},"A9":{"t":"s","v":"00016","s":{"numFmt":"@"}},"B9":{"t":"s","v":"ドッキングステーション"},"C9":{"t":"s","v":"周辺機器"},"D9":{"t":"n","v":45950,"s":{"numFmt":"yyyy/mm/dd"}},"E9":{"t":"n","v":28000,"s":{"numFmt":"¥#,##0"}},"F9":{"t":"s","v":"伊藤"},"G9":{"t":"s","v":"使用中"},"A10":{"t":"s","v":"00017","s":{"numFmt":"@"}},"B10":{"t":"s","v":"複合機（リース）"},"C10":{"t":"s","v":"事務機器"},"D10":{"t":"n","v":44900,"s":{"numFmt":"yyyy/mm/dd"}},"E10":{"t":"n","v":0,"s":{"numFmt":"¥#,##0"}},"F10":{"t":"s","v":"総務"},"G10":{"t":"s","v":"使用中"},"A11":{"t":"s","v":"00018","s":{"numFmt":"@"}},"B11":{"t":"s","v":"タブレット"},"C11":{"t":"s","v":"PC"},"D11":{"t":"n","v":46010,"s":{"numFmt":"yyyy/mm/dd"}},"E11":{"t":"n","v":64000,"s":{"numFmt":"¥#,##0"}},"F11":{"t":"s","v":"渡辺"},"G11":{"t":"s","v":"在庫"},"D15":{"t":"s","v":"合計","s":{"bold":true,"borderTop":"1px solid #000000"}},"E15":{"t":"f","f":"=SUM(E4:E14)","s":{"bold":true,"numFmt":"¥#,##0","borderTop":"1px solid #000000"}}}}]}</script>
+<script>/* Excel HTML Output — original implementation, no runtime dependencies. */
+(function(root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.ExcelHTMLCore = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+  'use strict';
+  const SCHEMA = 'excel-html-workbook/v1';
+  const FORMATS = ['General','@','0','0.00','#,##0','#,##0.00','0%','0.00%','¥#,##0','yyyy/mm/dd'];
+  // Excel's own clipboard spelling of each format (measured on Excel 2021 copy output).
+  const MSO_FORMAT = {'General':'General','@':'"\\@"','0':'0','0.00':'Fixed','#,##0':'"\\#\\,\\#\\#0"','#,##0.00':'Standard',
+    '0%':'0%','0.00%':'Percent','¥#,##0':'"\\0022¥\\0022\\#\\,\\#\\#0"','yyyy/mm/dd':'"yyyy\\/mm\\/dd"'};
+  // Japanese Excel defaults: no fill, vertically centred (the Normal style of ja-JP workbooks).
+  const DEFAULT = {font:'Yu Gothic',size:11,bold:false,italic:false,underline:false,strike:false,
+    color:'#000000',fill:'none',align:'general',valign:'middle',wrap:false,numFmt:'General',
+    borderTop:'none',borderRight:'none',borderBottom:'none',borderLeft:'none',indent:0};
+  // Border kinds that Excel can represent, with the clipboard CSS Excel itself writes for them.
+  const BORDER_XL = {'0.5px solid':'.5pt hairline','1px solid':'.5pt solid','2px solid':'1.0pt solid','3px solid':'1.5pt solid',
+    '1px dashed':'.5pt dashed','2px dashed':'1.0pt dashed','1px dotted':'.5pt dotted','3px double':'2.0pt double'};
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const colName = n => { let out=''; for(n++;n>0;n=Math.floor((n-1)/26)) out=String.fromCharCode(65+(n-1)%26)+out; return out; };
+  const addr = (r,c) => colName(c)+(r+1);
+  function coord(a) { const m=/^\$?([A-Z]{1,3})\$?([1-9]\d*)$/i.exec(a); if(!m) throw Error('セル番地が不正です: '+a); return [+m[2]-1,[...m[1].toUpperCase()].reduce((n,x)=>n*26+x.charCodeAt(0)-64,0)-1]; }
+  const rect = (a,b=a) => ({r1:Math.min(a[0],b[0]),c1:Math.min(a[1],b[1]),r2:Math.max(a[0],b[0]),c2:Math.max(a[1],b[1])});
+  function range(s) { const parts=s.toUpperCase().split(':'); if(parts.length>2) throw Error('範囲が不正です'); return rect(coord(parts[0]),coord(parts[1]||parts[0])); }
+  const within=(r,c,q)=>r>=q.r1&&r<=q.r2&&c>=q.c1&&c<=q.c2;
+  const overlap=(a,b)=>a.r1<=b.r2&&a.r2>=b.r1&&a.c1<=b.c2&&a.c2>=b.c1;
+  const same=(a,b)=>a.r1===b.r1&&a.r2===b.r2&&a.c1===b.c1&&a.c2===b.c2;
+  const each=(q,fn)=>{for(let r=q.r1;r<=q.r2;r++)for(let c=q.c1;c<=q.c2;c++)fn(r,c);};
+  const get=(s,r,c)=>s.cells[addr(r,c)] || {t:'s',v:''};
+  const style=(w,s,cell)=>({...DEFAULT,...w.defaultStyle,...s.defaultStyle,...cell.s});
+  function mergeAt(s,r,c){return s.merges.find(m=>within(r,c,m));}
+  function expanded(s,q){q={...q};let changed=true;while(changed){changed=false;for(const m of s.merges) if(overlap(q,m)){const n=rect([Math.min(q.r1,m.r1),Math.min(q.c1,m.c1)],[Math.max(q.r2,m.r2),Math.max(q.c2,m.c2)]);if(!same(n,q)){q=n;changed=true;}}}return q;}
+  function validate(w) {
+    const fail=m=>{throw Error('ブック形式エラー: '+m);};
+    const integer=(n,min,max)=>Number.isInteger(n)&&n>=min&&n<=max;
+    if(!w||w.schema!==SCHEMA||typeof w.id!=='string'||!w.id||typeof w.revision!=='string'||!w.revision) fail('schema / id / revision');
+    if(typeof w.title!=='string'||!Array.isArray(w.sheets)||!w.sheets.length||w.sheets.length>30) fail('title / sheets');
+    const ids=new Set(), names=new Set();
+    const vs = st => { if(!st) return; if(typeof st!=='object'||Array.isArray(st)) fail('style');
+      for(const [k,v] of Object.entries(st)) {
+        if(!(k in DEFAULT)) fail('未対応の書式 '+k);
+        if(k==='color'&&!/^#[\da-f]{6}$/i.test(v)) fail(k);
+        if(k==='fill'&&v!=='none'&&!/^#[\da-f]{6}$/i.test(v)) fail(k);
+        if(k==='font'&&(typeof v!=='string'||!v||v.length>100||/[<>;{}"\\]/.test(v))) fail('font');
+        if(k==='size'&&!(Number.isFinite(v)&&v>=6&&v<=96)) fail('size');
+        if(k==='indent'&&!integer(v,0,15)) fail('indent');
+        if(['bold','italic','underline','strike','wrap'].includes(k)&&typeof v!=='boolean') fail(k);
+        if(k==='align'&&!['general','left','center','right'].includes(v)) fail(k);
+        if(k==='valign'&&!['top','middle','bottom'].includes(v)) fail(k);
+        if(k==='numFmt'&&!FORMATS.includes(v)) fail('表示形式 '+v);
+        if(k.startsWith('border')&&v!=='none'&&!(typeof v==='string'&&/^\S+ \S+ #[\da-f]{6}$/i.test(v)&&BORDER_XL[v.split(' ').slice(0,2).join(' ')])) fail(k+'（Excelで表せる線: '+Object.keys(BORDER_XL).join(' / ')+'）');
+      }
+    };
+    vs(w.defaultStyle);
+    for(const s of w.sheets) {
+      if(typeof s.id!=='string'||!s.id||ids.has(s.id)) fail('重複したsheet id'); ids.add(s.id);
+      if(typeof s.name!=='string'||!s.name||s.name.length>31||/[\\/?*\[\]:]/.test(s.name)||names.has(s.name.toLowerCase())) fail('シート名'); names.add(s.name.toLowerCase());
+      if(!integer(s.rows,1,500)||!integer(s.cols,1,100)) fail('上限500行 / 100列');
+      if(!s.cells||typeof s.cells!=='object'||Array.isArray(s.cells)||!Array.isArray(s.merges)) fail('cells / merges');
+      for(const [key,cell] of Object.entries(s.cells)) {
+        const [r,c]=coord(key); if(key!==addr(r,c)||r>=s.rows||c>=s.cols) fail('範囲外のセル '+key);
+        if(!cell||!['s','n','b','f'].includes(cell.t)) fail('型 '+key);
+        if(cell.t==='s'&&typeof cell.v!=='string'||cell.t==='n'&&!Number.isFinite(cell.v)||cell.t==='b'&&typeof cell.v!=='boolean') fail('値 '+key);
+        if(cell.t==='f'&&(typeof cell.f!=='string'||!cell.f.startsWith('='))) fail('数式 '+key);
+        if(cell.link && (typeof cell.link!=='string'||!/^https?:\/\//i.test(cell.link))) fail('リンクはhttp(s)のみ');
+        vs(cell.s);
+      }
+      vs(s.defaultStyle);
+      for(const [field,maxLen,min,max] of [['colWidths',s.cols,24,800],['rowHeights',s.rows,16,600]]) {
+        if(!Array.isArray(s[field])||s[field].length>maxLen||s[field].some(v=>v!==null&&(!Number.isFinite(v)||v<min||v>max))) fail(field);
+      }
+      for(let i=0;i<s.merges.length;i++){
+        const m=s.merges[i]; if(!m||!integer(m.r1,0,s.rows-1)||!integer(m.r2,m.r1,s.rows-1)||!integer(m.c1,0,s.cols-1)||!integer(m.c2,m.c1,s.cols-1)) fail('結合範囲');
+        if(s.merges.slice(0,i).some(x=>overlap(x,m))) fail('結合の重複');
+        each(m,(r,c)=>{if(r===m.r1&&c===m.c1)return;const cell=get(s,r,c);if(cell.t==='f'||cell.v!==''&&cell.v!==undefined)fail('結合セル内の隠れた値 '+addr(r,c));});
+      }
+      if(s.freeze&&(!integer(s.freeze.rows,0,s.rows)||!integer(s.freeze.cols,0,s.cols))) fail('固定範囲');
+      if(s.freeze&&s.merges.some(m=>m.r1<s.freeze.rows&&m.r2>=s.freeze.rows||m.c1<s.freeze.cols&&m.c2>=s.freeze.cols)) fail('結合をまたぐ固定は未対応');
+    }
+    if(!ids.has(w.activeSheet)) fail('activeSheet');
+    if(w.view){
+      if(typeof w.view!=='object'||Array.isArray(w.view)||!Number.isFinite(w.view.zoom)||w.view.zoom<50||w.view.zoom>200)fail('zoom');
+      const s=w.sheets.find(s=>s.id===w.activeSheet),v=w.view;
+      if(v.active!==undefined&&(!Array.isArray(v.active)||v.active.length!==2||!integer(v.active[0],0,s.rows-1)||!integer(v.active[1],0,s.cols-1)))fail('view.active');
+      if(v.selection!==undefined){const q=v.selection;if(!q||!integer(q.r1,0,s.rows-1)||!integer(q.r2,q.r1,s.rows-1)||!integer(q.c1,0,s.cols-1)||!integer(q.c2,q.c1,s.cols-1))fail('view.selection');}
+      for(const key of ['scrollTop','scrollLeft'])if(v[key]!==undefined&&(!Number.isFinite(v[key])||v[key]<0))fail('view.'+key);
+    }
+    return w;
+  }
+  const width=(s,c)=>s.colWidths[c]??96;
+  const height=(s,r)=>s.rowHeights[r]??22;
+  function infer(text, old) {
+    text=String(text).replace(/\r\n?/g,'\n'); const st=old?.s ? {s:clone(old.s)} : {};
+    if(text.startsWith("'")) return {...st,t:'s',v:text.slice(1)};
+    if(old?.s?.numFmt==='@') return {...st,t:'s',v:text};
+    if(text.startsWith('=')) return {...st,t:'f',f:text};
+    if(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(text)&&text.replace(/\D/g,'').length<=15&&Number.isFinite(+text)) return {...st,t:'n',v:+text};
+    if(/^(TRUE|FALSE)$/.test(text)) return {...st,t:'b',v:text==='TRUE'};
+    return {...st,t:'s',v:text};
+  }
+  const raw=cell=>cell.t==='f'?cell.f:cell.t==='b'?(cell.v?'TRUE':'FALSE'):String(cell.v??'');
+  const isErr=x=>typeof x==='string'&&/^#(?:REF!|NAME\?|VALUE!|DIV\/0!|NUM!|CIRC!|N\/A)$/.test(x);
+  function calculate(w, sheet, r, c, stack=new Set(), cache=new Map()) {
+    const key=sheet.id+'!'+addr(r,c); if(cache.has(key))return cache.get(key); if(stack.has(key))return '#CIRC!';
+    const cell=get(sheet,r,c);if(cell.t!=='f')return cell.v??'';
+    stack.add(key);let value;
+    try {value=evalFormula(cell.f, (a,b)=>{const [rr,cc]=coord(a);if(rr>=sheet.rows||cc>=sheet.cols)return '#REF!';if(!b)return calculate(w,sheet,rr,cc,stack,cache);const q=range(a+':'+b),v=[];if(q.r2>=sheet.rows||q.c2>=sheet.cols)return '#REF!';each(q,(r1,c1)=>v.push(calculate(w,sheet,r1,c1,stack,cache)));return v;});}
+    catch(e){value=isErr(e.message)?e.message:'#VALUE!';}
+    stack.delete(key); if(typeof value==='number'&&!Number.isFinite(value))value='#NUM!';cache.set(key,value); return value;
+  }
+  function evalFormula(formula, ref) {
+    const pattern=/\s*(?:(\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+)|("(?:[^"]|"")*")|(\$?[A-Z]{1,3}\$?[1-9]\d*)|([A-Z_][A-Z_0-9.]*)|(<=|>=|<>|[+\-*/^%&=<>(),:])|(#REF!))/iy;
+    const tok=[];let p=1,m;while(p<formula.length){if(!formula.slice(p).trim())break;pattern.lastIndex=p;m=pattern.exec(formula);if(!m)throw Error('#NAME?');tok.push(m[1]?{k:'num',v:+m[1]}:m[2]?{k:'str',v:m[2].slice(1,-1).replace(/""/g,'"')}:m[3]?{k:'ref',v:m[3].toUpperCase()}:m[4]?{k:'id',v:m[4].toUpperCase()}:{k:m[5]||m[6],v:m[5]||m[6]});p=pattern.lastIndex;}
+    let i=0;const peek=()=>tok[i]?.k, eat=k=>{if(peek()!==k)throw Error('#VALUE!');return tok[i++];};
+    const number=v=>{if(isErr(v))throw Error(v);if(v===''||v===false)return 0;if(v===true)return 1;if(typeof v!=='number')throw Error('#VALUE!');return v;};
+    const prec={'=':1,'<>':1,'<':1,'>':1,'<=':1,'>=':1,'&':2,'+':3,'-':3,'*':4,'/':4,'^':5};
+    function expression(min=0){let left;
+      if(peek()==='+'||peek()==='-'){const sign=tok[i++].k;left={op:'unary',sign,x:expression(5)};}
+      else if(peek()==='('){i++;left=expression();eat(')');}
+      else if(peek()==='num'||peek()==='str'){left={op:'literal',v:tok[i++].v};}
+      else if(peek()==='#REF!'){i++;left={op:'literal',v:'#REF!'};}
+      else if(peek()==='ref'){const a=tok[i++].v;let b;if(peek()===':'){i++;b=eat('ref').v;}left={op:'ref',a,b};}
+      else if(peek()==='id'){const name=tok[i++].v;if(['TRUE','FALSE'].includes(name)&&peek()!=='(')left={op:'literal',v:name==='TRUE'};else {eat('(');const args=[];if(peek()!==')'){args.push(expression());while(peek()===','){i++;args.push(expression());}}eat(')');left={op:'call',name,args};}}
+      else throw Error('#VALUE!');
+      while(true){if(peek()==='%'){i++;left={op:'percent',x:left};continue;}const op=peek(),pr=prec[op];if(pr===undefined||pr<min)break;i++;left={op:'binary',sign:op,l:left,r:expression(pr+(op==='^'?0:1))};} return left;
+    }
+    function run(n){
+      if(n.op==='literal')return n.v;if(n.op==='ref')return ref(n.a,n.b);
+      if(n.op==='unary')return number(run(n.x))*(n.sign==='-'?-1:1);if(n.op==='percent')return number(run(n.x))/100;
+      if(n.op==='binary'){const a=run(n.l),b=run(n.r);if(isErr(a))throw Error(a);if(isErr(b))throw Error(b);const aa=typeof a==='string'?a.toLowerCase():a,bb=typeof b==='string'?b.toLowerCase():b;switch(n.sign){case '&':return String(a)+String(b);case '=':return aa===bb;case '<>':return aa!==bb;case '<':return aa<bb;case '>':return aa>bb;case '<=':return aa<=bb;case '>=':return aa>=bb;case '+':return number(a)+number(b);case '-':return number(a)-number(b);case '*':return number(a)*number(b);case '/':if(number(b)===0)throw Error('#DIV/0!');return number(a)/number(b);case '^':return number(a)**number(b);}}
+      if(n.name==='IF'){if(n.args.length<2||n.args.length>3)throw Error('#VALUE!');const condition=run(n.args[0]);if(isErr(condition))throw Error(condition);return condition?run(n.args[1]):n.args[2]?run(n.args[2]):false;}
+      const args=n.args.map(run).flat();for(const v of args)if(isErr(v))throw Error(v);const nums=args.filter(x=>typeof x==='number');
+      switch(n.name){case 'SUM':return nums.reduce((a,b)=>a+b,0);case 'AVERAGE':if(!nums.length)throw Error('#DIV/0!');return nums.reduce((a,b)=>a+b,0)/nums.length;case 'MIN':return nums.length?Math.min(...nums):0;case 'MAX':return nums.length?Math.max(...nums):0;case 'COUNT':return nums.length;case 'COUNTA':return args.filter(x=>x!=='').length;case 'ROUND':if(args.length!==2)throw Error('#VALUE!');return Math.sign(number(args[0]))*Math.round((Math.abs(args[0])+Number.EPSILON)*10**number(args[1]))/10**args[1];default:throw Error('#NAME?');}
+    }
+    const ast=expression();if(i!==tok.length)throw Error('#NAME?');const result=run(ast);return Array.isArray(result)?'#VALUE!':result;
+  }
+  function display(value,fmt='General') {
+    if(isErr(value)||typeof value==='string')return value;if(typeof value==='boolean')return value?'TRUE':'FALSE';
+    if(value==null)return ''; if(fmt==='yyyy/mm/dd'){const d=new Date(Date.UTC(1899,11,30)+value*86400000);return isNaN(d)?'#VALUE!':d.toISOString().slice(0,10).replace(/-/g,'/');}
+    if(fmt==='General'||fmt==='@')return String(Number(value.toPrecision(15)));
+    const percent=fmt.includes('%'),decimals=fmt.includes('.00')?2:0;
+    const yen=fmt.startsWith('¥'),neg=yen&&value<0;
+    const text=((neg?-value:value)*(percent?100:1)).toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals,useGrouping:fmt.includes(',')});
+    return (neg?'-':'')+(yen?'¥':'')+text+(percent?'%':'');
+  }
+  // Horizontal alignment Excel shows for "general": numbers and errors right, booleans centre, text left.
+  const generalAlign=value=>typeof value==='number'||isErr(value)?'right':typeof value==='boolean'?'center':'left';
+  // Screen CSS. Indent is 1 character (about 9px at 11pt) per level on the aligned side, as in Excel.
+  function css(st,value) {
+    const align=st.align==='general'?generalAlign(value):st.align,indent=st.indent*9;
+    const out={ 'font-family':'"'+st.font.replace(/["\\]/g,'')+'", sans-serif','font-size':st.size+'pt','font-weight':st.bold?'700':'400','font-style':st.italic?'italic':'normal','text-decoration':[(st.underline?'underline':''),(st.strike?'line-through':'')].filter(Boolean).join(' ')||'none','color':st.color,'background-color':st.fill==='none'?'transparent':st.fill,'text-align':align,'vertical-align':st.valign,'white-space':st.wrap?'pre-wrap':'pre','padding-left':(3+(align==='right'?0:indent))+'px','padding-right':(3+(align==='right'?indent:0))+'px' };
+    for(const side of ['Top','Right','Bottom','Left']) {const v=st['border'+side];if(v!=='none')out['border-'+side.toLowerCase()]=v;}
+    return Object.entries(out).map(([k,v])=>k+':'+v).join(';');
+  }
+  const JP_FONT=/^(?:yu |ms |biz ud|ud digi|meiryo|hg|noto (?:sans|serif) (?:jp|cjk)|hiragino|source han|ipa|takao)/i;
+  const fontCharset=name=>/[^\x00-\x7f]/.test(name)||JP_FONT.test(name)?128:0;
+  // Clipboard CSS in the dialect Excel writes and reads (pt borders, mso-* properties, explicit nowrap).
+  function xlCss(st,value) {
+    const align=st.indent>0&&st.align==='general'?'left':st.align,out=[
+      'font-family:"'+st.font.replace(/["\\]/g,'')+'"','mso-font-charset:'+fontCharset(st.font),'font-size:'+st.size+'pt',
+      'font-weight:'+(st.bold?700:400),'font-style:'+(st.italic?'italic':'normal'),
+      'text-decoration:'+([(st.underline?'underline':''),(st.strike?'line-through':'')].filter(Boolean).join(' ')||'none'),
+      'color:'+st.color.toUpperCase(),'text-align:'+align,'vertical-align:'+st.valign,'white-space:'+(st.wrap?'normal':'nowrap'),
+      'mso-number-format:'+MSO_FORMAT[st.numFmt]];
+    if(st.underline)out.push('text-underline-style:single');
+    if(st.fill!=='none')out.push('background:'+st.fill.toUpperCase(),'mso-pattern:black none');
+    if(st.indent>0)out.push('mso-char-indent-count:'+st.indent,(align==='right'?'padding-right:':'padding-left:')+(st.indent*15)+'px');
+    for(const side of ['Top','Right','Bottom','Left']){const v=st['border'+side];out.push('border-'+side.toLowerCase()+':'+(v==='none'?'none':BORDER_XL[v.split(' ').slice(0,2).join(' ')]+' '+v.split(' ')[2].toUpperCase()));}
+    return out.join(';');
+  }
+  // Strings Excel would turn into a number, date, time, boolean, error or formula when it reads the text.
+  function excelWouldConvert(text) {
+    const s=String(text).trim();if(s!==String(text)&&s==='')return false;
+    if(/^[=+\-@]/.test(s)&&s.length>1||/^'/.test(String(text)))return true;
+    if(/^(?:TRUE|FALSE)$/i.test(s)||/^#(?:N\/A|NULL!|DIV\/0!|VALUE!|REF!|NAME\?|NUM!|GETTING_DATA)$/i.test(s))return true;
+    if(/^[(]?[-+]?[¥$€£]?\s*(?:\d[\d,]*(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?\s*%?[)]?$/i.test(s))return true;
+    if(/^\d{1,4}[/\-.]\d{1,2}(?:[/\-.]\d{1,4})?(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/.test(s))return true;
+    if(/^\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*[AP]M?)?$/i.test(s))return true;
+    if(/^(?:\d{1,4}年)?\d{1,2}月(?:\d{1,2}日)?$|^\d{1,2}日$|^(?:明治|大正|昭和|平成|令和|[MTSHR])\s*\d{1,2}[年./-]/.test(s))return true;
+    if(/^\d{1,2}[\s-](?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s-]\d{2,4})?$/i.test(s)||/^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s-]\d{1,4}$/i.test(s))return true;
+    return false;
+  }
+  // x:fmla is read relative to the pasted block (even $-references), so rewrite references against the
+  // copied range's top-left. Returns null when any reference points outside the copied range.
+  function blockFormula(f,q) {
+    let outside=false;
+    const out=f.replace(/"(?:[^"]|"")*"|\$?[A-Z]{1,3}\$?[1-9]\d*(?![A-Z0-9_(])/gi,m=>{if(m[0]==='"')return m;const p=/^(\$?)([A-Z]+)(\$?)(\d+)$/i.exec(m),[r,c]=coord(m);if(!within(r,c,q)){outside=true;return m;}return p[1]+colName(c-q.c1)+p[3]+(r-q.r1+1);});
+    return outside?null:out;
+  }
+  const attr=v=>esc(v).replace(/\n/g,'&#10;').replace(/\r/g,'&#13;').replace(/\t/g,'&#9;');
+
+  /* ---- Reading HTML that Excel (desktop or web) put on the clipboard. Pure functions; the DOM walk is in app.js. ---- */
+  const cssUnescape=v=>String(v).replace(/\\([0-9a-f]{1,6})\s?/gi,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/\\(.)/g,'$1');
+  function parseDecls(text) {
+    const out={};let buf='',quote='';
+    const flush=()=>{const i=buf.indexOf(':');if(i>0)out[buf.slice(0,i).trim().toLowerCase()]=buf.slice(i+1).trim();buf='';};
+    for(let i=0;i<String(text||'').length;i++){const ch=text[i];if(quote){buf+=ch;if(ch==='\\'){buf+=text[++i]||'';}else if(ch===quote)quote='';}else if(ch==='"'||ch==="'"){quote=ch;buf+=ch;}else if(ch===';')flush();else buf+=ch;}
+    flush();return out;
+  }
+  // Rules of <style> blocks as [selector, declarations]; Excel writes "td{...}" and ".xl65{...}".
+  function parseRules(text) {
+    const rules=[],src=String(text||'').replace(/<!--|-->/g,'').replace(/\/\*[\s\S]*?\*\//g,'');
+    for(const m of src.matchAll(/([^{}]+)\{([^{}]*)\}/g))for(const sel of m[1].split(','))rules.push([sel.trim().toLowerCase(),parseDecls(m[2])]);
+    return rules;
+  }
+  const NAMED={black:'#000000',windowtext:'#000000',white:'#ffffff',window:'#ffffff',red:'#ff0000',green:'#008000',blue:'#0000ff',yellow:'#ffff00',gray:'#808080',grey:'#808080',silver:'#c0c0c0',maroon:'#800000',navy:'#000080',purple:'#800080',teal:'#008080',olive:'#808000',lime:'#00ff00',aqua:'#00ffff',fuchsia:'#ff00ff',orange:'#ffa500'};
+  function cssHex(v) {
+    v=String(v||'').trim().toLowerCase();if(NAMED[v])return NAMED[v];
+    let m=/^#([\da-f]{6})$/.exec(v);if(m)return '#'+m[1];m=/^#([\da-f])([\da-f])([\da-f])$/.exec(v);if(m)return '#'+m[1]+m[1]+m[2]+m[2]+m[3]+m[3];
+    m=/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(v);if(m)return '#'+m.slice(1,4).map(n=>(+n).toString(16).padStart(2,'0')).join('');
+    return null;
+  }
+  // "Standard", "\0022¥\0022\#\,\#\#0", "yyyy\/mm\/dd" ... -> one of FORMATS, or null when not representable.
+  function formatFromMso(v) {
+    let f=cssUnescape(String(v||'').trim().replace(/^(['"])([\s\S]*)\1$/,'$2'));
+    const named={general:'General',standard:'#,##0.00',fixed:'0.00',percent:'0.00%','short date':'yyyy/mm/dd','\\@':'@'};
+    if(named[f.toLowerCase()])return named[f.toLowerCase()];
+    f=f.replace(/"([^"]*)"/g,'$1').replace(/\[\$([^\]-]*)(?:-[^\]]*)?\]/g,'$1').replace(/_.|\*./g,'').replace(/\\(.)/g,'$1').trim();
+    if(/^[\\¥￥]#,##0$/.test(f))f='¥#,##0';
+    if(/^yyyy\/m{1,2}\/d{1,2}$/i.test(f))f='yyyy/mm/dd';
+    return FORMATS.includes(f)?f:null;
+  }
+  function borderFromCss(v) {
+    v=String(v||'').trim().toLowerCase();if(!v||/^none\b|^0(?:pt|px)?\b|hidden/.test(v))return 'none';
+    const width=/([\d.]+)(pt|px)/.exec(v),pts=width?(+width[1])*(width[2]==='px'?.75:1):.5,color=cssHex((v.match(/#[\da-f]{3,6}\b|rgba?\([^)]*\)|\b[a-z]+\b(?=\s*$)/g)||[]).pop())||'#000000';
+    if(v.includes('hairline'))return '0.5px solid '+color;
+    if(v.includes('double'))return '3px double '+color;
+    if(/dot-dash|dash|dot-dot/.test(v)&&!/\bdotted\b/.test(v))return (pts>=1?'2px':'1px')+' dashed '+color;
+    if(v.includes('dotted'))return '1px dotted '+color;
+    return (pts>=1.5?'3px':pts>=1?'2px':'1px')+' solid '+color;
+  }
+  // Japanese display names Excel writes for fonts this workbook names in English.
+  const FONT_ALIAS={'游ゴシック':'Yu Gothic','游明朝':'Yu Mincho','メイリオ':'Meiryo','ＭＳ ゴシック':'MS Gothic','ＭＳ Ｐゴシック':'MS PGothic','ＭＳ 明朝':'MS Mincho','ＭＳ Ｐ明朝':'MS PMincho'};
+  // Excel-dialect declarations -> this workbook's style keys (only those the source states).
+  function styleFromDecls(d) {
+    const st={};
+    if(d['font-family']){let f=cssUnescape(d['font-family'].split(',')[0]).replace(/["']/g,'').trim();f=FONT_ALIAS[f]||f;if(f&&f.length<=100&&!/[<>;{}"\\]/.test(f))st.font=f;}
+    if(d['font-size']){const m=/([\d.]+)\s*(pt|px)?/.exec(d['font-size']);if(m){const p=+m[1]*(m[2]==='px'?.75:1);if(p>=6&&p<=96)st.size=Math.round(p*2)/2;}}
+    if(d['font-weight'])st.bold=/bold|[6-9]00/.test(d['font-weight']);
+    if(d['font-style'])st.italic=/italic|oblique/.test(d['font-style']);
+    if(d['text-decoration']!==undefined||d['text-underline-style']!==undefined){const t=(d['text-decoration']||'')+' '+(d['text-underline-style']||'');st.underline=/underline|single|double/.test(t)&&!/none\s*$/.test(d['text-underline-style']||'');st.strike=/line-through/.test(t);}
+    if(d.color){const c=cssHex(d.color);if(c)st.color=c;}
+    const bg=d['background-color']??d.background;if(bg!==undefined)st.fill=cssHex(bg.split(/\s+/)[0])||'none';
+    if(d['text-align']){const a=d['text-align'].toLowerCase();st.align=['left','center','right'].includes(a)?a:a==='justify'||a==='fill'?'left':'general';}
+    if(d['vertical-align']){const a=d['vertical-align'].toLowerCase();st.valign=a==='top'?'top':a==='bottom'?'bottom':'middle';}
+    if(d['white-space'])st.wrap=/normal|pre-wrap|pre-line/.test(d['white-space']);
+    if(d['mso-char-indent-count']){const n=parseInt(d['mso-char-indent-count'],10);if(n>=0&&n<=15)st.indent=n;}
+    if(d['mso-number-format']){const f=formatFromMso(d['mso-number-format']);st.numFmt=f||'General';}
+    const all=d.border!==undefined?borderFromCss(d.border):undefined;
+    for(const side of ['Top','Right','Bottom','Left']){const v=d['border-'+side.toLowerCase()];if(v!==undefined)st['border'+side]=borderFromCss(v);else if(all!==undefined)st['border'+side]=all;}
+    return st;
+  }
+  // Number shown with a format ("¥1,200", "12.35%", "2025/12/09") back to its value; null when it is not a number.
+  function valueFromDisplay(text,fmt) {
+    const s=String(text).trim();if(!s)return null;
+    let m=/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/.exec(s);
+    if(m){const t=Date.UTC(+m[1],+m[2]-1,+m[3]);return Math.round((t-Date.UTC(1899,11,30))/86400000);}
+    m=/^([(-])?\s*[¥￥$]?\s*([\d,]*\.?\d+(?:e[-+]?\d+)?)\s*(%)?\)?$/i.exec(s);
+    if(!m||fmt==='@')return null;const n=+m[2].replace(/,/g,'');if(!Number.isFinite(n))return null;
+    return (m[1]?-1:1)*n/(m[3]?100:1);
+  }
+  function shiftFormula(f,dr,dc){return f.replace(/"(?:[^"]|"")*"|\$?[A-Z]{1,3}\$?[1-9]\d*/gi,m=>{if(m[0]==='"')return m;const p=/^(\$?)([A-Z]+)(\$?)(\d+)$/i.exec(m),[r,c]=coord(m),nr=r+(p[3]?0:dr),nc=c+(p[1]?0:dc);return nr<0||nc<0||nr>=500||nc>=100?'#REF!':p[1]+colName(nc)+p[3]+(nr+1);});}
+  function rangeData(w,s,q) {
+    q=expanded(s,q);const cells={},merges=s.merges.filter(m=>overlap(m,q)).map(m=>({r1:m.r1-q.r1,r2:m.r2-q.r1,c1:m.c1-q.c1,c2:m.c2-q.c1}));
+    each(q,(r,c)=>{const cell=clone(get(s,r,c));cell.s=style(w,s,cell);cells[addr(r-q.r1,c-q.c1)]=cell;});
+    return {version:1,source:{book:w.id,sheet:s.id,r:q.r1,c:q.c1},rows:q.r2-q.r1+1,cols:q.c2-q.c1+1,cells,merges,colWidths:Array.from({length:q.c2-q.c1+1},(_,i)=>width(s,q.c1+i)),rowHeights:Array.from({length:q.r2-q.r1+1},(_,i)=>height(s,q.r1+i))};
+  }
+  const tsvQuote=v=>/[\t\r\n"]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+  // Clipboard HTML in Excel's own dialect. Measured against desktop Excel 2021 (see references/excel-compatibility.md):
+  // x:str carries exact text (leading zeros, spaces, line breaks), x:num full-precision numbers, x:fmla formulas
+  // whose references stay inside the copied range. Strings Excel would convert are also marked "\@" so that a
+  // reader which ignores x:str (possibly Excel for the web) still keeps the text.
+  function clipboard(w,s,q) {
+    q=expanded(s,q);const data=rangeData(w,s,q),cache=new Map(),plain=[];
+    const pt=px=>+(px*.75).toFixed(2),totalW=Array.from({length:q.c2-q.c1+1},(_,i)=>width(s,q.c1+i)).reduce((a,b)=>a+b,0);
+    let html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'+
+      '<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="ProgId" content="Excel.Sheet"></head><body>'+
+      '<table border="0" cellpadding="0" cellspacing="0" width="'+totalW+'" style="border-collapse:collapse;table-layout:fixed;width:'+pt(totalW)+'pt" data-excel-html="'+esc(JSON.stringify(data))+'">';
+    for(let c=q.c1;c<=q.c2;c++)html+='<col width="'+width(s,c)+'" style="mso-width-source:userset;width:'+pt(width(s,c))+'pt">';
+    for(let r=q.r1;r<=q.r2;r++){
+      html+='<tr height="'+height(s,r)+'" style="mso-height-source:userset;height:'+pt(height(s,r))+'pt">';const row=[];
+      for(let c=q.c1;c<=q.c2;c++) {
+        const merge=mergeAt(s,r,c),hidden=merge&&(r!==merge.r1||c!==merge.c1),cell=get(s,r,c),value=calculate(w,s,r,c,new Set(),cache),st=style(w,s,cell),label=display(value,st.numFmt);row.push(tsvQuote(hidden?'':label));if(hidden)continue;
+        const colspan=merge?merge.c2-merge.c1+1:1,rowspan=merge?merge.r2-merge.r1+1:1,cw=Array.from({length:colspan},(_,i)=>width(s,c+i)).reduce((a,b)=>a+b,0);
+        let attrs='',cst=st;
+        if(cell.t==='f'){const f=blockFormula(cell.f,q);if(f)attrs+=' x:fmla="'+attr(f)+'"';}
+        if(typeof value==='number')attrs+=' x:num="'+value+'"';
+        else if(typeof value==='boolean')attrs+=' x:bool="'+(value?'TRUE':'FALSE')+'"';
+        else if(isErr(value))attrs+=' x:err="'+esc(value)+'"';
+        else if(value!==''){attrs+=' x:str="'+attr(value.startsWith("'")?"'"+value:value)+'"';if(st.numFmt!=='@'&&excelWouldConvert(value)&&cell.t!=='f')cst={...st,numFmt:'@'};}
+        html+='<td'+(colspan>1?' colspan="'+colspan+'"':'')+(rowspan>1?' rowspan="'+rowspan+'"':'')+' width="'+cw+'" height="'+height(s,r)+'"'+attrs+' style="'+esc(xlCss(cst,value)+';width:'+pt(cw)+'pt;height:'+pt(height(s,r))+'pt')+'">';
+        const content=esc(label).replace(/\n/g,'<br style="mso-data-placement:same-cell">');
+        html+=(cell.link?'<a href="'+esc(cell.link)+'">'+content+'</a>':content)+'</td>';
+      }
+      plain.push(row.join('\t'));html+='</tr>';
+    }
+    html+='</table></body></html>';return {html,text:plain.join('\r\n'),data};
+  }
+  function parseTSV(text) {
+    const rows=[];let row=[],cell='',quoted=false;
+    text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'&&quoted&&text[i+1]==='"'){cell+='"';i++;}else if(ch==='"'&&(quoted||cell===''))quoted=!quoted;else if(ch==='\t'&&!quoted){row.push(cell);cell='';}else if(ch==='\n'&&!quoted){row.push(cell);rows.push(row);row=[];cell='';}else cell+=ch;}
+    if(quoted)throw Error('引用符が閉じていない貼り付けデータです');if(cell!==''||row.length||!rows.length){row.push(cell);rows.push(row);}return rows;
+  }
+  function paste(s,data,r,c,{valuesOnly=false,dimensions=false,relocate=true}={}) {
+    if(r+data.rows>s.rows||c+data.cols>s.cols)throw Error('貼り付け先がシート範囲を超えます');
+    const q={r1:r,c1:c,r2:r+data.rows-1,c2:c+data.cols-1};
+    if(s.merges.some(m=>overlap(q,m)&&!within(m.r1,m.c1,q)||overlap(q,m)&&!within(m.r2,m.c2,q)))throw Error('貼り付け範囲が結合セルの一部に重なります');
+    if(valuesOnly&&s.merges.some(m=>overlap(q,m)))throw Error('結合範囲への値のみ貼り付けは、先に結合を解除してください');
+    if(!valuesOnly)s.merges=s.merges.filter(m=>!overlap(m,q));
+    each({r1:0,c1:0,r2:data.rows-1,c2:data.cols-1},(rr,cc)=>{
+      const cell=clone(data.cells[addr(rr,cc)]||{t:'s',v:''});if(cell.t==='f'&&relocate&&data.source)cell.f=shiftFormula(cell.f,r-data.source.r,c-data.source.c);
+      if(valuesOnly)cell.s=clone(get(s,r+rr,c+cc).s||{});s.cells[addr(r+rr,c+cc)]=cell;
+    });
+    if(!valuesOnly)for(const m of data.merges||[])s.merges.push({r1:m.r1+r,r2:m.r2+r,c1:m.c1+c,c2:m.c2+c});
+    if(dimensions){data.colWidths?.forEach((v,i)=>{s.colWidths[c+i]=v;});data.rowHeights?.forEach((v,i)=>{s.rowHeights[r+i]=v;});}
+    return q;
+  }
+  return {SCHEMA,FORMATS,MSO_FORMAT,BORDER_XL,DEFAULT,xlCss,excelWouldConvert,blockFormula,generalAlign,
+    cssUnescape,parseDecls,parseRules,cssHex,formatFromMso,borderFromCss,styleFromDecls,valueFromDisplay,clone,esc,colName,addr,coord,rect,range,within,overlap,same,each,get,style,mergeAt,expanded,validate,width,height,infer,raw,isErr,calculate,evalFormula,display,css,shiftFormula,rangeData,clipboard,parseTSV,paste};
+});
+</script><script>(function(){
+ 'use strict';
+ const C=window.ExcelHTMLCore,$=id=>document.getElementById(id);
+ let book=C.validate(JSON.parse($('workbook-data').textContent)),baseline=C.clone(book),savedState=JSON.stringify(book);
+ let selected={r1:0,c1:0,r2:0,c2:0},anchor=[0,0],active=[0,0],extent=[0,0],editing=false,composing=false,formulaEditing=false;
+ let history=[],future=[],drag=null,resize=null,fill=null,clipboardLocal=null,renderCache=new Map();
+ const grid=$('grid'),viewport=$('viewport'),editor=$('cell-editor');
+ const sheet=()=>book.sheets.find(s=>s.id===book.activeSheet);
+ const stAt=(r,c)=>C.style(book,sheet(),C.get(sheet(),r,c));
+ const valueAt=(r,c)=>C.calculate(book,sheet(),r,c,new Set(),renderCache);
+ const labelAt=(r,c)=>C.display(valueAt(r,c),stAt(r,c).numFmt);
+ const say=text=>{$('status').textContent=text;};
+ const dirty=()=>JSON.stringify(book)!==savedState;
+ function message(title,body,{input,confirm=false}={}){const dlg=$('message-dialog');$('message-title').textContent=title;$('message-body').textContent=body;$('message-input').hidden=input===undefined;$('message-input').value=input??'';dlg.showModal();if(input!==undefined){$('message-input').focus();$('message-input').select();}return new Promise(resolve=>{dlg.addEventListener('close',()=>{resolve(dlg.returnValue==='ok'?(input===undefined?true:$('message-input').value):null);focusGrid();},{once:true});});}
+ const error=e=>{say(e.message||String(e));void message('操作を完了できません',e.message||String(e));};
+ function checkpoint(){return {book:C.clone(book),selected:{...selected},active:[...active],anchor:[...anchor],extent:[...extent]};}
+ function syncView(){book.view={...book.view,zoom:book.view?.zoom??100,selection:{...selected},active:[...active],scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft};}
+ function transaction(fn){commit();const before=checkpoint();try{fn();const s=sheet();active=[Math.min(s.rows-1,active[0]),Math.min(s.cols-1,active[1])];selected=C.rect([Math.min(s.rows-1,selected.r1),Math.min(s.cols-1,selected.c1)],[Math.min(s.rows-1,selected.r2),Math.min(s.cols-1,selected.c2)]);syncView();C.validate(book);if(JSON.stringify(before.book)!==JSON.stringify(book)){history.push(before);if(history.length>100)history.shift();future=[];}render();return true;}catch(e){book=before.book;selected=before.selected;active=before.active;anchor=before.anchor;extent=before.extent;render();error(e);return false;}}
+ function undo(redo=false){commit();const from=redo?future:history,to=redo?history:future;if(!from.length)return;to.push(checkpoint());const state=from.pop();book=state.book;selected=state.selected;active=state.active;anchor=state.anchor;extent=state.extent;render();focusGrid();say(redo?'やり直しました':'元に戻しました');}
+ function used(s=sheet()){let r2=0,c2=0;for(const a of Object.keys(s.cells)){const [r,c]=C.coord(a);r2=Math.max(r2,r);c2=Math.max(c2,c);}for(const m of s.merges){r2=Math.max(r2,m.r2);c2=Math.max(c2,m.c2);}return {r1:0,c1:0,r2,c2};}
+ // Excel's in-cell layout: text that does not fit spills into empty neighbours (gridlines under it vanish);
+ // General numbers drop decimals, then go exponential; other numbers that do not fit show ####.
+ const measureCtx=document.createElement('canvas').getContext('2d'),measureCache=new Map();
+ function textWidth(text,st){const font=(st.italic?'italic ':'')+(st.bold?'700 ':'400 ')+st.size+'pt "'+st.font+'", sans-serif',key=font+'\u0000'+text;let w=measureCache.get(key);if(w===undefined){measureCtx.font=font;w=Math.max(0,...String(text).split('\n').map(l=>measureCtx.measureText(l).width));if(measureCache.size>20000)measureCache.clear();measureCache.set(key,w);}return w;}
+ function fitNumber(value,st,avail){
+   const label=C.display(value,st.numFmt);if(textWidth(label,st)<=avail)return label;
+   if(st.numFmt==='General'){for(let p=10;p>=1;p--){const t=String(Number(value.toPrecision(p)));if(!/e/i.test(t)&&textWidth(t,st)<=avail)return t;}for(let p=6;p>=1;p--){const t=value.toExponential(p-1).toUpperCase().replace(/E([+-])(\d)$/,'E$10$2').replace(/\.?0+E/,'E');if(textWidth(t,st)<=avail)return t;}}
+   return '#'.repeat(Math.max(1,Math.floor(avail/Math.max(1,textWidth('#',st)))));
+ }
+ function layoutRow(s,info){
+   for(let c=0;c<info.length;c++){const x=info[c];if(!x||x.merged||!x.label)continue;
+     const avail=C.width(s,c)-6-x.st.indent*9;
+     if(typeof x.value==='number'){const t=fitNumber(x.value,x.st,avail);if(t!==x.label)x.span.textContent=t;continue;}
+     if(x.st.wrap||typeof x.value!=='string'||C.isErr(x.value))continue;
+     let extra=textWidth(x.label,x.st)-avail;if(extra<=0)continue;
+     const free=cc=>cc>=0&&cc<info.length&&info[cc]&&!info[cc].merged&&info[cc].empty&&info[cc].frozen===x.frozen;
+     const align=x.st.align==='general'?'left':x.st.align;let left=0,right=0;
+     if(align==='left')for(let cc=c+1;extra>0&&free(cc);cc++){right+=C.width(s,cc);extra-=C.width(s,cc);info[cc-1].td.classList.add('ov-r');}
+     else if(align==='right')for(let cc=c-1;extra>0&&free(cc);cc--){left+=C.width(s,cc);extra-=C.width(s,cc);info[cc].td.classList.add('ov-r');}
+     else for(let k=1;extra>0&&free(c-k)&&free(c+k);k++){left+=C.width(s,c-k);right+=C.width(s,c+k);extra-=C.width(s,c-k)+C.width(s,c+k);info[c-k].td.classList.add('ov-r');info[c+k-1].td.classList.add('ov-r');}
+     if(left||right){x.td.classList.add('ov');x.span.style.width=(avail+left+right)+'px';x.span.style.marginLeft=(-left)+'px';}
+   }
+ }
+ function render(){
+   renderCache=new Map();const s=sheet();document.title=book.title;$('book-title').value=book.title;
+   const frag=document.createDocumentFragment(),cols=document.createElement('colgroup');let cg='<col style="width:42px">';for(let c=0;c<s.cols;c++)cg+='<col style="width:'+C.width(s,c)+'px">';cols.innerHTML=cg;frag.append(cols);
+   const thead=document.createElement('thead'),header=document.createElement('tr');header.innerHTML='<th class="corner" data-corner="true" aria-label="すべて選択">◢</th>';
+   let left=42;for(let c=0;c<s.cols;c++){const th=document.createElement('th');th.scope='col';th.dataset.col=c;th.setAttribute('aria-label',C.colName(c)+'列');th.innerHTML=C.colName(c)+'<span class="col-resize" data-resize-col="'+c+'"></span>';if(c<(s.freeze?.cols||0)){th.style.left=left+'px';th.style.zIndex='9';}left+=C.width(s,c);header.append(th);}thead.append(header);frag.append(thead);
+   const body=document.createElement('tbody');let top=24;const mergeMap=new Map();for(const m of s.merges)C.each(m,(r,c)=>mergeMap.set(C.addr(r,c),m));
+   for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.style.height=C.height(s,r)+'px';const rh=document.createElement('th');rh.className='row-head';rh.dataset.row=r;rh.scope='row';rh.setAttribute('aria-label',(r+1)+'行');rh.innerHTML=(r+1)+'<span class="row-resize" data-resize-row="'+r+'"></span>';if(r<(s.freeze?.rows||0)){rh.style.top=top+'px';rh.style.zIndex='9';}tr.append(rh);left=42;
+     const rowInfo=[];
+     for(let c=0;c<s.cols;c++){const a=C.addr(r,c),m=mergeMap.get(a),cw=C.width(s,c);if(m&&(m.r1!==r||m.c1!==c)){rowInfo[c]={merged:true};left+=cw;continue;}
+       const cell=C.get(s,r,c),st=stAt(r,c),value=valueAt(r,c),label=C.display(value,st.numFmt),td=document.createElement('td');td.dataset.r=r;td.dataset.c=c;td.id='cell-'+a;td.setAttribute('role','gridcell');td.setAttribute('aria-label',a+(label?' '+label:''));td.title=cell.t==='f'?cell.f:label;
+       td.style.cssText=C.css(st,value);let hh=C.height(s,r);if(m){td.rowSpan=m.r2-r+1;td.colSpan=m.c2-c+1;hh=0;for(let rr=r;rr<=m.r2;rr++)hh+=C.height(s,rr);}
+       const div=document.createElement('div');div.style.height=(hh-1)+'px';div.style.justifyContent=st.valign==='top'?'flex-start':st.valign==='middle'?'center':'flex-end';const text=document.createElement('span');text.className='cell-text';text.textContent=label;if(st.wrap){text.style.whiteSpace='pre-wrap';text.style.overflowWrap='anywhere';}else text.style.whiteSpace='pre';div.append(text);td.append(div);rowInfo[c]={td,span:text,label,value,st,merged:!!m,frozen:c<(s.freeze?.cols||0),empty:cell.t!=='f'&&(cell.v===''||cell.v==null)};
+       const fr=r<(s.freeze?.rows||0),fc=c<(s.freeze?.cols||0);if(fr||fc){td.style.position='sticky';td.style.zIndex=fr&&fc?'6':'5';if(fr)td.style.top=top+'px';if(fc)td.style.left=left+'px';}if(cell.link)td.dataset.link=cell.link;tr.append(td);left+=cw;
+     }layoutRow(s,rowInfo);body.append(tr);top+=C.height(s,r);
+   }frag.append(body);grid.replaceChildren(frag);grid.style.width=(42+s.colWidths.reduce((_,v)=>_,0)+Array.from({length:s.cols},(_,c)=>C.width(s,c)).reduce((a,b)=>a+b,0))+'px';grid.classList.toggle('no-grid',s.gridlines===false);
+   $('sheet-tabs').replaceChildren();for(const sh of book.sheets){const b=document.createElement('button');b.textContent=sh.name;b.dataset.sheet=sh.id;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(sh.id===s.id));b.classList.toggle('active',sh.id===s.id);$('sheet-tabs').append(b);}
+   $('sheet-surface').style.zoom=(book.view?.zoom??100)/100;$('zoom').value=book.view?.zoom??100;$('zoom-label').textContent=(book.view?.zoom??100)+'%';
+   const clamp=p=>[Math.max(0,Math.min(s.rows-1,p[0])),Math.max(0,Math.min(s.cols-1,p[1]))];active=clamp(active);anchor=clamp(anchor);selected=C.expanded(s,C.rect(clamp([selected.r1,selected.c1]),clamp([selected.r2,selected.c2])));paintSelection();
+   document.querySelectorAll('[data-action="undo"]').forEach(b=>b.disabled=!history.length);document.querySelectorAll('[data-action="redo"]').forEach(b=>b.disabled=!future.length);
+   $('dirty-state').textContent=dirty()?'編集あり · AIへ書き出し':'書き出し済み / 元の状態';
+ }
+ function cellElement(r,c){const m=C.mergeAt(sheet(),r,c);return $('cell-'+C.addr(m?m.r1:r,m?m.c1:c));}
+ function positionRect(el,q){const a=cellElement(q.r1,q.c1),b=cellElement(q.r2,q.c2);if(!a||!b)return;const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect(),sr=$('sheet-surface').getBoundingClientRect(),z=(book.view?.zoom??100)/100;Object.assign(el.style,{left:(ar.left-sr.left)/z+'px',top:(ar.top-sr.top)/z+'px',width:(br.right-ar.left)/z+'px',height:(br.bottom-ar.top)/z+'px'});}
+ function paintSelection(){
+   grid.querySelectorAll('.selected-cell,.active-cell,.selected-head').forEach(el=>el.classList.remove('selected-cell','active-cell','selected-head'));
+   C.each(selected,(r,c)=>{const el=cellElement(r,c);if(el)el.classList.add('selected-cell');});cellElement(...active)?.classList.add('active-cell');
+   grid.querySelectorAll('[data-col]').forEach(el=>el.classList.toggle('selected-head',+el.dataset.col>=selected.c1&&+el.dataset.col<=selected.c2));grid.querySelectorAll('[data-row]').forEach(el=>el.classList.toggle('selected-head',+el.dataset.row>=selected.r1&&+el.dataset.row<=selected.r2));
+   $('name-box').value=C.same(selected,C.rect(active))?C.addr(...active):C.addr(selected.r1,selected.c1)+':'+C.addr(selected.r2,selected.c2);$('formula').value=C.raw(C.get(sheet(),...active));
+   const st=stAt(...active);$('font').value=st.font;$('font-size').value=st.size;$('font-color').value=st.color;$('fill-color').value=st.fill==='none'?'#ffffff':st.fill;$('align').value=st.align;$('valign').value=st.valign;$('number-format').value=st.numFmt;$('column-width').value=C.width(sheet(),active[1]);$('row-height').value=C.height(sheet(),active[0]);
+   document.querySelectorAll('[data-style]').forEach(b=>b.setAttribute('aria-pressed',String(!!st[b.dataset.style])));
+   const nums=[];let count=0;C.each(selected,(r,c)=>{const v=valueAt(r,c);if(v!=='')count++;if(typeof v==='number')nums.push(v);});$('stats').textContent=nums.length?'平均: '+C.display(nums.reduce((a,b)=>a+b,0)/nums.length)+'　データの個数: '+count+'　合計: '+C.display(nums.reduce((a,b)=>a+b,0)):count?'データの個数: '+count:'';
+   $('selection-size').textContent=(selected.r2-selected.r1+1)+'行 × '+(selected.c2-selected.c1+1)+'列';positionRect($('selection'),selected);if(!editing){editor.hidden=false;editor.value='';editor.style.opacity='0';editor.style.pointerEvents='none';positionRect(editor,C.expanded(sheet(),C.rect(active)));}
+ }
+ function focusGrid(){if(!document.querySelector('dialog[open]')&&!editing){editor.focus({preventScroll:true});}}
+ function select(a,b=a,{focus=true,scroll=false}={}){commit();const s=sheet();a=[Math.min(s.rows-1,Math.max(0,a[0])),Math.min(s.cols-1,Math.max(0,a[1]))];b=[Math.min(s.rows-1,Math.max(0,b[0])),Math.min(s.cols-1,Math.max(0,b[1]))];anchor=a;extent=b;const m=C.mergeAt(s,...a);active=m?[m.r1,m.c1]:a;selected=C.expanded(s,C.rect(a,b));paintSelection();if(scroll)cellElement(...extent)?.scrollIntoView({block:'nearest',inline:'nearest'});if(focus)focusGrid();}
+ function begin(value,selectAll=false){if(editing)return;editing=true;formulaEditing=false;editor.hidden=false;editor.style.opacity='1';editor.style.pointerEvents='auto';positionRect(editor,C.expanded(sheet(),C.rect(active)));const st=stAt(...active);Object.assign(editor.style,{fontFamily:st.font,fontSize:st.size+'pt',fontWeight:st.bold?'700':'400',fontStyle:st.italic?'italic':'normal',color:st.color,textAlign:st.align==='general'?'left':st.align,backgroundColor:st.fill==='none'?'#ffffff':st.fill});editor.value=value===undefined?C.raw(C.get(sheet(),...active)):value;editor.focus({preventScroll:true});if(selectAll)editor.select();else editor.setSelectionRange(editor.value.length,editor.value.length);say('編集　Enterで確定 / Escで取消');}
+ function commit(cancel=false){if(!editing&&!formulaEditing)return;const input=formulaEditing?$('formula').value:editor.value;editing=false;formulaEditing=false;editor.style.opacity='0';editor.style.pointerEvents='none';if(!cancel&&input!==C.raw(C.get(sheet(),...active))){const before=checkpoint();sheet().cells[C.addr(...active)]=C.infer(input,{...C.get(sheet(),...active),s:stAt(...active)});history.push(before);future=[];render();}else paintSelection();say(cancel?'編集を取り消しました':'準備完了');}
+ function format(patch){transaction(()=>C.each(selected,(r,c)=>{const cell=C.clone(C.get(sheet(),r,c));cell.s={...cell.s,...patch};sheet().cells[C.addr(r,c)]=cell;}));focusGrid();}
+ function clear(){transaction(()=>C.each(selected,(r,c)=>{const cell=C.get(sheet(),r,c);sheet().cells[C.addr(r,c)]={t:'s',v:'',...(cell.s?{s:C.clone(cell.s)}:{})};}));focusGrid();}
+ async function merge(){commit();const s=sheet(),q={...selected};if(s.merges.some(m=>C.overlap(m,q))){transaction(()=>{s.merges=s.merges.filter(m=>!C.overlap(m,q));});return;}if(q.r1===q.r2&&q.c1===q.c2)return;
+   let other=false;C.each(q,(r,c)=>{if(r===q.r1&&c===q.c1)return;const v=C.get(s,r,c);if(v.t==='f'||v.v!=='')other=true;});if(other&&!await message('セルを結合','左上以外のセルの内容は削除されます。結合しますか？',{confirm:true}))return;
+   transaction(()=>{C.each(q,(r,c)=>{if(r!==q.r1||c!==q.c1){const old=C.get(s,r,c);s.cells[C.addr(r,c)]={t:'s',v:'',s:old.s||{}};}});s.merges.push(q);active=[q.r1,q.c1];});focusGrid();
+ }
+ function payload(){commit();return C.clipboard(book,sheet(),selected);}
+ async function writeClipboard(p){
+   try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([p.html],{type:'text/html'}),'text/plain':new Blob([p.text],{type:'text/plain'})})]);return true;}catch(_){
+     let done=false;const handler=e=>{if(e.clipboardData){e.clipboardData.setData('text/html',p.html);e.clipboardData.setData('text/plain',p.text);e.preventDefault();done=true;}};
+     document.addEventListener('copy',handler,{capture:true,once:true});const ok=document.execCommand('copy');document.removeEventListener('copy',handler,true);if(ok&&done)return true;throw Error('ブラウザーが書式付きコピーを許可しませんでした。シートをクリックしてCtrl+Cを使ってください。');
+   }
+ }
+ async function copy(){const p=payload();try{await writeClipboard(p);clipboardLocal=p;$('selection').classList.add('copying');say('選択範囲をコピーしました。Excelで左上のセルを選んでCtrl+V。');}catch(e){error(e);}focusGrid();}
+ // Reads HTML from Excel (class-based <style> rules and inline Excel-dialect CSS), web pages and this template.
+ // The imported document is never attached to the live page: only text, x:* attributes, links and styles are read.
+ function importHTML(html){
+   const doc=new DOMParser().parseFromString(html,'text/html'),table=doc.querySelector('table');if(!table)return null;
+   if(table.dataset.excelHtml){try{const data=JSON.parse(table.dataset.excelHtml);if(data.version!==1||!Number.isInteger(data.rows)||!Number.isInteger(data.cols)||data.rows<1||data.cols<1)throw Error('コピー形式');const test={schema:C.SCHEMA,id:'test',revision:'test',title:'test',activeSheet:'s',sheets:[{id:'s',name:'test',rows:data.rows,cols:data.cols,cells:data.cells,merges:data.merges,colWidths:data.colWidths||[],rowHeights:data.rowHeights||[]}]};C.validate(test);return data;}catch(e){throw Error('コピー元の編集データが不正です: '+e.message);}}
+   const rules=[];doc.querySelectorAll('style').forEach(s=>rules.push(...C.parseRules(s.textContent)));
+   const rule=sel=>Object.assign({},...rules.filter(([s])=>s===sel).map(([,d])=>d)),tdRule=rule('td');
+   const declsOf=td=>{const d={...tdRule};for(const cls of td.classList){Object.assign(d,rule('.'+cls.toLowerCase()),rule('td.'+cls.toLowerCase()));}return Object.assign(d,C.parseDecls(td.getAttribute('style')||''));};
+   const wraps=(td,sel)=>{const el=td.querySelector(sel);return !!el&&el.textContent.trim()===td.textContent.trim()&&td.textContent.trim()!=='';};
+   const textOf=td=>{let out='';const walk=n=>{for(const ch of n.childNodes){if(ch.nodeType===3)out+=ch.data.replace(/[\t\r\n ]+/g,' ');else if(ch.nodeType===1){const tag=ch.tagName.toLowerCase();if(tag==='br')out+='\n';else if(['script','style','iframe','object','template','noscript'].includes(tag))continue;else if(tag==='span'&&/mso-spacerun\s*:\s*yes/i.test(ch.getAttribute('style')||''))out+=ch.textContent.replace(/[\t\r\n]/g,'').replace(/ /g,'\u0001');else walk(ch);}}};walk(td);return out.split('\n').map(l=>l.replace(/^ +| +$/g,'')).join('\n').replace(/\u0001/g,' ').replace(/\u00a0/g,' ');};
+   const data={version:1,rows:0,cols:0,cells:{},merges:[]},occupied=new Set();let r=0,formulas=false;
+   for(const row of table.rows){let c=0;for(const td of row.cells){while(occupied.has(C.addr(r,c)))c++;const decls=declsOf(td),overflow=/colspan/i.test(decls['mso-ignore']||''),rs=Math.max(1,td.rowSpan),cs=Math.max(1,td.colSpan);if(r+rs>500||c+cs>100)throw Error('貼り付けは500行 / 100列までです');
+       const st=C.styleFromDecls(decls);if(wraps(td,'b,strong'))st.bold=true;if(wraps(td,'i,em'))st.italic=true;if(wraps(td,'u'))st.underline=true;if(wraps(td,'s,strike,del'))st.strike=true;
+       const raw=textOf(td),text=raw==='　'&&td.getAttribute('x:str')===null?'':raw,xnum=td.getAttribute('x:num'),xstr=td.getAttribute('x:str'),xbool=td.getAttribute('x:bool'),xfmla=td.getAttribute('x:fmla');let cell;
+       if(xnum!==null&&xnum.trim()!==''&&Number.isFinite(+xnum))cell={t:'n',v:+xnum};
+       else if(xbool!==null&&/^(true|false)$/i.test(xbool))cell={t:'b',v:/^true$/i.test(xbool)};
+       else if(xstr!==null)cell={t:'s',v:xstr!==''?xstr.replace(/^'/,''):text};
+       else if(st.numFmt==='@')cell={t:'s',v:text};
+       else{const n=st.numFmt&&st.numFmt!=='General'?C.valueFromDisplay(text,st.numFmt):null;cell=n!==null?{t:'n',v:n}:C.infer(text);if(cell.t==='f'||text.startsWith("'"))cell={t:'s',v:text};}
+       if(xfmla&&xfmla.startsWith('=')){cell={t:'f',f:xfmla};formulas=true;}
+       cell.s=st;const link=td.querySelector('a[href]')?.getAttribute('href');if(/^https?:\/\//i.test(link||''))cell.link=link;data.cells[C.addr(r,c)]=cell;
+       if((rs>1||cs>1)&&!overflow){const m={r1:r,c1:c,r2:r+rs-1,c2:c+cs-1};data.merges.push(m);C.each(m,(rr,cc)=>occupied.add(C.addr(rr,cc)));}
+       data.rows=Math.max(data.rows,r+rs);c+=cs;data.cols=Math.max(data.cols,c);
+     }r++;}
+   if(formulas)data.source={book:'clipboard',sheet:'',r:0,c:0};
+   return data;
+ }
+ function pastePayload(html,text){commit();let data;try{data=html?importHTML(html):null;if(!data){const rows=C.parseTSV(text),cols=Math.max(...rows.map(r=>r.length));data={version:1,rows:rows.length,cols,cells:{},merges:[]};rows.forEach((row,r)=>row.forEach((v,c)=>{data.cells[C.addr(r,c)]=C.infer(v);}));}
+     if(data.rows===1&&data.cols===1&&(selected.r1!==selected.r2||selected.c1!==selected.c2)&&!sheet().merges.some(m=>C.overlap(m,selected))){const one=data.cells.A1;transaction(()=>C.each(selected,(r,c)=>{const cell=C.clone(one);if(cell.t==='f'&&data.source)cell.f=C.shiftFormula(cell.f,r-data.source.r,c-data.source.c);sheet().cells[C.addr(r,c)]=cell;}));}
+     else transaction(()=>{selected=C.paste(sheet(),data,selected.r1,selected.c1);active=[selected.r1,selected.c1];anchor=[...active];});
+     say(data.source?'値・数式・書式・結合を貼り付けました':'貼り付けました。Excelなど外部からの値はコピー元に表示されていた値になり、列幅は変わりません。');focusGrid();
+   }catch(e){error(e);}
+ }
+ async function pasteButton(){try{const items=await navigator.clipboard.read();let html='',text='';for(const item of items){if(item.types.includes('text/html'))html=await(await item.getType('text/html')).text();if(item.types.includes('text/plain'))text=await(await item.getType('text/plain')).text();}if(!html&&!text)throw Error('貼り付けるテキストがありません');pastePayload(html,text);}catch(_){say('貼り付け先を選んでCtrl+Vを押してください。ブラウザーの読み取り許可が必要です。');focusGrid();}}
+ function move(dr,dc,extend=false){commit();const s=sheet(),start=extend?extent:active,m=C.mergeAt(s,...start);let dest=[start[0]+dr,start[1]+dc];if(m&&!extend){if(dr>0)dest[0]=m.r2+1;if(dc>0)dest[1]=m.c2+1;}select(extend?anchor:dest,dest,{scroll:true});}
+ function advance(key,reverse=false){commit();const q=selected,m=C.mergeAt(sheet(),...active);if((q.r1!==q.r2||q.c1!==q.c2)&&!(m&&C.same(m,q))){let [r,c]=active;const step=reverse?-1:1;for(let i=0;i<(q.r2-q.r1+1)*(q.c2-q.c1+1);i++){if(key==='Enter'){r+=step;if(r>q.r2){r=q.r1;c++;}if(r<q.r1){r=q.r2;c--;}if(c>q.c2)c=q.c1;if(c<q.c1)c=q.c2;}else{c+=step;if(c>q.c2){c=q.c1;r++;}if(c<q.c1){c=q.c2;r--;}if(r>q.r2)r=q.r1;if(r<q.r1)r=q.r2;}const merge=C.mergeAt(sheet(),r,c);if(!merge||merge.r1===r&&merge.c1===c)break;}active=[r,c];paintSelection();cellElement(r,c)?.scrollIntoView({block:'nearest',inline:'nearest'});focusGrid();return;}move(key==='Enter'?(reverse?-1:1):0,key==='Tab'?(reverse?-1:1):0);}
+ function keydown(e){if(composing||e.isComposing)return;const cmd=e.ctrlKey||e.metaKey;
+   if(editing){if(e.key==='Escape'){e.preventDefault();commit(true);focusGrid();}else if(e.key==='Enter'&&e.altKey){e.preventDefault();editor.setRangeText('\n',editor.selectionStart,editor.selectionEnd,'end');}else if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();advance(e.key,e.shiftKey);}return;}
+   if(cmd&&['c','v','x'].includes(e.key.toLowerCase()))return;
+   if(cmd){const k=e.key.toLowerCase();if(['z','y','b','i','u','a','s','f','d','r'].includes(k))e.preventDefault();switch(k){case 'z':undo(e.shiftKey);return;case 'y':undo(true);return;case 'b':format({bold:!stAt(...active).bold});return;case 'i':format({italic:!stAt(...active).italic});return;case 'u':format({underline:!stAt(...active).underline});return;case 'a':{const u=used();select([0,0],C.same(selected,u)?[sheet().rows-1,sheet().cols-1]:[u.r2,u.c2]);return;}case 's':openHandoff();return;case 'f':find();return;case 'd':fillSelection('down');return;case 'r':fillSelection('right');return;}
+   }
+   const arrows={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};if(arrows[e.key]){e.preventDefault();const [dr,dc]=arrows[e.key];if(cmd){const s=sheet();let [r,c]=active;const nonempty=(rr,cc)=>C.raw(C.get(s,rr,cc))!=='';const nr=r+dr,nc=c+dc,filled=nr>=0&&nc>=0&&nr<s.rows&&nc<s.cols&&nonempty(r,c)&&nonempty(nr,nc);while(r+dr>=0&&c+dc>=0&&r+dr<s.rows&&c+dc<s.cols){if(filled&&!nonempty(r+dr,c+dc))break;r+=dr;c+=dc;if(!filled&&nonempty(r,c))break;}select(e.shiftKey?anchor:[r,c],[r,c],{scroll:true});}else move(dr,dc,e.shiftKey);return;}
+   if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();advance(e.key,e.shiftKey);return;}
+   if(e.key==='F2'){e.preventDefault();begin();return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();clear();if(e.key==='Backspace')begin('');return;}
+   if(e.key==='Home'){e.preventDefault();const p=cmd?[0,0]:[active[0],0];select(e.shiftKey?anchor:p,p,{scroll:true});return;}if(e.key==='End'&&cmd){e.preventDefault();const u=used(),p=[u.r2,u.c2];select(e.shiftKey?anchor:p,p,{scroll:true});return;}
+   if(e.key==='PageDown'||e.key==='PageUp'){e.preventDefault();move((e.key==='PageDown'?1:-1)*Math.max(1,Math.floor(viewport.clientHeight/(22*(book.view?.zoom??100)/100))-2),0,e.shiftKey);return;}
+   if(e.key==='Escape'){$('selection').classList.remove('copying');$('context-menu').hidden=true;return;}
+ }
+ editor.addEventListener('keydown',keydown);viewport.addEventListener('keydown',e=>{if(e.target===viewport)keydown(e);});
+ editor.addEventListener('beforeinput',e=>{if(!editing&&e.inputType.startsWith('insert')){editing=true;editor.style.opacity='1';editor.style.pointerEvents='auto';editor.value='';const st=stAt(...active);editor.style.fontFamily=st.font;editor.style.fontSize=st.size+'pt';}});
+ editor.addEventListener('compositionstart',()=>{composing=true;if(!editing){editing=true;editor.style.opacity='1';editor.style.pointerEvents='auto';}});editor.addEventListener('compositionend',()=>{composing=false;});editor.addEventListener('input',()=>{$('formula').value=editor.value;});
+ document.addEventListener('copy',e=>{if(e.defaultPrevented||editing||formulaEditing||document.querySelector('dialog[open]')||!['cell-editor','viewport'].includes(document.activeElement?.id))return;const p=payload();e.clipboardData.setData('text/html',p.html);e.clipboardData.setData('text/plain',p.text);e.preventDefault();clipboardLocal=p;$('selection').classList.add('copying');say('選択範囲をコピーしました。Excelで左上のセルを選んでCtrl+V。');});
+ document.addEventListener('cut',e=>{if(editing||formulaEditing||document.querySelector('dialog[open]')||!['cell-editor','viewport'].includes(document.activeElement?.id))return;const p=payload();e.clipboardData.setData('text/html',p.html);e.clipboardData.setData('text/plain',p.text);e.preventDefault();clear();say('切り取りました。参照元の数式は自動追従しません。');});
+ document.addEventListener('paste',e=>{if(editing||formulaEditing||document.querySelector('dialog[open]')||!['cell-editor','viewport'].includes(document.activeElement?.id))return;e.preventDefault();pastePayload(e.clipboardData.getData('text/html'),e.clipboardData.getData('text/plain'));});
+ grid.addEventListener('pointerdown',e=>{
+   if(e.button!==0)return;const rs=e.target.closest('[data-resize-row],[data-resize-col]');if(rs){commit();e.preventDefault();const axis=rs.dataset.resizeCol!==undefined?'col':'row',index=+(rs.dataset.resizeCol??rs.dataset.resizeRow);resize={axis,index,start:axis==='col'?e.clientX:e.clientY,value:axis==='col'?C.width(sheet(),index):C.height(sheet(),index),before:checkpoint()};return;}
+   const cell=e.target.closest('td'),rh=e.target.closest('[data-row]'),ch=e.target.closest('[data-col]');e.preventDefault();
+   if(cell){const p=[+cell.dataset.r,+cell.dataset.c];if(e.ctrlKey&&cell.dataset.link){window.open(cell.dataset.link,'_blank','noopener,noreferrer');return;}select(e.shiftKey?anchor:p,p);drag={anchor:[...anchor],kind:'cells'};}
+   else if(rh){const r=+rh.dataset.row;select(e.shiftKey?[anchor[0],0]:[r,0],[r,sheet().cols-1]);drag={anchor:[...anchor],kind:'rows'};}
+   else if(ch){const c=+ch.dataset.col;select(e.shiftKey?[0,anchor[1]]:[0,c],[sheet().rows-1,c]);drag={anchor:[...anchor],kind:'cols'};}
+   else if(e.target.closest('[data-corner]'))select([0,0],[sheet().rows-1,sheet().cols-1]);
+ });
+ grid.addEventListener('dblclick',e=>{const col=e.target.closest('[data-resize-col]'),row=e.target.closest('[data-resize-row]');if(col){autofit('col',+col.dataset.resizeCol);return;}if(row){autofit('row',+row.dataset.resizeRow);return;}if(e.target.closest('td'))begin();});
+ document.addEventListener('pointermove',e=>{
+   if(resize){const z=(book.view?.zoom??100)/100,v=resize.value+((resize.axis==='col'?e.clientX:e.clientY)-resize.start)/z;const s=sheet();if(resize.axis==='col')s.colWidths[resize.index]=Math.round(Math.max(24,Math.min(800,v)));else s.rowHeights[resize.index]=Math.round(Math.max(16,Math.min(600,v)));render();return;}
+   if(!drag&&!fill)return;const vp=viewport.getBoundingClientRect();if(e.clientY>vp.bottom-20)viewport.scrollTop+=25;if(e.clientY<vp.top+24)viewport.scrollTop-=25;if(e.clientX>vp.right-20)viewport.scrollLeft+=25;if(e.clientX<vp.left+42)viewport.scrollLeft-=25;
+   const el=document.elementFromPoint(e.clientX,e.clientY)?.closest('td,[data-row],[data-col]');if(!el)return;let r=+(el.dataset.r??el.dataset.row??active[0]),c=+(el.dataset.c??el.dataset.col??active[1]);if(fill){fill.end=[r,c];selected=C.expanded(sheet(),C.rect([Math.min(fill.q.r1,r),Math.min(fill.q.c1,c)],[Math.max(fill.q.r2,r),Math.max(fill.q.c2,c)]));paintSelection();return;}
+   if(drag.kind==='rows')c=sheet().cols-1;if(drag.kind==='cols')r=sheet().rows-1;extent=[r,c];active=[...drag.anchor];selected=C.expanded(sheet(),C.rect(drag.anchor,[r,c]));paintSelection();
+ });
+ document.addEventListener('pointerup',()=>{drag=null;if(resize){if(JSON.stringify(resize.before.book)!==JSON.stringify(book)){history.push(resize.before);future=[];}resize=null;render();focusGrid();}if(fill){const src=fill.q,end=fill.end;fill=null;if(end)applyFill(src,selected);else selected=src;render();focusGrid();}});
+ $('fill-handle').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();commit();fill={q:{...selected},end:null};});
+ function applyFill(src,dst){if(C.same(src,dst))return;if(sheet().merges.some(m=>C.overlap(m,dst))){selected=src;error(Error('結合セルを含むオートフィルは、先に結合を解除してください'));return;}const data=C.rangeData(book,sheet(),src);transaction(()=>{C.each(dst,(r,c)=>{if(C.within(r,c,src))return;const rr=((r-src.r1)%data.rows+data.rows)%data.rows,cc=((c-src.c1)%data.cols+data.cols)%data.cols,cell=C.clone(data.cells[C.addr(rr,cc)]);if(cell.t==='f')cell.f=C.shiftFormula(cell.f,r-(src.r1+rr),c-(src.c1+cc));if(src.c1===src.c2&&data.rows===2&&data.cells.A1.t==='n'&&data.cells.A2.t==='n')cell.v=data.cells.A1.v+(data.cells.A2.v-data.cells.A1.v)*(r-src.r1);sheet().cells[C.addr(r,c)]=cell;});});}
+ function fillSelection(dir){const dst={...selected},src={...dst};if(dir==='down')src.r2=src.r1;else src.c2=src.c1;applyFill(src,dst);focusGrid();}
+ function autofit(axis,index){const s=sheet(),q={...selected};if(index!==undefined){if(axis==='col')q.c1=q.c2=index;else q.r1=q.r2=index;}const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');transaction(()=>{if(axis==='col')for(let c=q.c1;c<=q.c2;c++){let size=24;for(let r=0;r<s.rows;r++){if(C.mergeAt(s,r,c))continue;const st=stAt(r,c);ctx.font=(st.bold?'bold ':'')+(st.italic?'italic ':'')+st.size+'pt "'+st.font+'"';for(const line of labelAt(r,c).split('\n'))size=Math.max(size,ctx.measureText(line).width+10+st.indent*10);}s.colWidths[c]=Math.min(800,Math.ceil(size));}else for(let r=q.r1;r<=q.r2;r++){let size=22;for(let c=0;c<s.cols;c++){if(C.mergeAt(s,r,c))continue;const st=stAt(r,c);ctx.font=(st.bold?'bold ':'')+st.size+'pt "'+st.font+'"';const lines=labelAt(r,c).split('\n').reduce((n,line)=>n+(st.wrap?Math.max(1,Math.ceil(ctx.measureText(line).width/Math.max(10,C.width(s,c)-8))):1),0);size=Math.max(size,lines*st.size*1.34*1.2+4);}s.rowHeights[r]=Math.min(600,Math.ceil(size));}});focusGrid();}
+ async function structural(axis,remove){commit();const s=sheet(),at=axis==='row'?selected.r1:selected.c1,count=(axis==='row'?selected.r2-selected.r1:selected.c2-selected.c1)+1,limit=axis==='row'?s.rows:s.cols;
+   if(remove&&count>=limit){error(Error('すべての行または列は削除できません'));return;}if(!remove&&limit+count>(axis==='row'?500:100)){error(Error('シートの上限を超えます'));return;}
+   if(remove&&!await message('選択した'+(axis==='row'?'行':'列')+'を削除','値と書式も削除されます。続行しますか？',{confirm:true}))return;
+   const change=index=>remove?(index>=at&&index<at+count?null:index>=at+count?index-count:index):index>=at?index+count:index;
+   transaction(()=>{const cells={};for(const [a,cell] of Object.entries(s.cells)){let [r,c]=C.coord(a);const ix=change(axis==='row'?r:c);if(ix===null)continue;if(axis==='row')r=ix;else c=ix;const copy=C.clone(cell);if(copy.t==='f')copy.f=copy.f.replace(/"(?:[^"]|"")*"|\$?[A-Z]{1,3}\$?[1-9]\d*/gi,m=>{if(m[0]==='"')return m;let [rr,cc]=C.coord(m);const n=change(axis==='row'?rr:cc);if(n===null)return '#REF!';if(axis==='row')rr=n;else cc=n;const parts=/^(\$?)[A-Z]+(\$?)\d+$/i.exec(m);return parts[1]+C.colName(cc)+parts[2]+(rr+1);});cells[C.addr(r,c)]=copy;}s.cells=cells;
+     const merges=[];for(const m of s.merges){const n={...m},a=axis==='row'?'r1':'c1',b=axis==='row'?'r2':'c2';if(!remove){if(at<=n[a]){n[a]+=count;n[b]+=count;}else if(at<=n[b])n[b]+=count;}else{const surviving=[];for(let i=n[a];i<=n[b];i++){const v=change(i);if(v!==null)surviving.push(v);}if(!surviving.length)continue;n[a]=Math.min(...surviving);n[b]=Math.max(...surviving);}if(n.r1!==n.r2||n.c1!==n.c2)merges.push(n);}s.merges=merges;
+     const dims=axis==='row'?'rowHeights':'colWidths';while(s[dims].length<limit)s[dims].push(null);s[dims].splice(at,remove?count:0,...(remove?[]:Array(count).fill(null)));s[axis==='row'?'rows':'cols']+=remove?-count:count;if(s.freeze){const k=axis==='row'?'rows':'cols';s.freeze[k]=Math.max(0,Math.min(s[axis==='row'?'rows':'cols'],s.freeze[k]+(at<s.freeze[k]?(remove?-Math.min(count,s.freeze[k]-at):count):0)));}selected=C.rect([Math.min(active[0],s.rows-1),Math.min(active[1],s.cols-1)]);});focusGrid();
+ }
+ async function find(){const text=await message('検索','値または数式に含まれる文字を検索します。',{input:''});if(text===null||text==='')return;const s=sheet(),start=active[0]*s.cols+active[1],total=s.rows*s.cols;for(let i=1;i<=total;i++){const ix=(start+i)%total,r=Math.floor(ix/s.cols),c=ix%s.cols;if((labelAt(r,c)+'\n'+C.raw(C.get(s,r,c))).toLowerCase().includes(text.toLowerCase())){select([r,c],[r,c],{scroll:true});say('「'+text+'」を '+C.addr(r,c)+' に見つけました');return;}}say('一致するセルがありません');}
+ function sum(){const s=sheet(),[r,c]=active;let start=r-1;while(start>=0&&typeof valueAt(start,c)==='number')start--;if(start===r-1){say('上に連続した数値がありません');return;}transaction(()=>{s.cells[C.addr(r,c)]={t:'f',f:'=SUM('+C.addr(start+1,c)+':'+C.addr(r-1,c)+')',s:C.get(s,r,c).s||{}};});focusGrid();}
+ const actions={undo:()=>undo(),redo:()=>undo(true),copy,paste:pasteButton,clear,merge,sum,find,'insert-row':()=>structural('row',false),'delete-row':()=>structural('row',true),'insert-col':()=>structural('col',false),'delete-col':()=>structural('col',true),'autofit-col':()=>autofit('col'),'autofit-row':()=>autofit('row'),freeze:()=>transaction(()=>{sheet().freeze={rows:active[0],cols:active[1]};}),unfreeze:()=>transaction(()=>{sheet().freeze={rows:0,cols:0};}),gridlines:()=>transaction(()=>{sheet().gridlines=sheet().gridlines===false;}),link:async()=>{const v=await message('リンク','https:// または http:// のURLを入力してください。空欄で解除します。',{input:C.get(sheet(),...active).link||''});if(v===null)return;transaction(()=>{const a=C.addr(...active),cell=C.clone(C.get(sheet(),...active));if(v)cell.link=v;else delete cell.link;sheet().cells[a]=cell;});}};
+ document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>{$('context-menu').hidden=true;Promise.resolve(actions[b.dataset.action]()).catch(error);}));
+ document.querySelectorAll('[data-style]').forEach(b=>b.addEventListener('click',()=>format({[b.dataset.style]:!stAt(...active)[b.dataset.style]})));
+ $('fill-none').addEventListener('click',()=>format({fill:'none'}));
+ for(const [id,k,convert] of [['font','font',String],['font-size','size',Number],['font-color','color',String],['fill-color','fill',String],['align','align',String],['valign','valign',String],['number-format','numFmt',String]])$(id).addEventListener('change',e=>format({[k]:convert(e.target.value)}));
+ $('border').addEventListener('change',e=>{const mode=e.target.value;if(!mode)return;const border=$('border-line').value+' '+$('border-color').value;transaction(()=>C.each(selected,(r,c)=>{const cell=C.clone(C.get(sheet(),r,c));cell.s={...cell.s};for(const side of ['Top','Right','Bottom','Left'])if(mode==='all'||mode==='none'||mode==='bottom'&&side==='Bottom'&&r===selected.r2||mode==='outer'&&({Top:r===selected.r1,Bottom:r===selected.r2,Left:c===selected.c1,Right:c===selected.c2}[side]))cell.s['border'+side]=mode==='none'?'none':border;sheet().cells[C.addr(r,c)]=cell;}));e.target.value='';focusGrid();});
+ $('column-width').addEventListener('change',e=>{const v=+e.target.value;transaction(()=>{for(let c=selected.c1;c<=selected.c2;c++)sheet().colWidths[c]=v;});});$('row-height').addEventListener('change',e=>{const v=+e.target.value;transaction(()=>{for(let r=selected.r1;r<=selected.r2;r++)sheet().rowHeights[r]=v;});});
+ $('name-box').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();try{const q=C.range(e.target.value);if(q.r2>=sheet().rows||q.c2>=sheet().cols)throw Error('シート範囲外です');select([q.r1,q.c1],[q.r2,q.c2],{scroll:true});}catch(err){error(err);}}});
+ $('formula').addEventListener('focus',()=>{if(editing)commit();formulaEditing=true;});$('formula').addEventListener('keydown',e=>{if(e.isComposing)return;if(e.key==='Enter'){e.preventDefault();commit();move(1,0);}if(e.key==='Escape'){e.preventDefault();commit(true);focusGrid();}});
+ $('cancel-edit').addEventListener('pointerdown',e=>e.preventDefault());$('commit-edit').addEventListener('pointerdown',e=>e.preventDefault());$('cancel-edit').onclick=()=>{commit(true);focusGrid();};$('commit-edit').onclick=()=>{commit();focusGrid();};
+ $('book-title').addEventListener('change',e=>transaction(()=>{book.title=e.target.value||'Book';}));
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{commit();document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('selected',x===b));for(const id of ['home','cells','help'])$('ribbon-'+id).hidden=id!==b.dataset.tab;});
+ $('sheet-tabs').addEventListener('click',e=>{const id=e.target.dataset.sheet;if(!id||id===book.activeSheet)return;commit();book.activeSheet=id;active=[0,0];anchor=[0,0];selected=C.rect(active);viewport.scrollTo(0,0);render();focusGrid();});
+ $('sheet-tabs').addEventListener('dblclick',async e=>{const id=e.target.dataset.sheet;if(!id)return;const s=book.sheets.find(s=>s.id===id),name=await message('シート名の変更','31文字以内の名前を入力してください。',{input:s.name});if(name!==null)transaction(()=>{s.name=name;});});
+ $('add-sheet').onclick=()=>{transaction(()=>{let i=1;while(book.sheets.some(s=>s.name==='Sheet'+i))i++;const id='sheet-'+Date.now();book.sheets.push({id,name:'Sheet'+i,rows:100,cols:26,cells:{},merges:[],rowHeights:[],colWidths:[]});book.activeSheet=id;active=[0,0];anchor=[0,0];selected=C.rect(active);});focusGrid();};
+ function zoom(v){commit();book.view={...book.view,zoom:Math.max(50,Math.min(200,v))};render();focusGrid();}$('zoom').oninput=e=>zoom(+e.target.value);$('zoom-out').onclick=()=>zoom((book.view?.zoom??100)-10);$('zoom-in').onclick=()=>zoom((book.view?.zoom??100)+10);
+ viewport.addEventListener('scroll',()=>{positionRect($('selection'),selected);positionRect(editor,C.expanded(sheet(),C.rect(active)));});window.addEventListener('resize',()=>paintSelection());
+ grid.addEventListener('contextmenu',e=>{e.preventDefault();const td=e.target.closest('td');if(td&&!C.within(+td.dataset.r,+td.dataset.c,selected))select([+td.dataset.r,+td.dataset.c]);const menu=$('context-menu');menu.hidden=false;menu.style.left=Math.min(e.clientX,window.innerWidth-210)+'px';menu.style.top=Math.min(e.clientY,window.innerHeight-300)+'px';});document.addEventListener('pointerdown',e=>{if(!e.target.closest('#context-menu'))$('context-menu').hidden=true;});
+ function stateText(){commit();const state=C.clone(book);state.view={...state.view,zoom:book.view?.zoom??100,selection:{...selected},active:[...active],scrollTop:viewport.scrollTop,scrollLeft:viewport.scrollLeft};return 'EXCEL_HTML_STATE_V1\n'+JSON.stringify({schema:'excel-html-state/v1',workbookId:baseline.id,baseRevision:baseline.revision,exportedAt:new Date().toISOString(),workbook:state},null,2);}
+ function openHandoff(){$('handoff-text').value=stateText();$('handoff-result').textContent='このテキストだけで元HTMLは更新されません。Claude Codeで再生成してください。';$('handoff-dialog').showModal();}
+ $('handoff').onclick=openHandoff;$('copy-excel').onclick=copy;
+ $('copy-state').onclick=async()=>{const text=$('handoff-text').value;try{await navigator.clipboard.writeText(text);}catch(_){$('handoff-text').select();if(!document.execCommand('copy')){$('handoff-result').textContent='コピーできませんでした。テキストを選択してCtrl+Cを押してください。';return;}}savedState=JSON.stringify(book);$('dirty-state').textContent='編集状態をコピー済み';$('handoff-result').textContent='編集状態をコピーしました。元HTMLと一緒にClaude Codeへ渡してください。';};
+ $('download-state').onclick=()=>{const blob=new Blob([$ ('handoff-text').value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=book.title.replace(/[\\/:*?"<>|]/g,'_')+'-edits.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);savedState=JSON.stringify(book);$('dirty-state').textContent='編集状態を書き出し済み';$('handoff-result').textContent='テキストのダウンロードを開始しました。保存されたファイルを元HTMLと一緒に保管してください。';};
+ $('help-open').onclick=()=>$('help-dialog').showModal();window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
+ for(const dlg of document.querySelectorAll('dialog'))dlg.addEventListener('close',focusGrid);
+ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&!document.querySelector('dialog[open]')){e.preventDefault();openHandoff();}});
+ if(book.view?.active)active=book.view.active;if(book.view?.selection)selected=book.view.selection;anchor=[...active];render();viewport.scrollTop=book.view?.scrollTop??0;viewport.scrollLeft=book.view?.scrollLeft??0;focusGrid();
+})();
+</script>
+</body></html>

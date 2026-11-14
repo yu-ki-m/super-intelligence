@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: csv-to-editable-sheet
+expected_outcome: |
+  CSVの12人分・9列がすべて入った、画面で編集できる単一のHTMLができている。
+  表をコピーしてExcelに貼ると、社員番号と電話番号は先頭ゼロ付きの文字列のまま、入社日は日付、稼働率は比率の数値、
+  月額単価は数値になり、カンマや改行を含む備考は1つのセルに収まる。
+context:
+  scaffold_script: place-files.sh
