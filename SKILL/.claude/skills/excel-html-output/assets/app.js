@@ -35,10 +35,18 @@
      let extra=textWidth(x.label,x.st)-avail;if(extra<=0)continue;
      const free=cc=>cc>=0&&cc<info.length&&info[cc]&&!info[cc].merged&&info[cc].empty&&info[cc].frozen===x.frozen;
      const align=x.st.align==='general'?'left':x.st.align;let left=0,right=0;
-     if(align==='left')for(let cc=c+1;extra>0&&free(cc);cc++){right+=C.width(s,cc);extra-=C.width(s,cc);info[cc-1].td.classList.add('ov-r');}
+     let cont=null;
+     if(align==='left'){let cc=c+1;for(;extra>0&&free(cc);cc++){right+=C.width(s,cc);extra-=C.width(s,cc);info[cc-1].td.classList.add('ov-r');}
+       // Like Excel, text in a frozen column goes on across the frozen line. The part right of the line is drawn by the first
+       // unfrozen empty cell, shifted back to where the text starts, so that it scrolls with the unfrozen cells.
+       const open=k=>k<info.length&&info[k]&&!info[k].merged&&info[k].empty&&!info[k].frozen;
+       if(extra>0&&x.frozen&&open(cc)){let more=0;for(let k=cc;extra>0&&open(k);k++){more+=C.width(s,k);extra-=C.width(s,k);if(k>cc)info[k-1].td.classList.add('ov-r');}cont={cell:info[cc],at:cc,more};right+=3;}}
      else if(align==='right')for(let cc=c-1;extra>0&&free(cc);cc--){left+=C.width(s,cc);extra-=C.width(s,cc);info[cc].td.classList.add('ov-r');}
      else for(let k=1;extra>0&&free(c-k)&&free(c+k);k++){left+=C.width(s,c-k);right+=C.width(s,c+k);extra-=C.width(s,c-k)+C.width(s,c+k);info[c-k].td.classList.add('ov-r');info[c+k-1].td.classList.add('ov-r');}
-     if(left||right){x.td.classList.add('ov');x.span.style.width=(avail+left+right)+'px';x.span.style.marginLeft=(-left)+'px';}
+     if(left||right){x.td.classList.add('ov');if(x.td.style.position==='sticky')x.td.style.zIndex=String(+x.td.style.zIndex+1);x.span.style.width=(avail+left+right)+'px';x.span.style.marginLeft=(-left)+'px';}
+     if(cont){const y=cont.cell,f=x.td.style,pad=st=>3+((st.align==='general'?'left':st.align)==='right'?0:st.indent*9);let shift=pad(y.st)-pad(x.st);for(let k=c;k<cont.at;k++)shift+=C.width(s,k);
+       Object.assign(y.span.style,{fontFamily:f.fontFamily,fontSize:f.fontSize,fontWeight:f.fontWeight,fontStyle:f.fontStyle,textDecoration:f.textDecoration,color:f.color,whiteSpace:'pre',textAlign:'left',width:(avail+right-3+cont.more)+'px',marginLeft:(-shift)+'px'});
+       y.span.textContent=x.label;y.span.parentElement.style.justifyContent=x.span.parentElement.style.justifyContent;y.td.classList.add('ov');if(y.td.style.position==='sticky')y.td.style.zIndex=String(+y.td.style.zIndex+1);}
    }
  }
  function render(){
@@ -53,7 +61,7 @@
        const cell=C.get(s,r,c),st=stAt(r,c),value=valueAt(r,c),label=C.display(value,st.numFmt),td=document.createElement('td');td.dataset.r=r;td.dataset.c=c;td.id='cell-'+a;td.setAttribute('role','gridcell');td.setAttribute('aria-label',a+(label?' '+label:''));td.title=cell.t==='f'?cell.f:label;
        td.style.cssText=C.css(st,value);let hh=C.height(s,r);if(m){td.rowSpan=m.r2-r+1;td.colSpan=m.c2-c+1;hh=0;for(let rr=r;rr<=m.r2;rr++)hh+=C.height(s,rr);}
        const div=document.createElement('div');div.style.height=(hh-1)+'px';div.style.justifyContent=st.valign==='top'?'flex-start':st.valign==='middle'?'center':'flex-end';const text=document.createElement('span');text.className='cell-text';text.textContent=label;if(st.wrap){text.style.whiteSpace='pre-wrap';text.style.overflowWrap='anywhere';}else text.style.whiteSpace='pre';div.append(text);td.append(div);rowInfo[c]={td,span:text,label,value,st,merged:!!m,frozen:c<(s.freeze?.cols||0),empty:cell.t!=='f'&&(cell.v===''||cell.v==null)};
-       const fr=r<(s.freeze?.rows||0),fc=c<(s.freeze?.cols||0);if(fr||fc){td.style.position='sticky';td.style.zIndex=fr&&fc?'6':'5';if(fr)td.style.top=top+'px';if(fc)td.style.left=left+'px';}if(cell.link)td.dataset.link=cell.link;tr.append(td);left+=cw;
+       const fr=r<(s.freeze?.rows||0),fc=c<(s.freeze?.cols||0);if(fr||fc){td.style.position='sticky';td.style.zIndex=fr&&fc?'6':'4';if(st.fill==='none')td.style.backgroundColor='#fff';if(fr)td.style.top=top+'px';if(fc)td.style.left=left+'px';}if(cell.link)td.dataset.link=cell.link;tr.append(td);left+=cw;
      }layoutRow(s,rowInfo);body.append(tr);top+=C.height(s,r);
    }frag.append(body);grid.replaceChildren(frag);grid.style.width=(42+s.colWidths.reduce((_,v)=>_,0)+Array.from({length:s.cols},(_,c)=>C.width(s,c)).reduce((a,b)=>a+b,0))+'px';grid.classList.toggle('no-grid',s.gridlines===false);
    $('sheet-tabs').replaceChildren();for(const sh of book.sheets){const b=document.createElement('button');b.textContent=sh.name;b.dataset.sheet=sh.id;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(sh.id===s.id));b.classList.toggle('active',sh.id===s.id);$('sheet-tabs').append(b);}
