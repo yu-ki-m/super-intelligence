@@ -69,6 +69,7 @@ argument-hint: "調べる依頼（例：書籍を登録できるようにした�
 | reconcile.toon | （任意）道具の成果物との突き合わせ |
 | validation.toon | 最後の機械検査の結果（スクリプトが書く） |
 | report.html | 人が読む HTML（スクリプトが台帳から作る。手で直さない） |
+| report-excel.html | 実装に要る内容だけ（タスク・要求・要件・仕様・受入ケース・影響範囲・確認事項）を Excel の見た目と操作感で見る HTML（1つの表が1シート。調査の記録は載せない。セルを選んで Ctrl+C すると Excel に貼れる。スクリプトが台帳から作る） |
 
 各ファイルの列と値は `references/ledger-schema.md`、TOON の書き方は `references/toon-writing.md` にある。
 
@@ -93,6 +94,8 @@ Bash から `python -X utf8 "${CLAUDE_SKILL_DIR}/scripts/<名前>.py" …` で�
 | `impact.py summary <台帳>` | 変更する箇所ごとの判断の件数を見る |
 | `render_html.py render <台帳>` | report.html を作る |
 | `render_html.py check <台帳>` | report.html が今の台帳から作ったものと一致するかを確かめる |
+| `render_excel.py render <台帳>` | report-excel.html を作る（同梱の `excel/` を使う。作るときだけ Node.js 18+ が要る） |
+| `render_excel.py check <台帳>` | report-excel.html が今の台帳から作ったものと一致するかを確かめる |
 | `toon.py check <ファイル…>` | TOON として読めるかを確かめる |
 
 スクリプトの検査は構造の検査である。
@@ -142,7 +145,7 @@ Bash から `python -X utf8 "${CLAUDE_SKILL_DIR}/scripts/<名前>.py" …` で�
 11. **検証。**
     `references/verification-protocol.md` に従い、8つの役割の独立した検証、机上実行、直した後の再検証を行う。
 12. **出力。**
-    `validate --final --write` を通し、`render_html.py render` と `check` で HTML を作って一致を確かめる。
+    `validate --final --write` を通し、`render_html.py render` と `check`、`render_excel.py render` と `check` で2つの HTML を作って一致を確かめる。
     この後で台帳を直したら、検査と HTML をやり直す。
 
 各段階で使う分析の手法（目的からの分解、シナリオ、状態遷移、条件の組合せ、データの一生、インターフェース、故障からの逆算、脅威）は `references/methods/analysis-methods.md`、品質と業務の横断の組合せは `references/methods/cross-checks.md`、暗黙の期待は `references/methods/implicit-quality.md` にある。
@@ -177,8 +180,9 @@ Bash から `python -X utf8 "${CLAUDE_SKILL_DIR}/scripts/<名前>.py" …` で�
 
 ## 完了の判断
 
-- `validate --final` がエラー0件で、`render_html.py check` が一致を返したときに、成果物を渡す。
+- `validate --final` がエラー0件で、`render_html.py check` と `render_excel.py check` の両方が一致を返したときに、成果物を渡す。
+- report-excel.html は閲覧と Excel への受け渡しのためのものである。利用者がこの HTML で編集して「AIに渡す」のテキストを貼ってきても、HTML から台帳には戻さない。編集の内容を読んで台帳（TOON）を直し、2つの HTML を作り直す（台帳が唯一の正である）。
 - 未確認・保留が残るときは、progress の status を provisional にし、何が確定できないかを伝える。
   未確認を確定のように見せない。
-- 最後の返答では、report.html と台帳のフォルダーの絶対パス、要求・要件・仕様・タスクの件数、残った確認事項、確かめていない範囲を短く伝える。
+- 最後の返答では、report.html と report-excel.html と台帳のフォルダーの絶対パス、要求・要件・仕様・タスクの件数、残った確認事項、確かめていない範囲を短く伝える。
   HTML の内容を返答に貼り直さない。

@@ -7,6 +7,7 @@ and asserts that `validate --final` reports the expected error code.
 Usage: python -X utf8 tests/test_ledger.py [-v]
 """
 import io
+import json
 import os
 import re
 import shutil
@@ -462,6 +463,51 @@ def check_derive(base):
 ID_RE = re.compile(r"(?<![A-Za-z0-9_])(?:N|R|S|T|PR|ST|SH|SC|ER|FD|RV|DC|SM|DT|INV|E|C|I|A|SRC|Q|CH|SR)\d{2,3}(?![0-9.])")
 
 
+def check_excel(base):
+    import shutil
+    import render_excel
+    if not shutil.which("node"):
+        print("render_excel: skipped (Node.js がない)")
+        return 0
+    _, ws = sample_ledger.build(os.path.join(base, "excel"))
+    out = os.path.join(ws, "report-excel.html")
+    with redirect_stdout(io.StringIO()):
+        ledger.main(["ledger.py", "validate", ws, "--final", "--write"])
+        rc1 = render_excel.main(["render_excel.py", "render", ws])
+        rc2 = render_excel.main(["render_excel.py", "check", ws])
+    fails = 0
+    if rc1 != 0 or rc2 != 0:
+        print(f"FAIL excel: render={rc1} check={rc2}")
+        return 1
+    text = open(out, encoding="utf-8").read()
+    wb = json.loads(re.search(r'<script id="workbook-data" type="application/json">(.*?)</script>', text, re.S).group(1))
+    values = [str(c.get("v", "")) for s in wb["sheets"] for c in s["cells"].values()]
+    ids = sorted({m for v in values for m in ID_RE.findall(v)})
+    if ids:
+        print(f"FAIL excel: internal IDs are visible: {ids[:20]}")
+        fails += 1
+    if wb.get("title") != "書籍の登録":
+        print("FAIL excel: title is not the topic")
+        fails += 1
+    for must in ("_書籍ID_8_",):
+        if not any(must in v for v in values):
+            print(f"FAIL excel: '{must}' not found")
+            fails += 1
+    tasks_sheet = next((s for s in wb["sheets"] if s["name"] == "タスク"), None)
+    n_tasks = len(load(ws, "tasks.toon")["tasks"])
+    if not tasks_sheet or sum(1 for k, c in tasks_sheet["cells"].items() if re.fullmatch(r"B\d+", k) and k != "B1") != n_tasks:
+        print("FAIL excel: the task sheet does not list every task")
+        fails += 1
+    edit(ws, "tasks.toon", lambda d: d["tasks"][0].update(content="変えた"))
+    with redirect_stdout(io.StringIO()):
+        rc3 = render_excel.main(["render_excel.py", "check", ws])
+    if rc3 == 0:
+        print("FAIL excel: check did not notice a changed ledger")
+        fails += 1
+    print(f"render_excel/check: {'ok' if not fails else 'FAIL'}")
+    return fails
+
+
 def check_render(base):
     _, ws = sample_ledger.build(os.path.join(base, "render"))
     with redirect_stdout(io.StringIO()):
@@ -580,7 +626,7 @@ def main():
             pass
     base = tempfile.mkdtemp(prefix="eiti-test-")
     try:
-        fails = check_clean(base) + check_mutations(base) + check_derive(base) + check_render(base) + check_impact_script(base)
+        fails = check_clean(base) + check_mutations(base) + check_derive(base) + check_render(base) + check_excel(base) + check_impact_script(base)
     finally:
         shutil.rmtree(base, ignore_errors=True)
     print("ALL OK" if not fails else f"{fails} FAILURE(S)")
