@@ -192,6 +192,8 @@ class Session {
     this.pageErrors = []; this.engine = engine; this.autoReshow = reshow;
     this.open = false;          // 読み手が案内を開いているか（閉じたあとにページが移っても、吹き出しを出し直さないため）
     this.warned = new Set();    // 同じ注意を、何度も出さないため
+    this.onOperate = null;      // 操作を見せる表示を出した直後に呼ぶ（--check が、照らしている所を調べて撮る）
+    this.lastError = null;      // 吹き出しから届いた知らせの処理で、最後に止まった理由（--check が読む）
   }
   async init() {
     if (this.engine) {
@@ -238,6 +240,7 @@ class Session {
   }
   async fail(e) {
     const m = e && e.message ? e.message : String(e);
+    this.lastError = m;
     this.log('操作の途中で止まった: ' + m);
     try { await this.showStep(this.cur, { notice: `次の手順へ進む操作の途中で止まった：${m}　ページの状態が変わっていることがある。「次へ」でもう一度試すか、案内を閉じて自分で操作する。` }); } catch (_) { /* 吹き出しも出せない */ }
   }
@@ -298,7 +301,9 @@ class Session {
     // 見せながら操作するときは、解説と同じ暗幕と枠で、操作する部分を照らし、吹き出しに操作の中身を出してから、少し待って操作する
     // （待つ間に、読み手は、どこが・どう操作されるかを読める。急に画面が変わって驚かないようにするため）
     if (visible && (a.do !== 'wait' || a.say)) {
-      try { await this.ensureEngine(pg, 8000); await pg.evaluate((x) => window.pageExplainer.__live.operate(x), { say, target: a.target == null ? null : a.target, index: n, total }); } catch (_) { /* 見せられなくても操作は行う */ }
+      let shown = null, error = null;
+      try { await this.ensureEngine(pg, 8000); shown = await pg.evaluate((x) => window.pageExplainer.__live.operate(x), { say, target: a.target == null ? null : a.target, index: n, total }); } catch (e) { error = e; /* 見せられなくても操作は行う */ }
+      if (this.onOperate) await this.onOperate({ k, n, total, a, say, shown, error });
       if (slow) await sleep(slow);
     }
     this.log(`手順 ${k + 1} の前の操作: ${say}`);
@@ -393,47 +398,96 @@ ${list('直すべき問題', R.errors, 'err')}${list('確かめる注意', R.war
 <h2>スクリーンショット（${R.shots.length} 枚）</h2><div class="grid">${R.shots.map((s) => `<figure><a href="${esc(s.file)}"><img src="${esc(s.file)}" alt="${esc(s.caption)}" loading="lazy"></a><figcaption>${esc(s.caption)}</figcaption></figure>`).join('')}</div></body></html>`);
 }
 
+// 吹き出しの「次へ」を押したあと、受け持つ側（Session）の処理が全部終わるまで待つ
+// （処理の途中で、ページが移ったときの出し直しの知らせが足されることもあるので、増えなくなるまで待つ）
+async function drain(s) { for (;;) { const q = s.queue; await q; if (q === s.queue) return; } }
+// 照らしている部分の、画面に見えている所の中央を押したとき、案内の層ではなく、その部分に届くか
+const HIT_CENTER = (spec) => {
+  const el = window.pageExplainer.__live.findOne(spec); if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const x = (Math.max(r.left, 0) + Math.min(r.right, innerWidth)) / 2, y = (Math.max(r.top, 0) + Math.min(r.bottom, innerHeight)) / 2;
+  const top = document.elementFromPoint(x, y);
+  return !!top && !top.closest('page-explainer') && (top === el || el.contains(top) || top.contains(el));
+};
+// 読み手と同じ流れで、最初の手順から最後まで、吹き出しの「次へ」を本物のクリックで押して進む。
+// 「次へ」を押すと、受け持つ側（Session）が、次の手順の操作を見せながら行い（操作のたびに、暗幕と橙の枠で操作する部分を照らし、
+// 吹き出しに中身を出す）、操作が終わった画面に次の手順の吹き出しを出す。ページを移る操作も、この流れで確かめる。
+// 操作を見せるたびに、照らす部分が見えているか、照らしている部分にクリックが届くか、吹き出しが画面に収まり部分に重ならないかを調べて撮る。
+// 次の手順が出たら置き方を調べ、操作のあった手順は撮る。最後の手順では「案内を終える」を押し、案内が閉じるかを確かめる
+async function realPass(s, size, R, shot) {
+  s.onOperate = async ({ k, n, total, a, say, shown, error }) => {
+    const where = `${size.label} 手順 ${k + 1} の前の操作 ${n + 1}/${total}「${say}」`;
+    if (error) { R.warnings.push(`${where}: 操作を見せる表示を出せなかった: ${error.message}`); return; }
+    const lay = await s.page.evaluate(() => window.pageExplainer.__test.layout()).catch(() => null);
+    if (lay) {
+      R.ops.push({ size: size.label, step: k, index: n, total, say, url: s.page.url(), layout: lay });
+      // 待つ操作（wait）の部分は、まだ無いのが当たり前なので、照らせたかは問わない
+      if (a.target != null && a.do !== 'wait') {
+        if (!(shown && shown.found)) R.warnings.push(`${where}: 操作を見せたとき、操作する部分がまだ見つからず、照らせなかった。部分があとから出るなら、前に wait の操作を入れる。`);
+        else if (!lay.target.visible) R.errors.push(`${where}: 照らす部分が、画面に見えていない。`);
+        else {
+          const hit = await s.page.evaluate(HIT_CENTER, a.target).catch(() => null);
+          if (hit === false) R.errors.push(`${where}: 操作を見せている間、案内の層が操作する部分を覆っていて、クリックや入力が届かない。`);
+          if (lay.overlap > 0 && !lay.forced) R.errors.push(`${where}: 操作を見せる吹き出しが、操作する部分に重なっている（重なり ${lay.overlap}px²）。`);
+        }
+      }
+      const b = lay.balloon, v = lay.viewport;
+      if (b.x < -1 || b.y < -1 || b.x + b.w > v.w + 1 || b.y + b.h > v.h + 1) R.errors.push(`${where}: 操作を見せる吹き出しが画面の外にはみ出している。`);
+      if (!lay.settled) R.warnings.push(`${where}: 照らす部分の位置が落ち着かなかった。`);
+    }
+    await shot(s.page, `s${pad2(k + 1)}-op${n + 1}-${size.label}.png`, `${size.label} 手順 ${k + 1} の前の操作 ${n + 1}/${total}「${say}」を見せているところ`);
+  };
+  // 読み手が使うときと同じく、ページが移ったら吹き出しを出し直す知らせも出す。
+  // ただし、最初の画面を開き直す間は出さない（前の確かめの手順の吹き出しを、最初の画面に出し直してしまうため）
+  s.open = false; s.cur = 0; s.lastError = null;
+  s.autoReshow = true;
+  try {
+    try { await s.start(); } catch (e) { R.errors.push(`${size.label} 読み手と同じ流れ: 最初の画面に手順 1 を出せなかった: ${e.message}`); return; }
+    for (let j = 0; j < N; j++) {
+      const last = j === N - 1;
+      const pos = await s.page.evaluate(() => { const b = window.pageExplainer.__test.root.querySelector('[data-act="next"]'); if (!b || b.disabled) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }).catch(() => null);
+      if (!pos) { R.errors.push(`${size.label} 手順 ${j + 1}: 吹き出しに、押せる「${last ? '案内を終える' : '次へ'}」が無い。`); return; }
+      const q0 = s.queue; s.lastError = null;
+      await s.page.mouse.click(pos.x, pos.y);
+      const t0 = Date.now();
+      while (s.queue === q0 && Date.now() - t0 < 5000) await sleep(100);
+      if (s.queue === q0) { R.errors.push(`${size.label} 手順 ${j + 1}: 吹き出しの「${last ? '案内を終える' : '次へ'}」を押しても、操作を受け持つ側に知らせが届かない（ボタンの上を、ほかの物が覆っていないか）。`); return; }
+      await drain(s);
+      if (s.lastError) { R.errors.push(`${size.label} 手順 ${j + 1} で「次へ」を押したあと、手順 ${j + 2} へ進む操作の途中で止まった: ${s.lastError}`); return; }
+      const st1 = await s.page.evaluate(() => window.pageExplainer.__live.state()).catch(() => null);
+      if (last) {
+        if (s.open || (st1 && st1.open)) R.errors.push(`${size.label} 最後の手順で「案内を終える」を押しても、案内が閉じない。`);
+        return;
+      }
+      if (!(st1 && st1.open && st1.mode === 'tour' && st1.step === j + 1 && s.cur === j + 1)) { R.errors.push(`${size.label} 手順 ${j + 1} で「次へ」を押しても、手順 ${j + 2} の吹き出しが出ない（今の状態: ${JSON.stringify(st1)}）。`); return; }
+      const lay = await s.page.evaluate(() => window.pageExplainer.__test.layout());
+      lay.url = s.page.url(); lay.size = size.label; lay.view = '（「次へ」を押したあと）';
+      R.steps.push(lay);
+      judge(lay, size, R, steps[j + 1], j + 1, '（「次へ」を押したあと）');
+      if (Array.isArray(steps[j + 1].actions) && steps[j + 1].actions.length) await shot(s.page, `s${pad2(j + 2)}-next-${size.label}.png`, `${size.label} 手順 ${j + 1} で「次へ」を押し、自動の操作のあとに手順 ${j + 2} が出たところ　${lay.url}`);
+    }
+  } finally { s.onOperate = null; s.autoReshow = false; }
+}
+
 async function runCheck(chromium) {
   const outDir = path.resolve(opt.out || path.join(os.tmpdir(), 'page-explainer-live-check', path.basename(tourPath).replace(/\.[^.]+$/, '') + '-' + Date.now()));
   fs.mkdirSync(outDir, { recursive: true });
-  const R = { tour: tourPath, start_url: tour.start_url, when: new Date().toLocaleString('ja-JP'), errors: [], warnings: [], steps: [], shots: [], log: [] };
+  const R = { tour: tourPath, start_url: tour.start_url, when: new Date().toLocaleString('ja-JP'), errors: [], warnings: [], steps: [], ops: [], shots: [], log: [] };
   const shot = async (pg, name, caption) => { await pg.screenshot({ path: path.join(outDir, name) }); R.shots.push({ file: name, caption }); };
   for (const size of sizes) {
     const first = size === sizes[0];
     const { ctx, close } = await launch(chromium, size, true);
-    // 確かめるときは、操作と吹き出しの表示を、この関数が順に行う（ページが移ったときの出し直しは行わない）
+    // 確かめるときは、操作と吹き出しの表示を、この関数が順に行う（1. と 3. では、ページが移ったときの出し直しは行わない）
     const s = new Session(ctx, { reshow: false, log: (m) => R.log.push(`${size.label} ${m}`), warn: (m) => { R.log.push(`${size.label} 注意: ${m}`); R.warnings.push(`${size.label} ${m}`); } });
     try {
       await s.init();
+      // 1. 手順ごとの吹き出し：操作を見せずに行いながら全手順を出し、詳細を閉じた状態・開いた状態・細かい段の置き方を確かめる
+      //   （操作を見せる表示は、2. で、読み手と同じ流れの中で、すべての操作について確かめる）
       await s.page.goto(tour.start_url, { waitUntil: 'load', timeout: 60000 });
       await s.runActions(0, { visible: false });
       for (let j = 0; j < N; j++) {
         const st = steps[j];
         if (j > 0) {
-          const acts = Array.isArray(st.actions) ? st.actions : [];
-          // 最初の操作を見せる表示（暗幕と橙の枠で操作する部分を照らし、吹き出しに中身を出す）を撮り、
-          // そのとき、照らしている部分にクリックが届くか（案内の層がさえぎらないか）を調べる
-          if (acts.length && acts[0].do !== 'wait') {
-            try {
-              await s.ensureEngine(s.page, 8000);
-              await s.page.evaluate((x) => window.pageExplainer.__live.operate(x), { say: acts[0].say || defaultSay(acts[0]), target: acts[0].target == null ? null : acts[0].target, index: 0, total: acts.length });
-              if (acts[0].target != null) {
-                const hit = await s.page.evaluate((spec) => {
-                  const el = window.pageExplainer.__live.findOne(spec); if (!el) return null;
-                  const r = el.getBoundingClientRect();
-                  const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-                  return !!top && !top.closest('page-explainer') && (top === el || el.contains(top) || top.contains(el));
-                }, acts[0].target);
-                if (hit === false) R.errors.push(`${size.label} 手順 ${j + 1}: 操作を見せている間、案内の層が操作する部分を覆っていて、クリックや入力が届かない。`);
-                const lay = await s.page.evaluate(() => window.pageExplainer.__test.layout());
-                const b = lay.balloon, v = lay.viewport;
-                if (b.x < -1 || b.y < -1 || b.x + b.w > v.w + 1 || b.y + b.h > v.h + 1) R.errors.push(`${size.label} 手順 ${j + 1}: 操作を見せる吹き出しが画面の外にはみ出している。`);
-                if (lay.target.visible && lay.overlap > 0 && !lay.forced) R.errors.push(`${size.label} 手順 ${j + 1}: 操作を見せる吹き出しが、操作する部分に重なっている。`);
-              }
-              if (first) await shot(s.page, `s${pad2(j + 1)}-op-${size.label}.png`, `${size.label} 手順 ${j + 1} の前の操作「${acts[0].say || defaultSay(acts[0])}」を見せているところ`);
-              await s.page.evaluate(() => window.pageExplainer.__live.idle());
-            } catch (e) { R.warnings.push(`${size.label} 手順 ${j + 1}: 操作を見せる表示を出せなかった: ${e.message}`); }
-          }
           try { await s.runActions(j, { visible: false }); } catch (e) { R.errors.push(`${size.label} 手順 ${j + 1}「${st.title}」へ進む操作で止まった: ${e.message}`); throw e; }
           s.cur = j;
         }
@@ -460,36 +514,10 @@ async function runCheck(chromium) {
           await shot(s.page, `s${pad2(j + 1)}${v.tag}-${size.label}.png`, `${size.label} 手順 ${j + 1}「${st.title}」${v.label || '（最初の状態）'}　${info.url}`);
         }
       }
+      // 2. 読み手と同じ流れ：最初の手順から最後まで、吹き出しの「次へ」を本物のクリックで押して進む
+      await realPass(s, size, R, shot);
       if (first && N > 1) {
-        // 吹き出しの「次へ」を本物のクリックで押し、操作を受け持つ側への知らせ、照らしたままの自動の操作、次の手順の表示までが通るか。
-        // 次の手順に操作がある所で押す（無ければ手順 1 で押す）
-        const withOps = steps.findIndex((x, i) => i > 0 && Array.isArray(x.actions) && x.actions.length);
-        const from = withOps > 0 ? withOps - 1 : 0, to = from + 1;
-        await s.page.goto(tour.start_url, { waitUntil: 'load', timeout: 60000 });
-        for (let k = 0; k <= from; k++) await s.runActions(k, { visible: false });
-        s.cur = from;
-        await s.showStep(from);
-        const pos = await s.page.evaluate(() => { const b = window.pageExplainer.__test.root.querySelector('[data-act="next"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-        if (!pos) R.errors.push('操作: 吹き出しに「次へ」が無い。');
-        else {
-          await s.page.mouse.click(pos.x, pos.y);
-          const t0 = Date.now(); let ok = false;
-          while (Date.now() - t0 < 30000) {
-            await sleep(400);
-            const st1 = await s.page.evaluate(() => (window.pageExplainer && window.pageExplainer.__live) ? window.pageExplainer.__live.state() : null).catch(() => null);
-            if (st1 && st1.open && st1.mode === 'tour' && st1.step === to && s.cur === to) { ok = true; break; }
-          }
-          if (!ok) R.errors.push(`操作: 手順 ${from + 1} で吹き出しの「次へ」を押しても、自動の操作と、次の手順（手順 ${to + 1}）の表示までが通らない。`);
-          else {
-            // 吹き出しが動き終わるまで待ってから（受け持つ側の処理が終わるまで待ってから）、置き方を調べて撮る
-            await s.queue;
-            const info = await s.page.evaluate(() => window.pageExplainer.__test.layout());
-            info.url = s.page.url();
-            judge(info, size, R, steps[to], to, '（「次へ」を押したあと）');
-            await shot(s.page, `next-click-${size.label}.png`, `${size.label} 手順 ${from + 1} で「次へ」を押し、自動の操作のあとに手順 ${to + 1} が出たところ`);
-          }
-        }
-        // 前の手順へ戻る（最初からやり直す）
+        // 3. 前の手順へ戻る（最初からやり直す）
         const m = steps.map((x, i) => (i > 0 && Array.isArray(x.actions) && x.actions.length ? i : -1)).filter((i) => i > 0).pop();
         if (m != null) {
           for (let k = s.cur + 1; k <= m; k++) { await s.runActions(k, { visible: false }); s.cur = k; }

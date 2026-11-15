@@ -242,7 +242,7 @@ function judge(info, size, R, stepMeta) {
   }
   if (info.overflowX) R.errors.push(`${where}: 吹き出しの中身が横にはみ出している。長い英数字・コードを短くするか、途中で区切る。`);
   if (info.body.scroll > info.body.client + 2 && info.body.client < 72) R.warnings.push(`${where}: 吹き出しの本文の見える高さが ${info.body.client}px しかない。画面の高さが足りず、読むのに何度も送る必要がある。`);
-  if (!info.settled) R.warnings.push(`${where}: 部品の位置が 3 秒たっても落ち着かなかった（動き続ける部品か、スクロールが終わらない）。`);
+  if (!info.settled) R.warnings.push(`${where}: 部品の位置が 4 秒たっても落ち着かなかった（動き続ける部品か、スクロールが終わらない）。`);
 }
 
 // ---------------------------------------------------------------- 案内の確認

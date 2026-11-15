@@ -93,7 +93,7 @@
   const S = {
     open: false, mode: 'tour', i: 0, level: new Array(N).fill(0), expanded: new Array(N).fill(false), toc: false, handoff: false, resumeAt: null,
     targets: [], clips: [], tr: null, hole: null, tween: null, side: null, sideStep: -1, placeMode: 'center',
-    raf: 0, frames: 0, settled: false, stable: 0, lastKey: '', waiters: [], token: 0, renderId: 0, nat: null,
+    raf: 0, frames: 0, settled: false, stable: 0, lastKey: '', since: 0, waiters: [], token: 0, renderId: 0, nat: null,
     prevFocus: null, missing: false, lastAct: null, mt: 0, modal: true, notice: null, op: null,
   };
 
@@ -545,6 +545,19 @@
     }
     return u;
   }
+  // 部品の、入れ物で切り取る前の四角（複数なら全部を囲む四角）。ページや入れ物を送っている間は、毎コマ位置が変わる
+  function fullRect() {
+    let r = null;
+    for (const t of S.targets) {
+      if (!t.isConnected) continue;
+      const b = t.getBoundingClientRect();
+      if (!r) r = { x: b.left, y: b.top, w: b.width, h: b.height };
+      else { const x2 = Math.max(r.x + r.w, b.right), y2 = Math.max(r.y + r.h, b.bottom); r.x = Math.min(r.x, b.left); r.y = Math.min(r.y, b.top); r.w = x2 - r.x; r.h = y2 - r.y; }
+    }
+    return r;
+  }
+  // 位置が落ち着いたかの判定を、初めからやり直す（手順や操作を出すたびに呼ぶ）
+  function unsettle() { S.settled = false; S.stable = 0; S.lastKey = ''; S.since = performance.now(); }
   const onScreen = (r, v) => !!r && !(r.x + r.w < 0 || r.y + r.h < 0 || r.x > v.w || r.y > v.h);
   // 部品と吹き出しの両方が画面に入るように、ページを送る。
   // 部品が見えていて、周りに吹き出しの場所があれば送らない。場所が無ければ、部品を画面の上の方へ送り、下に吹き出しの場所を空ける
@@ -554,13 +567,8 @@
     if (!el) return;
     const v = vp();
     // 判定には、入れ物で切り取る前の位置を使う（入れ物の中で画面の外へ送られている部品も、送れば見える）
-    let r = null;
-    for (const t of S.targets) {
-      const b = t.getBoundingClientRect();
-      if (!r) r = { x: b.left, y: b.top, w: b.width, h: b.height };
-      else { const x2 = Math.max(r.x + r.w, b.right), y2 = Math.max(r.y + r.h, b.bottom); r.x = Math.min(r.x, b.left); r.y = Math.min(r.y, b.top); r.w = x2 - r.x; r.h = y2 - r.y; }
-    }
-    r = toView(r, v);
+    const r = toView(fullRect(), v);
+    if (!r) return;
     const vis = toView(targetRect(), v);
     const sheet = v.w < SHEET_W;
     const nat = naturalHeight(v.h);
@@ -601,7 +609,7 @@
     if (!S.open || !dlg.open) openDialog();
     ensureModality();
     const token = ++S.token;
-    S.settled = false; S.stable = 0; S.lastKey = '';
+    unsettle();
     const st = STEPS[i];
     // 部品が隠れているときだけ、見えるようにするための部品（タブ・開閉のボタン）を順に押す
     if (Array.isArray(st.reveal) && st.reveal.length && resolveTargets(st).length === 0) {
@@ -616,7 +624,7 @@
       reshow();
     }
     if (token !== S.token) return;
-    S.settled = false; S.stable = 0; S.lastKey = '';
+    unsettle();
     S.targets = resolveTargets(st);
     S.clips = clipAncestors(S.targets);
     S.missing = st.target != null && S.targets.length === 0;
@@ -638,7 +646,7 @@
     S.mode = 'welcome'; S.resumeAt = Number.isInteger(resumeAt) ? resumeAt : null; S.toc = false; S.handoff = false;
     S.targets = []; S.clips = []; S.missing = false;
     if (!S.open || !dlg.open) openDialog();
-    S.settled = false; S.stable = 0; S.lastKey = '';
+    unsettle();
     render();
     focusSoon('.btn.pri');
     live.textContent = String(G.title || '');
@@ -730,6 +738,11 @@
   // M: 画面の端との間、GAP: 部品と吹き出しの間、PAD: 暗幕の穴を部品より広げる幅、SHEET_W: これより狭い画面では下（か上）に敷く、
   // MIN_BODY: 吹き出しを部品の横に置くとき、本文に最低限見せる高さ（これより低くなる場所には置かない）
   const M = 12, GAP = 14, PAD = 6, RADIUS = 8, SHEET_W = 600, MIN_BODY = 150;
+  // SETTLE_MS: 位置が落ち着くのを待つ上限。なめらかなスクロールは、遠い部品ほど時間がかかる
+  // （Chrome で、約 1 万 px でも約 6 万 px でも約 1.6 秒かかった）ので、それより十分に長く待つ。
+  // HOLD_MS: 部品へ移る途中、吹き出しを前の位置に留めておく上限（画面の外で動き続ける部品でも、いつかは中央に出す）
+  const SETTLE_MS = 4000, HOLD_MS = 2500;
+  const rectKey = (r) => (r ? `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}` : '-');
   function tick() {
     S.raf = 0;
     if (!S.open) return;
@@ -753,10 +766,15 @@
     }
     S.hole = hole;
     drawDim(v, hole, !!tr);
-    // 部品へ移る途中で部品がまだ画面の外にある間は、吹き出しを前の位置に留める（中央へ跳ばない）。
-    // 動きが止まっても部品が画面の外にあるときは、中央に出す
-    if (!(raw && !tr && !S.settled && S.placed)) { placeBalloon(v, tr); S.placed = true; }
-    const key = tr ? `${Math.round(tr.x)},${Math.round(tr.y)},${Math.round(tr.w)},${Math.round(tr.h)}` : 'none';
+    // 落ち着いたかは、部品が画面の外や入れ物の外にあっても、入れ物で切り取る前の位置で比べる。
+    // 画面に見えていない部品をみな同じ「無し」として比べると、長いスクロールの途中（部品がまだ画面の外にある間）も
+    // 位置が変わらないように見え、送り終わる前に落ち着いたとみなしてしまうため
+    const full = (S.mode === 'tour' || S.mode === 'op') && !S.missing ? toView(fullRect(), v) : null;
+    // 部品へ移る途中で部品がまだ画面に見えていない間は、吹き出しを前の位置に留める（中央へ跳ばない）。
+    // 動きが止まっても部品が画面に見えていないとき（と、HOLD_MS たっても動き続けるとき）は、中央に出す
+    const holding = !!(raw || full) && !tr && !S.settled && S.placed && performance.now() - S.since < HOLD_MS;
+    if (!holding) { placeBalloon(v, tr); S.placed = true; }
+    const key = rectKey(tr) + '|' + rectKey(full);
     if (key === S.lastKey && !S.tween && !balloon.classList.contains('moving')) {
       if (++S.stable >= 5 && !S.settled) { S.settled = true; S.waiters.splice(0).forEach((f) => f()); }
     } else { S.stable = 0; S.lastKey = key; }
@@ -956,7 +974,7 @@
     if (!S.open || !dlg.open) openDialog();
     ensureModality();
     const token = ++S.token;
-    S.settled = false; S.stable = 0; S.lastKey = '';
+    unsettle();
     S.targets = el ? [el] : [];
     S.clips = clipAncestors(S.targets);
     S.missing = false;
@@ -967,7 +985,7 @@
     balloon.classList.add('moving');
     clearTimeout(S.mt); S.mt = setTimeout(() => balloon.classList.remove('moving'), 380);
     live.textContent = '自動で操作する：' + S.op.say;
-    await waitSettled(3000);
+    await waitSettled(SETTLE_MS);
     if (token === S.token) await twoFrames();
     return { found: !!el };
   }
@@ -987,12 +1005,12 @@
     __test: Object.freeze({
       root: sr,
       meta: () => ({ id: G.id, title: G.title, start: G.start || 'welcome', launcher: !!LAUNCHER, steps: STEPS.map((s) => ({ id: s.id, title: s.title, levels: s.levels.length, target: s.target == null ? null : s.target, targetAll: !!s.targetAll, missing: !!s.missing, reveal: Array.isArray(s.reveal) && s.reveal.length > 0 })) }),
-      show: async (i, level, expanded) => { await show(i, Number.isInteger(level) ? level : 0, typeof expanded === 'boolean' ? expanded : undefined); await waitSettled(3000); await twoFrames(); return layoutInfo(); },
+      show: async (i, level, expanded) => { await show(i, Number.isInteger(level) ? level : 0, typeof expanded === 'boolean' ? expanded : undefined); await waitSettled(SETTLE_MS); await twoFrames(); return layoutInfo(); },
       layout: () => layoutInfo(),
     }),
     // ライブの案内で、scripts/live-tour.mjs が使う窓口
     __live: Object.freeze({
-      show: async (i, o) => { await show(i, Number.isInteger(o && o.level) ? o.level : 0, !!(o && o.expanded)); await waitSettled(3000); await twoFrames(); return layoutInfo(); },
+      show: async (i, o) => { await show(i, Number.isInteger(o && o.level) ? o.level : 0, !!(o && o.expanded)); await waitSettled(SETTLE_MS); await twoFrames(); return layoutInfo(); },
       operate: (a) => operate(a),
       hide: () => hide(),
       idle: () => idle(),
