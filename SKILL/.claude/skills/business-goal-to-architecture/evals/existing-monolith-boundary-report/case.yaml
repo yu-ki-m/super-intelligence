@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: existing-monolith-boundary-report
+expected_outcome: |
+  正式な規模として、同じ内容のMarkdownとHTMLの報告書、decision-ledger.json を作り、検査スクリプトに合格させる。報告書は会議で読む本文と付録に分け、本文の冒頭で会議で決めること・暫定推奨・判断者を示す。コードの証拠（ファイルと行）を示して、注文側から invoices への直接書込み、請求側から orders.status への直接更新、注文確定時の在庫・注文・請求の単一トランザクション、customers の意味の違い（配送先と請求先）を指摘する。現状維持・モジュール境界の整理・請求のサービス分離を4人体制の条件で比べ、暫定推奨として提案する。専門用語は初出で説明する。
+context:
+  scaffold_script: place-files.sh
