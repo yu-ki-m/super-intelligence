@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: improve-note-cleaner-copy-only
+expected_outcome: |
+  入力の note-cleaner は書き換えられず、直した写しが渡される。写しでは、元のメモを確認なしに上書きしない（確認か控えを取る）、
+  TODO などの行を黙って消さない、フォルダやファイルが無いときの扱い、何を変えたかの報告、が手順に入っている。
+  name は note-cleaner のまま。テストの実行は8回以内に収まり、テストで確かめたことと実際の利用で確かめることが分けて書かれている。
+context:
+  scaffold_script: place-files.sh

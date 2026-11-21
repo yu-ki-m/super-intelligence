@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: create-weekly-report-skill
+expected_outcome: |
+  週報を作る新しいスキルの写し（SKILL.md、必要なら references・scripts・evals）が渡され、どこにもインストールされていない。
+  スキルは、今週やったこと・来週やること・困っていることを出し、ログが無い日や書きかけのログを黙って埋めずに扱う。
+  frontmatter の name とフォルダ名がそろい、description に使う場面が書かれている。テストの実行は8回以内に収まる。
+context:
+  scaffold_script: place-files.sh
