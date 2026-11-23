@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: seminar-script-other-notation
+expected_outcome: |
+  台本の【スライド1】〜【スライド17】を指示として扱い、表紙を二重にせず17枚の pptx を作る。ノートには【間】【動き】を含む台詞が入り、クイズの答えは答えのスライドだけに出る。注記の出典はそのスライドに載り、【仮】【要確認】の所は差し替えや確認が要ると分かる形で示される。台本が挙げる製品資料が手元にないことを伝える。
+context:
+  scaffold_script: place-files.sh

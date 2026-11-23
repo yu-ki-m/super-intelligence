@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: lt-script-with-cues
+expected_outcome: |
+  台本の13か所の〔スライド：…〕に1枚ずつ対応したスライドと表紙の、計14枚の pptx ができる。各スライドのノートにその区切りの台詞が入り、クイズの答えは問いのスライドに出ず、【仮】の画面写真は差し替える場所として示される。実際に画像にして確かめた結果、はみ出しや重なりがない。
+context:
+  scaffold_script: place-files.sh
