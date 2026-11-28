@@ -363,6 +363,7 @@ class Report:
     warnings: list[str] = field(default_factory=list)
     hints: list[str] = field(default_factory=list)
     joint_hints: list[str] = field(default_factory=list)
+    unwanted_hints: list[str] = field(default_factory=list)
     kari_count: int = 0
     has_script: bool = False
 
@@ -502,32 +503,28 @@ def find_joints(doc: Doc) -> list[Joint]:
     return joints
 
 
-INSERT_START = ("申し遅れました", "改めまして")
-QUESTION_END = ("か。", "か？", "か?", "？", "?")
+LATE_INTRO_START = ("申し遅れ", "改めまして")
+HAND_REQUEST = re.compile(r"手を(挙げ|上げ|あげ)|挙手")
 
 
-def insert_hints(doc: Doc) -> list[str]:
-    """問いの文の直後に自己紹介を挟んでいる所を返す。聞き手は答えを待っているので、問いが宙に浮く。"""
+def unwanted_hints(doc: Doc) -> list[str]:
+    """利用者が頼んでいなければ台本に入れないもの（途中の名乗り、手を挙げてもらう依頼）の候補を返す。"""
     script = find_script(doc)
     if script is None:
         return []
     hints: list[str] = []
-    prev: Item | None = None
     for st in script.stages:
         for sc in st.scenes:
             for it in sc.items:
-                if it.kind != "talk":
-                    continue
-                if (
-                    prev is not None
-                    and start_key(it.text).startswith(INSERT_START)
-                    and prev.text.replace(KARI, "").rstrip().endswith(QUESTION_END)
-                ):
+                if it.kind == "talk" and start_key(it.text).startswith(LATE_INTRO_START):
                     hints.append(
-                        f"{it.lineno}行目：問いの文（{prev.text.replace(KARI, '')}）の直後に自己紹介を挟んでいる。"
-                        "問いに答えてから名乗るか、名乗る位置を変える"
+                        f"{it.lineno}行目：途中で名乗り直す言い方がある。名乗る文を頼まれていなければ消し、"
+                        "頼まれていれば台本の最初に置く"
                     )
-                prev = it
+                if it.kind != "gap" and HAND_REQUEST.search(it.text):
+                    hints.append(
+                        f"{it.lineno}行目：手を挙げてもらう依頼がある。頼まれていなければ消し、問いの後は〔間〕にする"
+                    )
     return hints
 
 
@@ -546,7 +543,7 @@ def print_joints(joints: list[Joint], extra: list[str] | None = None) -> None:
         print("台本の節がないか、切り替わりがないので、何も出していない。")
         return
     if extra:
-        print("挟み込みの候補:")
+        print("台本に入れないものの候補:")
         for h in extra:
             print(f"- {h}")
         print()
@@ -662,7 +659,7 @@ def analyze(doc: Doc, text: str, cpm: float, pause: float) -> tuple[Report, dict
     for j in find_joints(doc):
         for f in j.flags:
             rep.joint_hints.append(f"{j.lineno}行目：{joint_label(j)}。{f}")
-    rep.joint_hints.extend(insert_hints(doc))
+    rep.unwanted_hints.extend(unwanted_hints(doc))
     return rep, estimates
 
 
@@ -885,7 +882,7 @@ def main(argv: list[str] | None = None) -> int:
     text = src.read_text(encoding="utf-8-sig")
     doc = parse(text)
     if args.joints:
-        print_joints(find_joints(doc), insert_hints(doc))
+        print_joints(find_joints(doc), unwanted_hints(doc))
         return 0
     rep, estimates = analyze(doc, text, args.cpm, args.pause)
     out = Path(args.out) if args.out else src.with_suffix(".html")
@@ -906,6 +903,10 @@ def main(argv: list[str] | None = None) -> int:
     if rep.joint_hints:
         print("切り替わりの候補（--joints を付けて実行すると、前と次の文を確かめられる）:")
         for h in rep.joint_hints:
+            print(f"- {h}")
+    if rep.unwanted_hints:
+        print("台本に入れないものの候補:")
+        for h in rep.unwanted_hints:
             print(f"- {h}")
     if rep.hints:
         print("確かめる候補:")
