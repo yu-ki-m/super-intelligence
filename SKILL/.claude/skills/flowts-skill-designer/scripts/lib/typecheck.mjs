@@ -4,12 +4,15 @@
 // 引数付きの goto は、引数を隠れた変数（ラベルの引数と同じ型）に代入する関数を呼んでから移り、
 // ラベルの側でその変数から引数を受け取る。これで渡す値の型も、引数の式の位置で検査される。
 // 行は増やさないので、エラーの行番号は元の flow.ts の行と同じになる。
+// 変換したファイルは一時フォルダーに置くので、相対パスの import は元の場所を指す絶対パスに書き換える。
+// データ定義のファイルは写さずに元のファイルを読ませ、そのエラーにはファイルのパスを付ける。
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
+import { isRelative } from './data.mjs';
 
 const PRELUDE = 'declare function 実施<T>(指示: string, 入力?: Record<string, unknown>, 設定?: { 担当?: "model" | "tool" | "human"; 能力?: string }): Promise<T>; declare function __step(): string; ';
 
@@ -35,9 +38,13 @@ export function findTypeScript(explicit, dirs) {
   return found ? { tsc: found } : { reason: 'TypeScript が見つからない（--typescript で場所を指定できる。インストールは利用者の了承を得てから）' };
 }
 
-export function toCheckableTs(model) {
+export function toCheckableTs(model, flowDir) {
   const src = model.src;
-  const edits = [];
+  const edits = model.imports.filter(im => isRelative(im.spec)).map(im => ({
+    start: im.start,
+    end: im.end,
+    text: JSON.stringify(path.resolve(flowDir, im.spec).split(path.sep).join('/')),
+  }));
   for (const f of model.functions) {
     if (!f.isFlow) continue;
     const labels = f.segments.filter(s => s.kind === 'label');
@@ -88,17 +95,18 @@ export function toCheckableTs(model) {
   return PRELUDE + out;
 }
 
-export function typecheck(model, tsc) {
+// errors の file は、flow.ts のエラーなら null、import 先のファイルのエラーならその絶対パス
+export function typecheck(model, tsc, flowDir) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowts-check-'));
   const file = path.join(dir, 'flow-check.ts');
   try {
-    fs.writeFileSync(file, toCheckableTs(model));
+    fs.writeFileSync(file, toCheckableTs(model, flowDir));
     const r = spawnSync(process.execPath, [tsc, '--noEmit', '--strict', '--target', 'es2022', '--lib', 'es2022', '--locale', 'ja', '--pretty', 'false', file], { encoding: 'utf8' });
     if (r.error) return { ran: false, reason: `TypeScript を実行できなかった（${r.error.message}）`, errors: [] };
     const errors = [];
     for (const line of `${r.stdout}\n${r.stderr}`.split(/\r?\n/)) {
-      const m = line.match(/\((\d+),(\d+)\): error (TS\d+): (.*)$/);
-      if (m) errors.push({ line: Number(m[1]), code: m[3], message: m[4] });
+      const m = line.match(/^(.*?)\((\d+),(\d+)\): error (TS\d+): (.*)$/);
+      if (m) errors.push({ file: path.basename(m[1]) === path.basename(file) ? null : path.resolve(m[1]), line: Number(m[2]), code: m[4], message: m[5] });
       else if (errors.length && /^\s+\S/.test(line)) errors[errors.length - 1].message += ` ${line.trim()}`;
     }
     if (r.status !== 0 && !errors.length) return { ran: false, reason: `TypeScript が失敗した（${(r.stderr || r.stdout).trim().slice(0, 200)}）`, errors: [] };

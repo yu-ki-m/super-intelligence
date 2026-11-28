@@ -1,11 +1,13 @@
 # flow.ts から SKILL.md を書き起こす書き方と、照合のしかた
 
-作成・改善で、図で合意した flow.ts を SKILL.md に書き起こすときに読む。
-Claude が実際に読んで動くのは SKILL.md なので、正は SKILL.md にする。flow.ts は設計図として `<スキル>/flow/` に残す。
+作成・改善で、図で合意した flow.ts と、その data.ts を SKILL.md に書き起こすときに読む。
+Claude が実際に読んで動くのは SKILL.md なので、正は SKILL.md にする。flow.ts と data.ts は設計図として `<スキル>/flow/` に残す。
 
 ## 1. 書き起こしの対応
 
-| flow.ts | SKILL.md |
+型と定数は data.ts にあり、それ以外は flow.ts にある。
+
+| flow.ts・data.ts | SKILL.md |
 |---|---|
 | 入口の関数の目的、モードの分かれ方 | frontmatter の `description`（何をするか＋いつ使うか）と、本文の「目的」「モード」 |
 | 引数の型 | 「入力」：受け取る依頼文・オプション・前提 |
@@ -37,16 +39,16 @@ SKILL.md は500行以内を目安にし、長い決まりや例は `references/`
 
 ## 2. 照合のしかた
 
-書き起こした後に、flow.ts と SKILL.md が食い違っていないかを2つの向きで確かめる。
+書き起こした後に、flow.ts・data.ts と SKILL.md が食い違っていないかを2つの向きで確かめる。
 
-1. flow.ts → SKILL.md：ステップ・`goto`・`実施`・定数を1つずつ見て、SKILL.md のどこに書いたかを対応させる。
-2. SKILL.md → flow.ts：SKILL.md の手順・決まりを1つずつ見て、flow.ts のどこにあるかを対応させる。
+1. flow.ts・data.ts → SKILL.md：flow.ts のステップ・`goto`・`実施` と、data.ts の型の項目・定数を1つずつ見て、SKILL.md のどこに書いたかを対応させる。
+2. SKILL.md → flow.ts・data.ts：SKILL.md の手順・決まりを1つずつ見て、flow.ts か data.ts のどこにあるかを対応させる。
 
 対応の付かないものが見つかったら、どちらが正しいかを決めて、もう一方を直す。
-図で利用者と合意した内容は flow.ts にあるので、迷ったら flow.ts に合わせる。
+図で利用者と合意した内容は flow.ts と data.ts にあるので、迷ったらそちらに合わせる。
 照合の結果（対応の付かなかったものと、どう直したか）は報告で伝える。
 
 ## 3. その後の保守
 
-SKILL.md を直したら、flow.ts も直して `flow-view.mjs` で図を作り直す。
-直す前の flow.ts は一時フォルダー（スキルのフォルダーの外）に写して `--before` に渡し、差を図と表に出す。写しは図を作ったら消し、スキルのフォルダーには残さない。
+SKILL.md を直したら、flow.ts と data.ts も直して `flow-view.mjs` で図を作り直す。
+直す前の flow.ts は一時フォルダー（スキルのフォルダーの外）に写して `--before` に渡し、手順の差を図と表に出す。写しは図を作ったら消し、スキルのフォルダーには残さない。

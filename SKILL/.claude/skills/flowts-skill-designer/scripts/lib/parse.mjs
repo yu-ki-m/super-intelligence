@@ -21,6 +21,8 @@ const STATEMENT_WORDS = new Set([
   'break', 'continue', 'function', 'class', 'interface', 'export', 'case', 'default',
 ]);
 const OPENERS = new Set(['(', '[', '{']);
+const VARIABLE_WORDS = new Set(['const', 'let', 'var']);
+const DATA_WORDS = new Set([...VARIABLE_WORDS, 'type', 'interface', 'enum']);
 const CONTROL = new Set(['if', 'switch', 'loop', 'do', 'try']);
 
 export function tokenize(src) {
@@ -269,10 +271,18 @@ class Parser {
 
   parseModule() {
     const fns = [];
+    const imports = [];
+    const dataDecls = [];
     let i = 0;
     while (i < this.tokens.length) {
       const r = this.tryFunction(i);
       if (r) { fns.push(r.fn); i = r.next; continue; }
+      const spec = this.tokens[i + 1];
+      if ((this.v(i) === 'from' || this.v(i) === 'import') && spec?.type === 'string') {
+        imports.push({ spec: unquote(spec), start: spec.start, end: spec.end, line: spec.line });
+      }
+      const decl = this.dataDecl(i);
+      if (decl) dataDecls.push(decl);
       if (OPENERS.has(this.v(i)) && this.match[i] > i) { i = this.match[i] + 1; continue; }
       i++;
     }
@@ -320,7 +330,45 @@ class Parser {
       functions: fns.map(cleanFunction),
       helperWorks: Object.fromEntries([...this.helperWorks].map(([k, v]) => [k, v.map(w => ({ who: w.who, cap: w.cap, instruction: w.instruction }))])),
       problems: this.problems,
+      imports,
+      dataDecls,
+      // 実施の呼び出しと goto の行。データ定義のファイルに手順が混ざっていないかの検査に使う
+      stepLines: this.tokens.flatMap((t, k) => {
+        const next = this.tokens[k + 1];
+        const perform = t.value === '実施' && ['<', '('].includes(next?.value) && this.v(k - 1) !== '.';
+        const jump = t.value === 'goto' && next?.type === 'ident' && next.line === t.line;
+        return t.type === 'ident' && (perform || jump) ? [t.line] : [];
+      }),
     };
+  }
+
+  // 関数の外にある型・定数・変数の宣言（データ定義）。関数を代入する宣言は数えない
+  dataDecl(i) {
+    const kind = this.v(i);
+    if (!DATA_WORDS.has(kind) || ['.', 'import', 'as', 'declare'].includes(this.v(i - 1))) return null;
+    if (kind === 'const' && this.v(i + 1) === 'enum') return null;
+    const name = this.tokens[i + 1];
+    if (!name) return null;
+    const isVariable = VARIABLE_WORDS.has(kind);
+    const destructured = isVariable && (name.value === '{' || name.value === '[');
+    if (name.type !== 'ident' && !destructured) return null;
+    if (isVariable && this.assignsFunction(i + 1)) return null;
+    return { kind, name: destructured ? this.flat(i + 1, this.close(i + 1) + 1) : name.value, line: this.tokens[i].line };
+  }
+
+  // k は宣言する名前の位置
+  assignsFunction(k) {
+    let j = OPENERS.has(this.v(k)) ? this.close(k) + 1 : k + 1;
+    while (j < this.tokens.length && this.v(j) !== '=' && this.v(j) !== ';') j = OPENERS.has(this.v(j)) ? this.close(j) + 1 : j + 1;
+    if (this.v(j) !== '=') return false;
+    j++;
+    if (this.v(j) === 'async') j++;
+    if (this.v(j) === 'function' || this.v(j + 1) === '=>') return true;
+    if (this.v(j) === '<') j = this.angleEnd(j);
+    if (this.v(j) !== '(') return false;
+    let m = this.close(j) + 1;
+    if (this.v(m) === ':') m = this.typeEnd(m + 1, true);
+    return this.v(m) === '=>';
   }
 
   countWord(a, b, word) {

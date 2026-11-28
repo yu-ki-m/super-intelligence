@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // FlowTS（.flow.ts）を検査し、フローを図にした HTML を書き出す。
+// データ定義のファイル（型と定数）は、flow.ts の import をたどって読むので、引数では渡さない。
 //
 //   node flow-view.mjs <file.flow.ts> [--title <名前>] [--out <file.html>] [--before <改善前.flow.ts>]
 //                      [--typescript <TypeScript の場所>] [--no-tsc] [--no-html] [--json <結果.json>]
@@ -10,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseFlow } from './lib/parse.mjs';
 import { checkFlow } from './lib/check.mjs';
+import { loadDataFiles } from './lib/data.mjs';
 import { findTypeScript, typecheck } from './lib/typecheck.mjs';
 import { renderHtml } from './lib/render.mjs';
 import { diffModels } from './lib/diff.mjs';
@@ -28,17 +30,25 @@ if (!file || flag('--help')) {
 
 const src = fs.readFileSync(file, 'utf8');
 const model = parseFlow(src);
-const findings = checkFlow(model);
+const flowDir = path.dirname(path.resolve(file));
+const data = loadDataFiles(model, file);
+const findings = [...checkFlow(model), ...data.findings];
 
 let tc = { ran: false, reason: '--no-tsc の指定', errors: [] };
 if (!flag('--no-tsc')) {
-  const ts = findTypeScript(opt('--typescript'), [path.dirname(path.resolve(file)), process.cwd()]);
-  tc = ts.tsc ? typecheck(model, ts.tsc) : { ran: false, reason: ts.reason, errors: [] };
+  const ts = findTypeScript(opt('--typescript'), [flowDir, process.cwd()]);
+  tc = ts.tsc ? typecheck(model, ts.tsc, flowDir) : { ran: false, reason: ts.reason, errors: [] };
 }
 for (const e of tc.errors) {
+  const message = `型検査：${e.message}（${e.code}）`;
+  if (e.file) {
+    // import 先のファイルのエラーは、関数の欄にファイル名を出す
+    findings.push({ severity: 'エラー', fn: path.relative(flowDir, e.file).split(path.sep).join('/'), step: '', line: e.line, message });
+    continue;
+  }
   const fn = model.functions.find(f => e.line >= f.line && e.line <= f.endLine);
   const seg = fn?.segments?.find(s => !s.transparent && e.line >= s.line && e.line <= s.endLine);
-  findings.push({ severity: 'エラー', fn: fn?.name ?? '', step: seg?.title ?? '', line: e.line, message: `型検査：${e.message}（${e.code}）` });
+  findings.push({ severity: 'エラー', fn: fn?.name ?? '', step: seg?.title ?? '', line: e.line, message });
 }
 
 let diff = null;
@@ -62,6 +72,7 @@ const errors = findings.filter(x => x.severity === 'エラー');
 const warns = findings.filter(x => x.severity === '注意');
 const lines = [
   `Flow file      : ${file}`,
+  `Data files     : ${data.files.map(d => path.join(path.dirname(file), d.label)).join('、') || 'なし'}`,
   `Functions      : フロー関数 ${flows.length}（${flows.map(f => f.name).join('、') || 'なし'}）、実施を含む補助関数 ${helpers.length}`,
   `Steps          : ${steps}`,
   `Work           : ${Object.entries(work).map(([k, v]) => `${WHO[k] ?? k} ${v}`).join(' / ') || 'なし'}`,

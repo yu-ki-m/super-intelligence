@@ -1,5 +1,6 @@
 // FlowTS 0.4 の静的検査（仕様 10 章）のうち構文から確かめられるものと、手順の抜けを見つけるための注意を出す。
-// 重さは「エラー」（FlowTS として誤り）と「注意」（書き方は正しいが、手順に抜けがありそう）の2つ。
+// 重さは「エラー」（FlowTS として誤り）と「注意」（書き方は正しいが、手順に抜けがありそうか、
+// ワークフローとデータ定義の分け方が崩れている）の2つ。
 
 import { flowGraph } from './graph.mjs';
 
@@ -11,6 +12,15 @@ export function checkFlow(model) {
   const add = (severity, fn, step, line, message) => findings.push({ severity, fn, step, line, message });
 
   for (const p of model.problems) add('エラー', '', '', p.line, p.message);
+
+  if (model.dataDecls.length) {
+    const names = (label, kinds) => {
+      const list = model.dataDecls.filter(d => kinds.includes(d.kind)).map(d => d.name);
+      return list.length ? `${label} ${list.join('、')}` : '';
+    };
+    const found = [names('型', ['type', 'interface', 'enum']), names('定数・変数', ['const', 'let', 'var'])].filter(Boolean).join('／');
+    add('注意', '', '', model.dataDecls[0].line, `データ定義がワークフローのファイルにある（${found}）。データ定義のファイル（.data.ts）に移して export し、import して使う`);
+  }
 
   for (const f of model.functions) {
     if (!f.isFlow) {
@@ -96,6 +106,7 @@ export function checkFlow(model) {
 
 function checkPerform(p, fnName, stepName, add) {
   if (!p.type) add('エラー', fnName, stepName, p.line, '実施に型引数が無い（実施<T>(…) の T を書く）');
+  else if (p.type.includes('{')) add('注意', fnName, stepName, p.line, `実施の結果の型をその場で書いている（${p.type}）。データ定義のファイル（.data.ts）で型に名前を付けて使う`);
   if (!p.instruction) add('エラー', fnName, stepName, p.line, '実施に指示が無い');
   if (p.argCount > 3) add('エラー', fnName, stepName, p.line, `実施の引数が ${p.argCount} 個ある（指示・入力・設定の3つまで）`);
   if (p.who === 'unknown') return;
